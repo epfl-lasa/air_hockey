@@ -1,0 +1,10 @@
+
+recording: True
+
+recorder_folder: "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
+
+time_object_record: 1.2 # seconds of recording object position after hitting (must be lower than time between hits)
+
+post_hit_record: 0.2 # seconds of recording robot data after going to REST mode 
+
+object_mass: 0.4 # used to calculate directional flux when recording

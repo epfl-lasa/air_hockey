@@ -1,0 +1,52 @@
+
+recorder_topic: "/recorder/robot_states" # Topic to send the robots REST/HIT state from AirHockey to the Recorder
+
+passive_control: {
+  vel_quat_7: "/passive_control/iiwa1/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
+  vel_quat_14: "/passive_control/iiwa2/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
+  pos_quat_7: "/passive_control/iiwa1/pos_quat", # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
+  pos_quat_14: "/passive_control/iiwa2/pos_quat", # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
+}
+
+iiwa: {
+  dir_flux: "/iiwa/dir_flux", # Publisher - type std_msgs::Float32 (REAL)
+
+  info_7 : {
+    pose: "/iiwa1/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
+    vel: "/iiwa1/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+    joint_state : "/iiwa1/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
+    trq_cmd : "/iiwa1/TorqueController/command", # Subscriber - iiwa commanded torque - type sensor_msgs::JointState (REAL)
+  },
+
+  info_14 : {
+    pose: "/iiwa2/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
+    vel: "/iiwa2/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+    joint_state : "/iiwa2/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
+    trq_cmd : "/iiwa2/TorqueController/command", # Subscriber - iiwa commanded torque - type sensor_msgs::JointState (REAL)
+  },
+
+  inertia: {
+    taskPos_7: "/iiwa1/Inertia/taskPosInv", # Subscriber - Iiwa inertia inverse - type geometry_msgs::Inertia (SIM + REAL)
+    taskPos_14: "/iiwa2/Inertia/taskPosInv", # Subscriber - Iiwa inertia inverse - type geometry_msgs::Inertia (SIM + REAL)
+  }
+}
+
+# OPTITRACK
+vrpn_client_node: {
+  object_1: {
+    pose: "/vrpn_client_node/object_1/pose", # Subscriber - Object position and orientation - type geometry_msgs::PoseStamped (REAL)
+  },
+  iiwa_7_base: {
+    pose: "/vrpn_client_node/iiwa_7_base/pose" # Subscriber - iiwa base position + orientation - geometry_msgs::PoseStamped (REAL)
+  },
+  iiwa_14_base: {
+    pose: "/vrpn_client_node/iiwa_14_base/pose" # Subscriber - iiwa base position + orientation - geometry_msgs::PoseStamped (REAL)
+  }
+}
+
+# SIMULATION TOPICS
+gazebo: {
+  model_states: "/gazebo/model_states", # Subscriber - Object position and orientation - type gazebo_msgs::ModelStates (SIM)
+  link_states: "/gazebo/link_states" # Subscriber - Object position and orientation of iiwa links - type gazebo_msgs::LinkStates (SIM)
+
+}

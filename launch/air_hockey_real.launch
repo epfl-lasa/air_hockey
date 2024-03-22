@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+
+<!--|
+    Copyright (C) 2019 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+    Authors:  Harshit Khurana, Maxime Gautier
+    email:    harshit.khurana@epfl.ch, maxime.gautier@epfl.ch
+    website:  lasa.epfl.ch
+
+    This file is part of i_am_project EPFL (impact aware manipulation).
+|-->
+
+<launch>
+
+  <param name="simulation_referential" type="bool" value="False"/>
+
+  <!-- vrpn Optitrack -->
+  <!-- <arg name="server" default="128.178.145.172"/>
+  <node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
+      <rosparam subst_value="true">
+      server: $(arg server)
+      port: 3883
+      frame_id: world
+      broadcast_tf: true
+      # Must either specify refresh frequency > 0.0, or a list of trackers to create
+      refresh_tracker_frequency: 1.0
+      #trackers:
+      #- FirstTracker
+      #- SecondTracker
+      </rosparam>
+  </node> -->
+
+  <!-- All ROS topics names -->
+  <rosparam file="$(find i_am_project)/config/ros_topics_air_hockey.yaml" />
+  <rosparam file="$(find i_am_project)/config/hit_properties_air_hockey.yaml" />
+  <rosparam file="$(find i_am_project)/config/recorder_properties.yaml" />
+
+  <!-- Here is the node that allows me to start the AirHockey motion planning -->
+  <node pkg = "i_am_project" type = "air_hockey"  name = "air_hockey" output="screen"/>
+
+  <!-- Here is the node that allows me to record hits -->
+  <node pkg = "i_am_project" type = "recorder"  name = "recorder" output="screen"/>
+
+</launch>
+
