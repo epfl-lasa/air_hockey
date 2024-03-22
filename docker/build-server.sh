@@ -1,6 +1,6 @@
 #!/bin/bash
 BASE_IMAGE_TAG=noetic
-IMAGE_NAME=iam_project_harshit
+IMAGE_NAME=air-hockey
 
 IIWA_TOOLKIT_BRANCH="feature_ns_inertial_control"
 

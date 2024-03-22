@@ -3,17 +3,10 @@
 ## Requirements
 airhockey requires several packages to be installed in order to work properly:
 
-Note that it is possible to have everything on docker (cf. docker section)
+It is recommended to install everything using docker (cf. docker section)
 
 * **iiwa_ros**: branch `feature/inertia` (and all its dependencies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
 * **iiwa_toolkit**: branch `feature_ns_inertial_control` :  https://github.com/epfl-lasa/iiwa_toolkit_ns/tree/feature_ns_inertial_control
-
-## Run the simulation
-
-In one terminal, launch the gazebo simulation:
-``` bash
-roslaunch i_am_project airhockey_sim.launch
-```
 
 ## Docker
 
@@ -22,7 +15,6 @@ A docker containing iiwa-ros library is needed to build the air-hockey docker.
 ### Prerequisite
 
 cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequisite
-
 
 ### Docker iiwa-ros
 1. Pull the repo 
@@ -42,18 +34,25 @@ The iiwa-ros docker needs to build first.
 Build docker:
 The branch of iiwa-toolkit lib can be chosen. The default branch is feature_inertial_control
 ```bash
- ./docker/build-server.sh
+./docker/build-server.sh
 ```
 
 Run docker:
 ``` bash 
-aica-docker interactive air-hockey:noetic -u ros --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project --privileged
+aica-docker interactive air-hockey:noetic -u ros --net host --no-hostname -v /path_to_project/air-hockey:/home/ros/ros_ws/src/air-hockey --privileged
+```
+
+# Run the simulation
+
+Run thedocker container, then in one terminal, launch the gazebo simulation:
+``` bash
+roslaunch i_am_project airhockey_sim.launch
 ```
 
 # Real setup
 
 ``` bash 
-aica-docker interactive air-hockey:noetic -u ros --net host --no-hostname -v /home/maxime/Documents/i_am_project:/home/ros/ros_ws/src/i_am_project --privileged
+aica-docker interactive air-hockey:noetic -u ros --net host --no-hostname -v /home/maxime/Documents/air-hockey:/home/ros/ros_ws/src/air-hockey --privileged
 ```
 
 Computer 1 - IP: 128.178.145.165 -> connected to iiwa7 (= iiwa1 = iiwa left)

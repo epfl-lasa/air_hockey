@@ -32,7 +32,7 @@ RUN pip install scipy pandas matplotlib==3.7.4
 
 # Copy i_am_project folder inside docker
 WORKDIR /home/${USER}/ros_ws
-COPY --chown=${USER} ./ ./src/i_am_project
+COPY --chown=${USER} ./ ./src/air-hockey
 
 WORKDIR /home/${USER}/ros_ws
 ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"
