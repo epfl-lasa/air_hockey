@@ -530,11 +530,11 @@ void Recorder::setUpRecordingDir(){
   }
 
   // Copy hit_properties_air_hockey.yaml to data file to save params of recorded data 
-  std::string hit_params_to_copy = "/home/ros/ros_ws/src/i_am_project/config/hit_properties_air_hockey.yaml";
+  std::string hit_params_to_copy = "/home/ros/ros_ws/src/air-hockey/config/hit_properties_air_hockey.yaml";
   std::string hitting_params_fn = recordingFolderPath_ + "hitting_params.yaml";
   std::string toolkit_params_to_copy = "/home/ros/ros_ws/src/iiwa_toolkit_ns/config/passive_track_params_dual_real.yaml";
   std::string toolkit_params_fn = recordingFolderPath_ + "toolkit_params.yaml";
-  std::string desired_fluxes_to_copy = "/home/ros/ros_ws/src/i_am_project/desired_hitting_fluxes/" + fluxFilename_;
+  std::string desired_fluxes_to_copy = "/home/ros/ros_ws/src/air-hockey/desired_hitting_fluxes/" + fluxFilename_;
   std::string desired_fluxes_fn = recordingFolderPath_ + "desired_hitting_fluxes-" + fluxFilename_;
 
   copyYamlFile(hit_params_to_copy, hitting_params_fn);

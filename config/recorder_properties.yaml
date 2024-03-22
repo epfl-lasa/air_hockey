@@ -1,7 +1,7 @@
 
 recording: True
 
-recorder_folder: "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
+recorder_folder: "/home/ros/ros_ws/src/air-hockey/data/airhockey/"
 
 time_object_record: 1.2 # seconds of recording object position after hitting (must be lower than time between hits)
 

@@ -93,10 +93,10 @@ if [ "${MODE}" != "connect" ]; then
     docker volume rm i_am_project
     docker volume create --driver local \
     --opt type="none" \
-    --opt device="${PWD}/i_am_project" \
+    --opt device="${PWD}/air-hockey" \
     --opt o="bind" \
-    "i_am_project"
-    FWD_ARGS+=(--volume="${PWD}:/home/ros/ros_ws/src/i_am_project:rw")
+    "air-hockey"
+    FWD_ARGS+=(--volume="${PWD}:/home/ros/ros_ws/src/air-hockey:rw")
 
     echo ${FWD_ARGS}
 

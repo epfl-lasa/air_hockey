@@ -69,6 +69,7 @@ private:
   bool isAuto_;
   bool isPaused_;
   bool isFluxFixed_;
+  bool isObjectMoving_;
   float timeToWait_;
   ros::Duration waitDuration_;
 
@@ -84,11 +85,11 @@ private:
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string pubPosQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
-  std::string iiwaPositionTopicSim_;
   std::string objectPositionTopic_;
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
   std::string iiwaBasePositionTopic_[NB_ROBOTS];
+  std::string iiwaBasePositionTopicSim_;
   std::string pubFSMTopic_;
 
   ros::Rate rate_;
@@ -97,11 +98,11 @@ private:
   ros::Publisher pubPosQuat_[NB_ROBOTS];
   ros::Publisher pubFSM_;
   ros::Subscriber objectPosition_;
-  ros::Subscriber iiwaPosition_;
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
   ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
   ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
+  ros::Subscriber iiwaBasePositionSim_;
 
   geometry_msgs::Pose boxPose_;
   geometry_msgs::Pose iiwaPose_[NB_ROBOTS];
@@ -117,10 +118,11 @@ private:
   Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPosInv_[NB_ROBOTS];
   Eigen::Vector3f objectOffset_[NB_ROBOTS];
+  Eigen::Vector3f placementOffset_[NB_ROBOTS];
 
   Robot next_hit_;
   Eigen::Vector3f previousObjectPositionFromSource_;
-  Eigen::Vector3f returnPosGazebo_[NB_ROBOTS];
+  Eigen::Vector3f returnPosInitial_[NB_ROBOTS];
 
   std::unique_ptr<hitting_DS> generateHitting7_ =
       std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);
@@ -144,6 +146,7 @@ public:
   void updateDSAttractor();
   void iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k);
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
+  void iiwaBasePositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
   void iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k);
 
@@ -152,6 +155,10 @@ public:
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
   void objectPositionIiwaFrames();
+
+  void updateIsObjectMoving();
+  void updateReturnPosition();
+  void setReturnPositionToInitial();
 
   void getDesiredFluxes(std::string filename);
 

@@ -28,8 +28,8 @@
 
 
   <!-- Environnment -->
-  <node name="spawn_big_box" pkg="gazebo_ros" type="spawn_model" 
-  args="-file $(find i_am_project)/object_models/big_box.urdf -x 0.55 -y 0.0 -z 0.025 -urdf -model table_model" />
+  <node name="spawn_table" pkg="gazebo_ros" type="spawn_model" 
+  args="-file $(find i_am_project)/object_models/table.urdf -x 0.55 -y 0.0 -z 0.025 -urdf -model table_model" />
 
   <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 
   args="-file $(find i_am_project)/object_models/box.urdf -x 0.55 -y -0.4 -z 0.175 -urdf -model box_model" />
@@ -40,10 +40,10 @@
   <rosparam file="$(find i_am_project)/config/recorder_properties.yaml" />
 
   <!-- Here is the node that allows me to start the AirHockey motion planning -->
-  <node pkg = "i_am_project" type = "air_hockey"  name = "air_hockey" output="screen"/>
+  <!-- <node pkg = "i_am_project" type = "air_hockey"  name = "air_hockey" output="screen"/> -->
 
   <!-- Here is the node that allows me to record hits -->
-  <node pkg = "i_am_project" type = "recorder"  name = "recorder" output="screen"/>
+  <!-- <node pkg = "i_am_project" type = "recorder"  name = "recorder" output="screen"/> -->
 
 </launch>
 

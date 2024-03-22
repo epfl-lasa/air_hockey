@@ -1,14 +1,21 @@
-<robot name="simple_table">
-  <link name="my_table">
+<robot name="table">
+  <link name="table">
+    
+    <gazebo reference="world">
+      <static>true</static>
+    </gazebo>
+    <gazebo reference = "world">
+      <turnGravityOff>false</turnGravityOff>
+    </gazebo>
     <inertial>
-      <origin xyz="0 0 0.0145"/>
-      <mass value="10" />
-      <inertia  ixx="0.0001" ixy="0.0"  ixz="0.0"  iyy="0.0001"  iyz="0.0"  izz="0.0001" />
+      <origin xyz="0.0 0 0" /> 
+      <mass value="15" />
+      <inertia  ixx="15.0" ixy="0.0"  ixz="0.0"  iyy="15.0"  iyz="0.0"  izz="15.0" />
     </inertial>
     <visual>
-      <origin xyz="0 0 0.215"/>
+      <origin xyz="0.0 0 0"/>
       <geometry>
-        <box size="0.47 0.46 0.43"/>
+        <box size="0.8 1.6 0.1" />
       </geometry>
     </visual>
     <surface>
@@ -20,16 +27,18 @@
         </friction>
     </surface>
     <collision>
-      <origin xyz="0 0 0.215"/>
+      <origin xyz="0.0 0 0"/>
       <geometry>
-        <box size="0.47 0.46 0.43"/>
+        <box size="0.8 1.6 0.1" />
       </geometry>
     </collision>
   </link>
-  <gazebo reference="my_table">
-    <material>Gazebo/Wood</material>
-  </gazebo>
-  <gazebo>
-    <static>true</static>
+  <gazebo reference="big_box">
+    <material>
+      <ambient>0.2 0.3 0.4 1</ambient>
+      <diffuse>0.5 0.4 0.5 1</diffuse>
+      <specular>0 0 0 0</specular>
+      <emissive>0 0 0 1</emissive>
+    </material>
   </gazebo>
 </robot>
