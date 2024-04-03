@@ -46,7 +46,7 @@ aica-docker interactive air-hockey:noetic -u ros --net host --no-hostname -v /pa
 
 Run thedocker container, then in one terminal, launch the gazebo simulation:
 ``` bash
-roslaunch i_am_project airhockey_sim.launch
+roslaunch air-hockey airhockey_sim.launch
 ```
 
 # Real setup
@@ -106,7 +106,7 @@ Launch the following commands in this order
 
 Computer 1 - Terminal 1 :
 ```bash
-roslaunch i_am_project optitrack.launch
+roslaunch air-hockey optitrack.launch
 ```
 Computer 2 - Terminal 2 :
 ```bash
@@ -118,7 +118,7 @@ roslaunch iiwa_toolkit passive_track_real.launch robot_name:=iiwa1 model:=7
 ```
 Computer 1 - Terminal 4 :
 ```bash
-roslaunch i_am_project air_hockey_real.launch
+roslaunch air-hockey air_hockey_real.launch
 ```
 
 Sequence for iiwa trackpad :
@@ -135,3 +135,6 @@ Use 'sudo chmod 777 -R .' when having trouble saving files inside container
 Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 
 
+# Authors/Maintainers 
+
+Maxime Gautier : maxime.gautier@epfl.ch
