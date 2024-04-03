@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>air-hockey</name>
-  <version>0.0.0</version>
+  <version>1.0.0</version>
   <description>The air-hockey package</description>
   <maintainer email="harshit.khurana@epfl.ch">harshit</maintainer>
   <maintainer email="maxime.gautier@epfl.ch">maxime</maintainer>

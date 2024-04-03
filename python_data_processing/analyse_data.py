@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 import mplcursors
 from matplotlib.patches import Rectangle
 import pybullet 
+import math
 
 import sys
 sys.path.append('/home/maxime/Workspace/i_am_project/python_data_processing/gmm_torch')
@@ -16,6 +17,15 @@ sys.path.append('/home/maxime/Workspace/i_am_project/python_data_processing/gmm_
 import torch
 
 from process_data import parse_value, parse_list, parse_strip_list, parse_strip_list_with_commas
+
+# PROCESSING
+def wrap_angle(angle_rad):
+    # wraps an angle
+    angle_deg = math.degrees(angle_rad)
+    mod_angle = (angle_deg) % 180
+    if angle_deg >= 180 : return 180-mod_angle
+    if angle_deg <= -180: return -mod_angle
+    else: return angle_deg
 
 # CLEANING FUNCTION
 def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
@@ -210,6 +220,7 @@ def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True):
 
     ## calculate quaternion diff
     df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1)
+    df["OrientationError"] = df["OrientationError"].apply(lambda x : [wrap_angle(i) for i in x]).copy()
 
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
@@ -301,43 +312,63 @@ def flux_hashtable(df, use_mplcursors=True):
     plt.show()
 
 
-def plot_object_trajectory(df, use_mplcursors=True):
+def plot_object_trajectory(df, use_mplcursors=True, random_selection=True):
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8)) 
 
-    df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1)
+    # Random selection
+    if random_selection:
+        nb_samples = 5
 
-    start_pos0 =[] # list for color
+        temp_df = pd.DataFrame()
+
+        for iiwa in [7,14]:
+            high_flux_df = df[(df['HittingFlux'] >= 0.90) & (df['IiwaNumber'] == iiwa)].sample(n=nb_samples)
+            med_flux_df = df[(df['HittingFlux'] >= 0.8) & (df['HittingFlux'] <=0.9) & (df['IiwaNumber'] == iiwa)].sample(n=nb_samples)
+            low_flux_df = df[(df['HittingFlux'] <=0.8) & (df['IiwaNumber'] == iiwa)].sample(n=nb_samples)
+
+            temp_df = pd.concat([temp_df, high_flux_df, med_flux_df, low_flux_df])
+
+        df = temp_df
+
+    else :
+        # hand selected trajectories to plot 
+        idx_to_plot = [4,10,33,67,69,81,105,115,122,130,169,171,649,648,651,652,654,655,666,684,837,850,851,861,870]
+        df = df[df.index.isin(idx_to_plot)]
+
+    # get wrapped orientation error
+    df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1).copy()
+    df["OrientationError"] = df["OrientationError"].apply(lambda x : [wrap_angle(i) for i in x]).copy()
+
+    start_pos0 = [] # list for color
     start_pos1 = []
 
     for index,row in df.iterrows():
 
+        # get object trajectory from file name
+        data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey/"
+        if os.name == "nt": # Windows OS
+            rec_sess = row["RecSession"].replace(":","_")
+        else : rec_sess = row["RecSession"]
+        
+        obj_fn = data_folder + rec_sess + f"/object_hit_{row['HitNumber']}.csv"
+        
+        df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list, 'Orientation': parse_list})
+
         if row['IiwaNumber']==7 :
             
-            # get object trajectory from file name
-            data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey/"
-            obj_fn = data_folder + row["RecSession"] + f"/object_hit_{row['HitNumber']}.csv"
-            
-            df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list, 'Orientation': parse_list})
-
             # inverted to adpat to optitrack reference frame
             axes[0].plot(-df_obj['Position'].apply(lambda x: x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
-            # axes[0].scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], c=row['OrientationError'][2], cmap="viridis")
+            # axes[0].scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"idx:{index}")
             start_pos0.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
 
             axes[0].set_title("IIWA 7")
 
         if row['IiwaNumber']==14 :
             
-            # get object trajectory from file name
-            data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey/"
-            obj_fn = data_folder + row["RecSession"] + f"/object_hit_{row['HitNumber']}.csv"
-            
-            df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list, 'Orientation': parse_list})
-
             # inverted to adpat to optitrack reference frame
             axes[1].plot(-df_obj['Position'].apply(lambda x: x[0]), df_obj['Position'].apply(lambda x: x[1]))
-            # scatter = axes[1].scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], c=row['OrientationError'][2], cmap="viridis")
+            # axes[1].scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"idx:{index}")
             start_pos1.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
 
             axes[1].set_title("IIWA 14")
@@ -360,7 +391,9 @@ def plot_object_trajectory(df, use_mplcursors=True):
         ax.set_xlabel('Y Axis [m]')
         ax.set_ylabel('X-axis [m]')
         ax.grid(True)
-    plt.legend()
+        ax.set_aspect('equal')
+    leg = fig.legend(loc='center left', bbox_to_anchor=(0.5, 0.5))
+    leg.set_draggable(state=True)
     fig.suptitle(f"Object trajectories")
     # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
     
@@ -383,10 +416,11 @@ if __name__== "__main__" :
 
     ### Plot functions
     # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    plot_hit_position(clean_df, plot="on object" , use_mplcursors=True)
-    # plot_orientation_vs_distance(clean_df, axis="x")
+    # plot_hit_position(clean_df, plot="on object" , use_mplcursors=True)
+    # plot_orientation_vs_distance(clean_df, axis="z")
     # flux_hashtable(clean_df)
-    # plot_object_trajectory(clean_df)
+    plot_object_trajectory(clean_df, use_mplcursors=False)
+
 
     # test_gmm_torch(clean_data(df))
 
