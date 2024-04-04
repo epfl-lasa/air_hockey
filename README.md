@@ -28,7 +28,7 @@ cd docker
 bash install_docker.sh
 ```
 
-### Docker i_am_project
+### Docker air_hockey
 The iiwa-ros docker needs to build first.
 
 Build docker:

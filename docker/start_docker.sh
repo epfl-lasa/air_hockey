@@ -89,8 +89,8 @@ if [ "${MODE}" != "connect" ]; then
     FWD_ARGS+=("--privileged")
 
 
-    # Add volume i_am_project
-    docker volume rm i_am_project
+    # Add volume air_hockey
+    docker volume rm air_hockey
     docker volume create --driver local \
     --opt type="none" \
     --opt device="${PWD}/air_hockey" \

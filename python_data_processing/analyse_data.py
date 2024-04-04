@@ -11,7 +11,7 @@ import pybullet
 import math
 
 import sys
-sys.path.append('/home/maxime/Workspace/i_am_project/python_data_processing/gmm_torch')
+sys.path.append('/home/maxime/Workspace/air_hockey/python_data_processing/gmm_torch')
 # from gmm_torch.gmm import GaussianMixture
 # from gmm_torch.example import plot
 import torch
