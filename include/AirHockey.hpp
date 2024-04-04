@@ -86,6 +86,7 @@ private:
   std::string pubPosQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
   std::string objectPositionTopic_;
+  std::string objectPositionTopicReal_[NB_ROBOTS];
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
   std::string iiwaBasePositionTopic_[NB_ROBOTS];
@@ -97,11 +98,12 @@ private:
   ros::Publisher pubVelQuat_[NB_ROBOTS];
   ros::Publisher pubPosQuat_[NB_ROBOTS];
   ros::Publisher pubFSM_;
-  ros::Subscriber objectPosition_;
+  ros::Subscriber objectPosition_[NB_ROBOTS];
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
   ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
   ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
+  ros::Subscriber objectPositionSim_;
   ros::Subscriber iiwaBasePositionSim_;
 
   geometry_msgs::Pose boxPose_;
@@ -111,6 +113,7 @@ private:
   Eigen::Vector3f objectPositionFromSource_;
   Eigen::Vector4f objectOrientationFromSource_;
   Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
+  Eigen::Vector4f objectOrientationForIiwa_[NB_ROBOTS];
   Eigen::Matrix3f rotationMat_;
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
   Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
@@ -153,8 +156,7 @@ public:
   void iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k);
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
-  void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
-  void objectPositionIiwaFrames();
+  void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
 
   void updateIsObjectMoving();
   void updateReturnPosition();

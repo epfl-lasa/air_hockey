@@ -28,7 +28,7 @@ RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit
 USER ${USER}
 
 # Python (for python plots)
-RUN pip install scipy pandas matplotlib==3.7.4
+RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch
 
 # Copy i_am_project folder inside docker
 WORKDIR /home/${USER}/ros_ws

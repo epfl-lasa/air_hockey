@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<launch>    
+    <arg name = "server"      default="128.178.145.172"/>
+    <arg name = "list_object" default="['/vrpn_client_node/object_1/pose']"/>
+    
+    <arg name = "name_base_optitrack"   default="base"/>
+    <arg name = "name_base_1"   default="/vrpn_client_node/iiwa_7_base/pose"/>
+    <arg name = "name_base_2"   default="/vrpn_client_node/iiwa_14_base/pose"/>
+
+    <!-- vrpn Optitrack -->
+    <node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
+        <rosparam subst_value="true">
+        server: $(arg server)
+        port: 3883
+        frame_id: world
+        broadcast_tf: true
+        # Set as 1000 in order to process any optitrack frquency
+        update_frequency: 1000.0
+        # Must either specify refresh frequency > 0.0, or a list of trackers to create
+        refresh_tracker_frequency: 1.0
+        </rosparam>
+    </node>
+    
+    <!-- Transform to robot base 1 -->
+    <node name="optitrack_transform_base_1" pkg="optitrack_ros_interface" type="optitrack_transform_publisher" output="screen" >
+    	<rosparam subst_value="true">
+        list_object: $(arg list_object)
+        name_base: $(arg name_base_1)
+        name_base_optitrack: $(arg name_base_optitrack)
+        </rosparam>
+    </node>
+
+    <!-- Transform to robot base 1 -->
+    <node name="optitrack_transform_base_2" pkg="optitrack_ros_interface" type="optitrack_transform_publisher" output="screen" >
+    	<rosparam subst_value="true">
+        list_object: $(arg list_object)
+        name_base: $(arg name_base_2)
+        name_base_optitrack: $(arg name_base_optitrack)
+        </rosparam>
+    </node>
+</launch>
+
+

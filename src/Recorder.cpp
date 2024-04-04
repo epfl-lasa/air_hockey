@@ -39,17 +39,18 @@ bool Recorder::init() {
     if (!nh_.getParam("/iiwa/info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
     if (!nh_.getParam("/iiwa/info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
     if (!nh_.getParam("/iiwa/info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
-    if (!nh_.getParam("/vrpn_client_node/object_1/pose", objectPositionTopic_)) {ROS_ERROR("Topic vrpn/object1 not found");}
+    if (!nh_.getParam("/optitrack/object_from_base_1/pose", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/object_from_base_1/pose not found");}
+    if (!nh_.getParam("/optitrack/object_from_base_2/pose", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/object_from_base_2/pose not found");}
   }
 
   // Init subscribers
   if(isSim_){
-    objectPosition_ = nh_.subscribe(objectPositionTopic_,
+    objectPositionSim_ = nh_.subscribe(objectPositionTopic_,
                                   1,
                                   &Recorder::objectPositionCallbackGazebo,
                                   this,
                                   ros::TransportHints().reliable().tcpNoDelay());
-    iiwaPosition_ = nh_.subscribe(iiwaPositionTopicSim_,
+    iiwaPositionSim_ = nh_.subscribe(iiwaPositionTopicSim_,
                                 1,
                                 &Recorder::iiwaPositionCallbackGazebo,
                                 this,
@@ -57,12 +58,19 @@ bool Recorder::init() {
 
   }
   else if (!isSim_){
-    objectPosition_ = nh_.subscribe(objectPositionTopic_,
-                                   1,
-                                   &Recorder::objectPositionCallbackReal,
-                                   this,
-                                   ros::TransportHints().reliable().tcpNoDelay());
+    objectPosition_[IIWA_7] = 
+        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_7],
+                                                  1,
+                                                  boost::bind(&Recorder::objectPositionCallbackReal, this, _1, IIWA_7),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
 
+    objectPosition_[IIWA_14] = 
+        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_7],
+                                                  1,
+                                                  boost::bind(&Recorder::objectPositionCallbackReal, this, _1, IIWA_14),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
     iiwaPositionReal_[IIWA_7] = 
         nh_.subscribe<geometry_msgs::Pose>(iiwaPositionTopicReal_[IIWA_7],
                                             1,
@@ -152,7 +160,7 @@ bool Recorder::init() {
                             this,
                             ros::TransportHints().reliable().tcpNoDelay());
 
-  previousObjectPositionFromSource_ = objectPositionFromSource_; // set prev position
+  if(!isSim_){previousObjectPosition_ = objectPositionForIiwa_[IIWA_7]; }// set prev position
   moved_manually_count_ = 1; // set count for moved manually
 
   // resize once here to avoid doing it in subscriber 
@@ -217,9 +225,10 @@ void Recorder::iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& ms
   iiwaVelocityFromSource_[k]  << msg->linear.x, msg->linear.y, msg->linear.z;
 }
 
-void Recorder::objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg){
-  objectPositionFromSource_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
-  objectOrientationFromSource_ << msg->pose.orientation.w, msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z;
+void Recorder::objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k){
+  objectPositionForIiwa_[k] << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  objectOrientationForIiwa_[k] << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
+      msg->pose.orientation.w;
 }
 
 void Recorder::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k){
@@ -330,8 +339,10 @@ void Recorder::recordObject(bool manual){
   RecordedObjectState newState;
   // Get the current time
   newState.time = ros::Time::now();
-  newState.position = objectPositionFromSource_;
-  newState.orientation = objectOrientationFromSource_;
+  newState.position_for_base_1 = objectPositionForIiwa_[IIWA_7];
+  newState.orientation_for_base_1 = objectOrientationForIiwa_[IIWA_7];
+  newState.position_for_base_2 = objectPositionForIiwa_[IIWA_14];
+  newState.orientation_for_base_2 = objectOrientationForIiwa_[IIWA_14];
 
   // Add the new state to the vector
   if(manual){objectStatesVectorManual_.push_back(newState);}
@@ -345,7 +356,7 @@ void Recorder::recordObjectMovedByHand(int hit_count){
   bool manual = true;
   float stopped_threshold = 2*1e-4;
   float moving_threshold = 1e-3;
-  float norm = (previousObjectPositionFromSource_-objectPositionFromSource_).norm();
+  float norm = (previousObjectPosition_-objectPositionForIiwa_[IIWA_7]).norm();
   if(norm == 0){return;} // object callback has not yet been updated
   // Need to update prevPosition -> we consider object cannot manually be moved more than 10cm in 5ms
   if(norm > 0.1){norm = 0;}// hack to avoid writing file right after hit 
@@ -368,7 +379,7 @@ void Recorder::recordObjectMovedByHand(int hit_count){
     recordObject(manual);
   }
 
-  previousObjectPositionFromSource_ = objectPositionFromSource_;
+  previousObjectPosition_ = objectPositionForIiwa_[IIWA_7];
 }
 
 void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
@@ -425,15 +436,17 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
   }
 
   // Write CSV header
-  outFile << "RosTime,Position,Orientation\n";
+  outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14\n";
 
   if(!manual){
     // Write each RobotState structure to the file
     for (const auto& state : objectStatesVector_) {
         // outFile << "Object Name: " << state.robot_name << "\n";
         outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
-                << state.position.transpose() << ","
-                << state.orientation.transpose() << "\n";
+                << state.position_for_base_1.transpose() << ","
+                << state.orientation_for_base_1.transpose() << ","
+                << state.position_for_base_2.transpose() << ","
+                << state.orientation_for_base_2.transpose() << "\n";
     }
 
     outFile.close();
@@ -446,7 +459,10 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
     for (const auto& state : objectStatesVectorManual_) {
         // outFile << "Object Name: " << state.robot_name << "\n";
         outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
-                << state.position.transpose() << "\n";
+                << state.position_for_base_1.transpose() << ","
+                << state.orientation_for_base_1.transpose() << ","
+                << state.position_for_base_2.transpose() << ","
+                << state.orientation_for_base_2.transpose() << "\n";
     }
 
     outFile.close();
@@ -621,7 +637,7 @@ void Recorder::run() {
       // If not during hit, check if we are moving the object manually, record if so
       else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
               time_since_hit > max_recording_time && !write_once_object){
-        recordObjectMovedByHand(hit_count-1);
+        if(!isSim_){recordObjectMovedByHand(hit_count-1);}
       }
 
       //// ROBOT RECORDING LOGIC 

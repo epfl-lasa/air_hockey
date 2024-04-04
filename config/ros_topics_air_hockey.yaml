@@ -32,16 +32,13 @@ iiwa: {
 }
 
 # OPTITRACK
-vrpn_client_node: {
-  object_1: {
-    pose: "/vrpn_client_node/object_1/pose", # Subscriber - Object position and orientation - type geometry_msgs::PoseStamped (REAL)
+optitrack: {
+  object_from_base_1: {
+    pose: "/vrpn_client_node/object_1/pose", # Subscriber - Object position and orientation transformed to base 1 - type geometry_msgs::PoseStamped (REAL)
   },
-  iiwa_7_base: {
-    pose: "/vrpn_client_node/iiwa_7_base/pose" # Subscriber - iiwa base position + orientation - geometry_msgs::PoseStamped (REAL)
+  object_from_base_2: {
+    pose: "/vrpn_client_node/object_1/pose", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
   },
-  iiwa_14_base: {
-    pose: "/vrpn_client_node/iiwa_14_base/pose" # Subscriber - iiwa base position + orientation - geometry_msgs::PoseStamped (REAL)
-  }
 }
 
 # SIMULATION TOPICS

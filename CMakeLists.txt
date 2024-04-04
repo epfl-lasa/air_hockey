@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(air-hockey)
+project(air_hockey)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -30,12 +30,12 @@ include_directories(
 include_directories(include)
 include_directories(${EIGEN3_INCLUDE_DIR} "/usr/local/include")
 
-add_executable(air_hockey src/AirHockey.cpp src/dynamical_system.cpp) # src/optimizer.cpp) 
-target_link_libraries(air_hockey ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs" "-L/usr/local/lib") #osqp::osqp OsqpEigen::OsqpEigen
-add_dependencies(air_hockey i_am_project_generate_messages_cpp)
+add_executable(airhockey src/AirHockey.cpp src/dynamical_system.cpp) # src/optimizer.cpp) 
+target_link_libraries(airhockey ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs" "-L/usr/local/lib") #osqp::osqp OsqpEigen::OsqpEigen
+add_dependencies(airhockey air_hockey_generate_messages_cpp)
 
 add_executable(recorder src/Recorder.cpp)#src/dynamical_system.cpp) # src/optimizer.cpp) 
 target_link_libraries(recorder ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs" "-L/usr/local/lib") #osqp::osqp OsqpEigen::OsqpEigen
-add_dependencies(recorder i_am_project_generate_messages_cpp)
+add_dependencies(recorder air_hockey_generate_messages_cpp)
 
 

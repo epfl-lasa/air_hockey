@@ -37,7 +37,8 @@ bool AirHockey::init() {
   }
 
   else if (!isSim_){
-    if (!nh_.getParam("/vrpn_client_node/object_1/pose", objectPositionTopic_)) {ROS_ERROR("Topic vrpn/object1 not found");}
+    if (!nh_.getParam("/optitrack/object_from_base_1/pose", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/object_from_base_1/pose not found");}
+    if (!nh_.getParam("/optitrack/object_from_base_2/pose", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/object_from_base_2/pose not found");}
     if (!nh_.getParam("/vrpn_client_node/iiwa_7_base/pose", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic vrpn/iiwa7 not found");}
     if (!nh_.getParam("/vrpn_client_node/iiwa_14_base/pose", iiwaBasePositionTopic_[IIWA_14])) {ROS_ERROR("Topic vrpn/iiwa14 not found");}
   }
@@ -51,7 +52,7 @@ bool AirHockey::init() {
 
   // Init subscribers
   if(isSim_){
-    objectPosition_ = nh_.subscribe(objectPositionTopic_,
+    objectPositionSim_ = nh_.subscribe(objectPositionTopic_,
                                   1,
                                   &AirHockey::objectPositionCallbackGazebo,
                                   this,
@@ -64,11 +65,19 @@ bool AirHockey::init() {
                                 ros::TransportHints().reliable().tcpNoDelay());
   }
   else if (!isSim_){
-    objectPosition_ = nh_.subscribe(objectPositionTopic_,
-                                   1,
-                                   &AirHockey::objectPositionCallbackReal,
-                                   this,
-                                   ros::TransportHints().reliable().tcpNoDelay());
+    objectPosition_[IIWA_7] = 
+        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_7],
+                                                  1,
+                                                  boost::bind(&AirHockey::objectPositionCallbackReal, this, _1, IIWA_7),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
+
+    objectPosition_[IIWA_14] = 
+        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_7],
+                                                  1,
+                                                  boost::bind(&AirHockey::objectPositionCallbackReal, this, _1, IIWA_14),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
 
     iiwaBasePosition_[IIWA_7] = 
         nh_.subscribe<geometry_msgs::PoseStamped>(iiwaBasePositionTopic_[IIWA_7], 
@@ -281,35 +290,20 @@ void AirHockey::iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::C
   iiwaBasePositionFromSource_[k]  << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
 }
 
-void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg){
-  objectPositionFromSource_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
-  objectOrientationFromSource_ << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
+void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k){
+  objectPositionForIiwa_[k] << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  objectOrientationForIiwa_[k] << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
       msg->pose.orientation.w;
 }
 
 // UPDATES AND CALCULATIONS
-void AirHockey::objectPositionIiwaFrames() {
-
-  if(isSim_){
-    // Add offset due to robots not being placed in center of Gazebo reference frame in simulation 
-    objectPositionForIiwa_[IIWA_7] = objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_7];
-    objectPositionForIiwa_[IIWA_14] = objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_14];
-  }
-
-  // TODO : change this when adding proper optitrack 
-  else if(!isSim_){
-    rotationMat_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
-
-    objectPositionForIiwa_[IIWA_7] = rotationMat_ * (objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_7]);
-    objectPositionForIiwa_[IIWA_14] = rotationMat_ * (objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_14]);
-  }
-}
 
 void AirHockey::updateDSAttractor() {
 
-  objectPositionIiwaFrames();
-
   if(isSim_){ // avoid using offset -> TO CHANGE LATER 
+    objectPositionForIiwa_[IIWA_7] = objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_7];
+    objectPositionForIiwa_[IIWA_14] = objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_14];
+
     generateHitting7_->set_DS_attractor(objectPositionForIiwa_[IIWA_7]);
     generateHitting14_->set_DS_attractor(objectPositionForIiwa_[IIWA_14]);
   }
@@ -349,7 +343,7 @@ void AirHockey::updateIsObjectMoving(){
   // Thershold for detecting movement
   float object_stopped_threshold = 2*1e-4;
 
-  float object_speed = (objectPositionFromSource_-previousObjectPositionFromSource_).norm();
+  float object_speed = (objectPositionForIiwa_[IIWA_7]-previousObjectPositionFromSource_).norm();
 
   if(object_speed > object_stopped_threshold){
     isObjectMoving_ = true;
@@ -359,7 +353,7 @@ void AirHockey::updateIsObjectMoving(){
   }
 
   // Update previous object pos
-  previousObjectPositionFromSource_ = objectPositionFromSource_;
+  previousObjectPositionFromSource_ = objectPositionForIiwa_[IIWA_7];
 }
 
 void AirHockey::updateReturnPosition(){
