@@ -48,7 +48,7 @@ bool AirHockey::init() {
   pubVelQuat_[IIWA_14] = nh_.advertise<geometry_msgs::Pose>(pubVelQuatTopic_[IIWA_14], 1);
   pubPosQuat_[IIWA_7] = nh_.advertise<geometry_msgs::Pose>(pubPosQuatTopic_[IIWA_7], 1);
   pubPosQuat_[IIWA_14] = nh_.advertise<geometry_msgs::Pose>(pubPosQuatTopic_[IIWA_14], 1);
-  pubFSM_ = nh_.advertise<i_am_project::FSM_state>(pubFSMTopic_, 1);
+  pubFSM_ = nh_.advertise<air_hockey::FSM_state>(pubFSMTopic_, 1);
 
   // Init subscribers
   if(isSim_){
@@ -207,7 +207,7 @@ bool AirHockey::init() {
     std::string flux_fn;
     if (!nh_.getParam("desired_fluxes_filename",flux_fn)) { ROS_ERROR("Param desired_fluxes_filename not found"); }
 
-    flux_fn = "/home/ros/ros_ws/src/i_am_project/desired_hitting_fluxes/" + flux_fn;
+    flux_fn = "/home/ros/ros_ws/src/air_hockey/desired_hitting_fluxes/" + flux_fn;
     this->getDesiredFluxes(flux_fn);
 
     hittingFlux_[IIWA_7] = hittingFluxArr_[0];
@@ -233,8 +233,8 @@ void AirHockey::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkSt
   iiwaPose_[IIWA_7] = linkStates.pose[indexIiwa1];
   iiwaPositionFromSource_[IIWA_7] << iiwaPose_[IIWA_7].position.x, iiwaPose_[IIWA_7].position.y,
       iiwaPose_[IIWA_7].position.z;
-  iiwaOrientationFromSource_[IIWA_7] << iiwaPose_[IIWA_7].orientation.w, iiwaPose_[IIWA_7].orientation.x, 
-      iiwaPose_[IIWA_7].orientation.y, iiwaPose_[IIWA_7].orientation.z;    
+  iiwaOrientationFromSource_[IIWA_7] << iiwaPose_[IIWA_7].orientation.x, iiwaPose_[IIWA_7].orientation.y, 
+      iiwaPose_[IIWA_7].orientation.z, iiwaPose_[IIWA_7].orientation.w;    
 
   iiwaVel_[IIWA_7] = linkStates.twist[indexIiwa1];
   iiwaVelocityFromSource_[IIWA_7] << iiwaVel_[IIWA_7].linear.x, iiwaVel_[IIWA_7].linear.y,
@@ -243,8 +243,8 @@ void AirHockey::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkSt
   iiwaPose_[IIWA_14] = linkStates.pose[indexIiwa2];
   iiwaPositionFromSource_[IIWA_14] << iiwaPose_[IIWA_14].position.x, iiwaPose_[IIWA_14].position.y,
       iiwaPose_[IIWA_14].position.z;
-  iiwaOrientationFromSource_[IIWA_14] << iiwaPose_[IIWA_14].orientation.w, iiwaPose_[IIWA_14].orientation.x, 
-      iiwaPose_[IIWA_14].orientation.y, iiwaPose_[IIWA_14].orientation.z; 
+  iiwaOrientationFromSource_[IIWA_14] << iiwaPose_[IIWA_14].orientation.x, iiwaPose_[IIWA_14].orientation.y, 
+      iiwaPose_[IIWA_14].orientation.z, iiwaPose_[IIWA_14].orientation.w; 
 
   iiwaVel_[IIWA_14] = linkStates.twist[indexIiwa2];
   iiwaVelocityFromSource_[IIWA_14] << iiwaVel_[IIWA_14].linear.x, iiwaVel_[IIWA_14].linear.y,
@@ -437,7 +437,7 @@ void AirHockey::publishPosQuat(Eigen::Vector3f pos[], Eigen::Vector4f quat[], Ro
 }
 
 void AirHockey::publishFSM(FSMState current_state){
-  i_am_project::FSM_state msg;
+  air_hockey::FSM_state msg;
   msg.mode_iiwa7 = static_cast<uint8_t>(current_state.mode_iiwa7);
   msg.mode_iiwa14 = static_cast<uint8_t>(current_state.mode_iiwa14);
   msg.isHit = current_state.isHit;

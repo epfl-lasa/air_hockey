@@ -1,6 +1,7 @@
 //|
 //|    Copyright (C) 2021-2023 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
 //|    Authors: Harshit Khurana (maintainer)
+//|    	        Maxime Gautier (maintainer)
 //|
 //|    email:   harshit.khurana@epfl.ch
 //|
@@ -46,7 +47,7 @@
 
 #include "dynamical_system.h"
 #include "keyboard_interaction.hpp"
-#include "i_am_project/FSM_state.h"
+#include "air_hockey/FSM_state.h"
 
 #define NB_ROBOTS 2// Number of robots
 

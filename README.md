@@ -1,4 +1,4 @@
-# Air-Hockey 
+# Air_hockey 
 
 ## Requirements
 airhockey requires several packages to be installed in order to work properly:
@@ -10,7 +10,7 @@ It is recommended to install everything using docker (cf. docker section)
 
 ## Docker
 
-A docker containing iiwa-ros library is needed to build the air-hockey docker.
+A docker containing iiwa-ros library is needed to build the air_hockey docker.
 
 ### Prerequisite
 
@@ -39,20 +39,20 @@ The branch of iiwa-toolkit lib can be chosen. The default branch is feature_iner
 
 Run docker:
 ``` bash 
-aica-docker interactive air-hockey:noetic -u ros --net host --no-hostname -v /path_to_project/air-hockey:/home/ros/ros_ws/src/air-hockey --privileged
+aica-docker interactive air_hockey:noetic -u ros --net host --no-hostname -v /path_to_project/air_hockey:/home/ros/ros_ws/src/air_hockey --privileged
 ```
 
 # Run the simulation
 
 Run thedocker container, then in one terminal, launch the gazebo simulation:
 ``` bash
-roslaunch air-hockey airhockey_sim.launch
+roslaunch air_hockey airhockey_sim.launch
 ```
 
 # Real setup
 
 ``` bash 
-aica-docker interactive air-hockey:noetic -u ros --net host --no-hostname -v /home/maxime/Documents/air-hockey:/home/ros/ros_ws/src/air-hockey --privileged
+aica-docker interactive air_hockey:noetic -u ros --net host --no-hostname -v /home/maxime/Documents/air_hockey:/home/ros/ros_ws/src/air_hockey --privileged
 ```
 
 Computer 1 - IP: 128.178.145.165 -> connected to iiwa7 (= iiwa1 = iiwa left)
@@ -70,7 +70,7 @@ airhockey
 
 Connect with other terminals using : 
 ```bash
-aica-docker connect air-hockey-noetic-runtime -u ros
+aica-docker connect air_hockey-noetic-runtime -u ros
 ```
 (use this command on computer 2 to leave container running)
 
@@ -106,7 +106,7 @@ Launch the following commands in this order
 
 Computer 1 - Terminal 1 :
 ```bash
-roslaunch air-hockey optitrack.launch
+roslaunch air_hockey optitrack.launch
 ```
 Computer 2 - Terminal 2 :
 ```bash
@@ -118,7 +118,7 @@ roslaunch iiwa_toolkit passive_track_real.launch robot_name:=iiwa1 model:=7
 ```
 Computer 1 - Terminal 4 :
 ```bash
-roslaunch air-hockey air_hockey_real.launch
+roslaunch air_hockey air_hockey_real.launch
 ```
 
 Sequence for iiwa trackpad :

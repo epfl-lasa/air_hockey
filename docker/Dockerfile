@@ -32,8 +32,8 @@ RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet 
 
 # Copy i_am_project folder inside docker
 WORKDIR /home/${USER}/ros_ws
-COPY --chown=${USER} ./ ./src/air-hockey
+COPY --chown=${USER} ./ ./src/air_hockey
 
 WORKDIR /home/${USER}/ros_ws
 ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make"
+# RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make"

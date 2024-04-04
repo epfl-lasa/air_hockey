@@ -1,5 +1,5 @@
 #!/bin/bash
-IMAGE_NAME="air-hockey"
+IMAGE_NAME="air_hockey"
 IMAGE_TAG="noetic"
 CONTAINER_NAME="${IMAGE_NAME//[\/.]/-}"
 USERNAME="ros"
@@ -93,10 +93,10 @@ if [ "${MODE}" != "connect" ]; then
     docker volume rm i_am_project
     docker volume create --driver local \
     --opt type="none" \
-    --opt device="${PWD}/air-hockey" \
+    --opt device="${PWD}/air_hockey" \
     --opt o="bind" \
-    "air-hockey"
-    FWD_ARGS+=(--volume="${PWD}:/home/ros/ros_ws/src/air-hockey:rw")
+    "air_hockey"
+    FWD_ARGS+=(--volume="${PWD}:/home/ros/ros_ws/src/air_hockey:rw")
 
     echo ${FWD_ARGS}
 

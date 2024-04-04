@@ -1,8 +1,10 @@
 //|
 //|    Copyright (C) 2021-2023 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
 //|    Authors: Harshit Khurana (maintainer)
+//|    	        Maxime Gautier (maintainer)
 //|
-//|    email:   harshit.khurana@epfl.ch
+//|    emails:  harshit.khurana@epfl.ch
+//|             maxime.gautier@epfl.ch
 //|
 //|    website: lasa.epfl.ch
 //|
@@ -44,7 +46,7 @@
 #include <iomanip>
 #include <limits>
 
-#include "i_am_project/FSM_state.h"
+#include "air_hockey/FSM_state.h"
 
 #define NB_ROBOTS 2// Number of robots
 
@@ -169,7 +171,7 @@ public:
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void iiwaTorqueCmdCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k);
-  void FSMCallback(const i_am_project::FSM_state::ConstPtr& msg);
+  void FSMCallback(const air_hockey::FSM_state::ConstPtr& msg);
 
   void recordRobot(Robot robot_name);
   void recordObject(bool manual);
