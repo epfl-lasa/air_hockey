@@ -11,7 +11,7 @@ bool AirHockey::init() {
   // Check safetz distance
   if (!nh_.getParam("safety_distance", objectSafetyDistance_)) { ROS_ERROR("Param safety distance not found"); }
   // Check tiem to wait between hits
-  if (!nh_.getParam("time_to_wait",timeToWait_)) { ROS_ERROR("Param tiem to waitnot found"); }
+  if (!nh_.getParam("time_to_wait",timeToWait_)) { ROS_ERROR("Param time to wait not found"); }
   waitDuration_= ros::Duration(timeToWait_);
 
   // Get topics names
@@ -39,8 +39,6 @@ bool AirHockey::init() {
   else if (!isSim_){
     if (!nh_.getParam("/optitrack/object_from_base_1/pose", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/object_from_base_1/pose not found");}
     if (!nh_.getParam("/optitrack/object_from_base_2/pose", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/object_from_base_2/pose not found");}
-    if (!nh_.getParam("/vrpn_client_node/iiwa_7_base/pose", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic vrpn/iiwa7 not found");}
-    if (!nh_.getParam("/vrpn_client_node/iiwa_14_base/pose", iiwaBasePositionTopic_[IIWA_14])) {ROS_ERROR("Topic vrpn/iiwa14 not found");}
   }
   
   // Init publishers
@@ -71,25 +69,11 @@ bool AirHockey::init() {
                                                   boost::bind(&AirHockey::objectPositionCallbackReal, this, _1, IIWA_7),
                                                   ros::VoidPtr(),
                                                   ros::TransportHints().reliable().tcpNoDelay());
-
+  
     objectPosition_[IIWA_14] = 
-        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_7],
+        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_14],
                                                   1,
                                                   boost::bind(&AirHockey::objectPositionCallbackReal, this, _1, IIWA_14),
-                                                  ros::VoidPtr(),
-                                                  ros::TransportHints().reliable().tcpNoDelay());
-
-    iiwaBasePosition_[IIWA_7] = 
-        nh_.subscribe<geometry_msgs::PoseStamped>(iiwaBasePositionTopic_[IIWA_7], 
-                                                  1,
-                                                  boost::bind(&AirHockey::iiwaBasePositionCallbackReal, this, _1, IIWA_7),
-                                                  ros::VoidPtr(),
-                                                  ros::TransportHints().reliable().tcpNoDelay());
-    
-    iiwaBasePosition_[IIWA_14] = 
-        nh_.subscribe<geometry_msgs::PoseStamped>(iiwaBasePositionTopic_[IIWA_14],
-                                                  1,
-                                                  boost::bind(&AirHockey::iiwaBasePositionCallbackReal, this, _1, IIWA_14),
                                                   ros::VoidPtr(),
                                                   ros::TransportHints().reliable().tcpNoDelay());
   }
@@ -144,11 +128,11 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/object_offset/y", objectOffset_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/object_offset/y not found"); }
   if (!nh_.getParam("iiwa14/object_offset/z", objectOffset_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/object_offset/x not found"); }
 
-  while (objectPositionFromSource_.norm() == 0) {
-    this->updateDSAttractor();
-    ros::spinOnce();
-    rate_.sleep();
-  }
+  // while (objectPositionFromSource_.norm() == 0) {
+  //   this->updateDSAttractor();
+  //   ros::spinOnce();
+  //   rate_.sleep();
+  // }
 
   generateHitting7_->set_current_position(iiwaPositionFromSource_[IIWA_7]);
   generateHitting14_->set_current_position(iiwaPositionFromSource_[IIWA_14]);
@@ -284,10 +268,6 @@ void AirHockey::iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, i
 void AirHockey::iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k){
   iiwaVelocityFromSource_[k]  << msg->linear.x, msg->linear.y, msg->linear.z;
   iiwaVel_[k] = *msg;
-}
-
-void AirHockey::iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k){
-  iiwaBasePositionFromSource_[k]  << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
 }
 
 void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k){
@@ -520,7 +500,7 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
   }
 
   // if AUTO -> check robots are ready to hit then set to hit
-  float iiwa_at_rest_threshold = 5*1e-2;
+  float iiwa_at_rest_threshold = 2.5*1e-2;
 
   // Only set to HIt if both robots are at rest!
   if(current_state.mode_iiwa7 == REST && current_state.mode_iiwa14 == REST){
@@ -532,16 +512,16 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
     }
 
     // Update return position when object is moving
-    if(isObjectMoving_){
-      updateReturnPosition();
-      return current_state;
-    }
+    // if(isObjectMoving_){
+    //   updateReturnPosition();
+    //   return current_state;
+    // }
 
     // is object stopped?
     else if(!isObjectMoving_){
 
-      // update here again to works when moving object with the mouse 
-      if(isSim_){updateReturnPosition();}
+      // update return position as soon as object stops
+      updateReturnPosition();
 
       // Get norms
       float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
@@ -630,14 +610,14 @@ void AirHockey::run() {
     if(print_count%200 == 0 ){
       // std::cout << "iiwa7_state : " << fsm_state.mode_iiwa7 << " \n iiwa14_state : " << fsm_state.mode_iiwa14<< std::endl;
       // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
-      std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
-      std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
+      // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
+      // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
       std::cout << "iiwa7 norm  " << (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm()<< std::endl;
       std::cout << "iiwa14 norm " << (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm()<< std::endl;
       // std::cout << "object pos by iiwaPos_7  " << objectPositionForIiwa_[IIWA_7]<< std::endl;
       // std::cout << "object pos by  iiwaPos_14  " << objectPositionForIiwa_[IIWA_14]<< std::endl;
-      std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
-      std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7]
+      // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
+      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7]
        
     }
     print_count +=1 ;
@@ -726,7 +706,7 @@ void AirHockey::run() {
 int main(int argc, char** argv) {
 
   //ROS Initialization
-  ros::init(argc, argv, "air_hockey");
+  ros::init(argc, argv, "airhockey");
   ros::NodeHandle nh;
   float frequency = 200.0f;
 

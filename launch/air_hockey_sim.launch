@@ -40,7 +40,7 @@
   <rosparam file="$(find air_hockey)/config/recorder_properties.yaml" />
 
   <!-- Here is the node that allows me to start the AirHockey motion planning -->
-  <!-- <node pkg = "air_hockey" type = "air_hockey"  name = "air_hockey" output="screen"/> -->
+  <!-- <node pkg = "air_hockey" type = "airhockey"  name = "airhockey" output="screen"/> -->
 
   <!-- Here is the node that allows me to record hits -->
   <!-- <node pkg = "air_hockey" type = "recorder"  name = "recorder" output="screen"/> -->

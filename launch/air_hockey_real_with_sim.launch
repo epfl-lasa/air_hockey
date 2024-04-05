@@ -57,7 +57,7 @@
   <rosparam file="$(find air_hockey)/config/recorder_properties.yaml" />
 
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
-  <node pkg = "air_hockey" type = "air_hockey"  name = "air_hockey" output="screen"/>
+  <node pkg = "air_hockey" type = "airhockey"  name = "airhockey" output="screen"/>
 
 </launch>
 

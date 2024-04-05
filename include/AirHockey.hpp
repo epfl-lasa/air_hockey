@@ -90,7 +90,6 @@ private:
   std::string objectPositionTopicReal_[NB_ROBOTS];
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
-  std::string iiwaBasePositionTopic_[NB_ROBOTS];
   std::string iiwaBasePositionTopicSim_;
   std::string pubFSMTopic_;
 
@@ -103,7 +102,6 @@ private:
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
   ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
-  ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
   ros::Subscriber objectPositionSim_;
   ros::Subscriber iiwaBasePositionSim_;
 
@@ -152,16 +150,16 @@ public:
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void iiwaBasePositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
+  
   void iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k);
-
   void iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k);
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
-  void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
 
   void updateIsObjectMoving();
   void updateReturnPosition();
   void setReturnPositionToInitial();
+  void checkObjectIsSafeToHit();
 
   void getDesiredFluxes(std::string filename);
 
@@ -170,5 +168,4 @@ public:
 
   FSMState updateFSMAutomatic(FSMState statesvar );
 
-  void checkObjectIsSafeToHit();
 };

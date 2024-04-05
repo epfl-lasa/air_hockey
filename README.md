@@ -106,7 +106,7 @@ Launch the following commands in this order
 
 Computer 1 - Terminal 1 :
 ```bash
-roslaunch air_hockey optitrack.launch
+roslaunch air_hockey optitrack_with_transform_to_base.launch
 ```
 Computer 2 - Terminal 2 :
 ```bash
