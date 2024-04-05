@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>    
     <arg name = "server"      default="128.178.145.172"/>
-    <arg name = "list_object" default="['/vrpn_client_node/object_1/pose']"/>
+    <arg name = "list_object" default="['object_1']"/>
     
     <arg name = "name_base_optitrack"   default="base"/>
-    <arg name = "name_base_1"   default="/vrpn_client_node/iiwa_7_base/pose"/>
-    <arg name = "name_base_2"   default="/vrpn_client_node/iiwa_14_base/pose"/>
+    <arg name = "name_base_1"   default="iiwa_7_base"/>
+    <arg name = "name_base_2"   default="iiwa_14_base"/>
 
     <!-- vrpn Optitrack -->
     <node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
@@ -22,7 +22,7 @@
     </node>
     
     <!-- Transform to robot base 1 -->
-    <node name="optitrack_transform_base_1" pkg="optitrack_ros_interface" type="optitrack_transform_publisher" output="screen" >
+    <node name="optitrack_transform_base_1" pkg="air_hockey" type="optitrack_transform_publisher" output="screen" >
     	<rosparam subst_value="true">
         list_object: $(arg list_object)
         name_base: $(arg name_base_1)
@@ -31,7 +31,7 @@
     </node>
 
     <!-- Transform to robot base 1 -->
-    <node name="optitrack_transform_base_2" pkg="optitrack_ros_interface" type="optitrack_transform_publisher" output="screen" >
+    <node name="optitrack_transform_base_2" pkg="air_hockey" type="optitrack_transform_publisher" output="screen" >
     	<rosparam subst_value="true">
         list_object: $(arg list_object)
         name_base: $(arg name_base_2)

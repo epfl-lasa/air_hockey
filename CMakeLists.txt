@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   message_generation
 )
 find_package(Eigen3 REQUIRED eigen3) 
@@ -30,12 +31,14 @@ include_directories(
 include_directories(include)
 include_directories(${EIGEN3_INCLUDE_DIR} "/usr/local/include")
 
-add_executable(airhockey src/AirHockey.cpp src/dynamical_system.cpp) # src/optimizer.cpp) 
-target_link_libraries(airhockey ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs" "-L/usr/local/lib") #osqp::osqp OsqpEigen::OsqpEigen
+add_executable(airhockey src/AirHockey.cpp src/dynamical_system.cpp) 
+target_link_libraries(airhockey ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs" "-L/usr/local/lib")
 add_dependencies(airhockey air_hockey_generate_messages_cpp)
 
-add_executable(recorder src/Recorder.cpp)#src/dynamical_system.cpp) # src/optimizer.cpp) 
-target_link_libraries(recorder ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs" "-L/usr/local/lib") #osqp::osqp OsqpEigen::OsqpEigen
+add_executable(recorder src/Recorder.cpp)
+target_link_libraries(recorder ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs" "-L/usr/local/lib") 
 add_dependencies(recorder air_hockey_generate_messages_cpp)
 
+add_executable(optitrack_transform_publisher src/optitrack_transform_publisher.cpp)
+target_link_libraries(optitrack_transform_publisher ${catkin_LIBRARIES})
 

@@ -8,7 +8,7 @@ It is recommended to install everything using docker (cf. docker section)
 * **iiwa_ros**: branch `feature/inertia` (and all its dependencies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
 * **iiwa_toolkit**: branch `feature_ns_inertial_control` :  https://github.com/epfl-lasa/iiwa_toolkit_ns/tree/feature_ns_inertial_control
 
-## Docker
+## Docker98
 
 A docker containing iiwa-ros library is needed to build the air_hockey docker.
 
@@ -56,11 +56,11 @@ aica-docker interactive air_hockey:noetic -u ros --net host --no-hostname -v /ho
 ```
 
 Computer 1 - IP: 128.178.145.165 -> connected to iiwa7 (= iiwa1 = iiwa left)
-Computer 2 - IP: 128.178.96.187 -> connected to iiwa14(= iiwa2 = iiwa right)
+Computer 2 - IP: 128.178.96.118 -> connected to iiwa14(= iiwa2 = iiwa right)
 
 Connect via ssh from computer 1 to computer 2 : 
 ```bash
-ssh elise@128.178.96.187
+ssh elise@128.178.96.118
 ```
 
 Launch docker on both computers with aica-docker command above or using the alias :
@@ -94,7 +94,7 @@ export ROS_IP=128.178.145.165
 Computer 2 : 
 ```bash
 export ROS_MASTER_URI=http://128.178.145.165:11311 
-export ROS_IP=128.178.96.187
+export ROS_IP=128.178.96.118
 ```
 both : 
 ```bash
@@ -129,6 +129,8 @@ iiwa14 : FRIOverlay -> Torque, 300, 0.2
 
 Both computers must have the IP adress 190.170.10.1 for the conenction to the iiwa as FRIOverlay communicates only with this adress.
 Can modify the IP adress of the robot in iiwa_driver/config/iiwa.yaml
+
+For optitrack, make sure Motive is streaming in Y-up format, and that all object frames matches the robot frame (X in front, Y to the left and Z up)
 
 Use 'sudo chmod 777 -R .' when having trouble saving files inside container 
 
