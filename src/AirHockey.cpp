@@ -303,16 +303,14 @@ int AirHockey::getIndex(std::vector<std::string> v, std::string value) {
 void AirHockey::checkObjectIsSafeToHit() {
   
   if(isSim_){
-    if(objectPositionFromSource_.norm() > objectSafetyDistance_){
+    if(objectPositionFromSource_.norm() > 2*objectSafetyDistance_){
+      ROS_INFO("Object is too far away, PAUSING system!");
       isPaused_ = true;
     }
-    // need condition to unPause if object enters zone 
-    // TODO : save old norm and compare?
   }
   else if(!isSim_){
-    float object_safety_threshold = 1.0;
-
-    if((objectPositionForIiwa_[IIWA_7].norm() > object_safety_threshold) && (objectPositionForIiwa_[IIWA_14].norm() > object_safety_threshold)){
+    if((objectPositionForIiwa_[IIWA_7].norm() > objectSafetyDistance_) && (objectPositionForIiwa_[IIWA_14].norm() > objectSafetyDistance_)){
+      ROS_INFO("Object is too far away, PAUSING system!");
       isPaused_ = true;
     }  
   }
@@ -337,13 +335,24 @@ void AirHockey::updateIsObjectMoving(){
 }
 
 void AirHockey::updateReturnPosition(){
-  // TODO add security here : only do this if position is reachable 
 
   if(next_hit_ == IIWA_7){
-    returnPos_[IIWA_7] = objectPositionForIiwa_[IIWA_7] + placementOffset_[IIWA_7];
+    auto temp_pos = objectPositionForIiwa_[IIWA_7] + placementOffset_[IIWA_7];
+    if(temp_pos.norm() < objectSafetyDistance_){
+      returnPos_[IIWA_7] = temp_pos;
+    }
+    else if(temp_pos.norm() >= objectSafetyDistance_){
+      ROS_INFO("Object too far for pre-hit placement");
+    } 
   }
   else if(next_hit_ == IIWA_14){
-    returnPos_[IIWA_14] = objectPositionForIiwa_[IIWA_14] + placementOffset_[IIWA_14];
+    auto temp_pos = objectPositionForIiwa_[IIWA_14] + placementOffset_[IIWA_14];
+    if(temp_pos.norm() < objectSafetyDistance_){
+      returnPos_[IIWA_14] = temp_pos;
+    }
+    else if(temp_pos.norm() >= objectSafetyDistance_){
+      ROS_INFO("Object too far for pre-hit placement");
+    } 
   }
 }
 
@@ -500,7 +509,8 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
   }
 
   // if AUTO -> check robots are ready to hit then set to hit
-  float iiwa_at_rest_threshold = 2.5*1e-2;
+  float pos_threshold = 4*1e-2;
+  float vel_threshold = 1*1e-3;
 
   // Only set to HIt if both robots are at rest!
   if(current_state.mode_iiwa7 == REST && current_state.mode_iiwa14 == REST){
@@ -510,12 +520,6 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
     if(time_in_rest < waitDuration_){ 
       return current_state;
     }
-
-    // Update return position when object is moving
-    // if(isObjectMoving_){
-    //   updateReturnPosition();
-    //   return current_state;
-    // }
 
     // is object stopped?
     else if(!isObjectMoving_){
@@ -527,8 +531,11 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
       float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
       float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm();
 
-      // are robots at rest positions ?
-      if(norm_iiwa7 < iiwa_at_rest_threshold && norm_iiwa14 < iiwa_at_rest_threshold){
+      // are robots stopped at rest positions ?
+      if(norm_iiwa7 < pos_threshold && norm_iiwa14 < pos_threshold && 
+            iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold && 
+            iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
+
         // Then set to HIT and update next_hit
         if(next_hit_ == IIWA_7){
           current_state.mode_iiwa7 = HIT;

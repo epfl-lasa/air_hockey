@@ -3,7 +3,7 @@ automatic: True # Autonoumous hitting
 time_to_wait : 3.0 # time to stay in REST mode (where both robots are in REST, includes returning to position)
 # MUST be longer than time_object_record in recorder_properties (to record properly)
 
-safety_distance: 1.15 # distance at which to PAUSE the robots when running autonomously
+safety_distance: 1.0 # distance at which to PAUSE the robots when running autonomously
 
 fixed_flux: True # Whether to use a fixed flux for each hit (otherwise uses file below in a loop)
 desired_fluxes_filename: "high_fluxes.txt" # This file MUSt be in 'desired_hitting_fluxes' folder

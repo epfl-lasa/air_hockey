@@ -124,14 +124,14 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
                     #  dtype={'RosTime': 'float64'})
     
     df_obj = pd.read_csv(object_csv,
-                     converters={'RosTime' : parse_value, 'Position': parse_list})
+                     converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
 
     # Define set values from first row
     df_top_row = pd.read_csv(robot_csv, nrows=1, header=None)
     top_row_list = df_top_row.iloc[0].to_list()
     des_flux = top_row_list[1]
     des_pos = parse_list(top_row_list[5])
-    recorded_hit_time = top_row_list[3]
+    recorded_hit_time = pd.to_datetime(top_row_list[3], unit='s')
     print(f"Desired Flux: {des_flux} \n Desired Pos: [{des_pos[0]:.3f}, {des_pos[1]:.3f}, {des_pos[2]:.3f}] \n Hit Time: {pd.to_datetime(recorded_hit_time, unit='s')}")
 
     # Make title string
@@ -163,6 +163,8 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             axs[i].set_title(f'Joint{i+1}')
             axs[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
             axs[i].grid(True)
+            axs[i].axvline(datetime_hit_time, color = 'r')
+            axs[i].axvline(recorded_hit_time, color = 'g')
         axs[i].set_xlabel('Time [s]')
         fig.suptitle(f"Effort vs Cmd : iiwa {parts[1]}, hit #{parts[3]}, flux {des_flux}")
         fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
@@ -174,6 +176,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             axs[i].plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: x[i]), label=f'Velocity')
             axs[i].plot(df['RosTime'], df['EEF_DesiredVelocity'].apply(lambda x: x[i]), color='r',linestyle='--', label=f'Desired')
             axs[i].axvline(datetime_hit_time, color = 'r')
+            axs[i].axvline(recorded_hit_time, color = 'g')
             axs[i].set_title(f'Axis {coordinate_labels[i]}')
             axs[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
             axs[i].grid(True)
@@ -188,6 +191,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             axs[i].plot(df['RosTime'], df['EEF_Position'].apply(lambda x: x[i]), label=f'Position')
             axs[i].axhline(y=des_pos[i], color='r', linestyle='--')
             axs[i].axvline(datetime_hit_time, color = 'r')
+            axs[i].axvline(recorded_hit_time, color = 'g')
             axs[i].set_title(f'Axis {coordinate_labels[i]}')
             axs[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
             axs[i].grid(True)
@@ -201,6 +205,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         ax.plot(df['RosTime'], df['HittingFlux'])
         ax.axhline(y=des_flux, color='r', linestyle='--')
         ax.axvline(datetime_hit_time, color = 'r')
+        ax.axvline(recorded_hit_time, color = 'g')
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Hitting flux [m/s]')
         ax.grid(True)
@@ -208,25 +213,42 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
 
     if "Object" in data_to_plot:
-        # remove double values using derivative
-        x_values =  df_obj['Position'].apply(lambda x: x[0])
-        df_obj['derivative'] = x_values.diff() / df_obj['RosTime'].diff()
-
-        # remove zeros
-        filtered_df = df_obj[df_obj['derivative'] != 0.0].copy()
-
         # to date time
-        filtered_df['RosTime'] = pd.to_datetime(filtered_df['RosTime'], unit='s')
+        df_obj['RosTime'] = pd.to_datetime(df_obj['RosTime'], unit='s')
+        
+        # get pos relative to iiwa
+        if (parts[1]== '7'):
+            obj_pos = df_obj['PositionForIiwa7']
+        elif (parts[1] == '14'):
+            obj_pos = df_obj['PositionForIiwa14']
 
         # Plot Object position  
         fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
         for i in range(3):
-            ax.plot(filtered_df['RosTime'], filtered_df['Position'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
+            ax.plot(df_obj['RosTime'], obj_pos.apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
         ax.axvline(datetime_hit_time, color = 'r')
+        ax.axvline(recorded_hit_time, color = 'g')
         fig.suptitle(f"Object Position: iiwa {parts[1]}, hit #{parts[3]} ")
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Position')
+        ax.legend()
+        ax.grid(True)
+        # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
+        
+    if "Orient" in data_to_plot:
+        
+        quat_label = ["x", "y","z","w"]
+        
+        # Plot Object position  
+        fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+        for i in range(4):
+            ax.plot(df['RosTime'], df['EEF_Orientation'].apply(lambda x: x[i]), label=f'Quat {quat_label[i]}')
+
+        ax.axvline(datetime_hit_time, color = 'r')
+        fig.suptitle(f"EEF Orientation: iiwa {parts[1]}, hit #{parts[3]} ")
+        ax.set_xlabel('Time [s]')
+        ax.set_ylabel('Orientation (quat in rad)')
         ax.legend()
         ax.grid(True)
         # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
@@ -384,14 +406,20 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
             # Plot Object position
             if "Object" in data_to_plot:
                 df_obj = pd.read_csv(path_to_object_hit,
-                                converters={'RosTime' : parse_value, 'Position': parse_list})
+                                converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
                 
                 # Rewrite time to be relative 
                 temp_time = np.linspace(0,df_obj['RosTime'].iloc[-1]-df_obj['RosTime'].iloc[0], len(df_obj['RosTime']))
                 df_obj['RosTime'] = temp_time
+                
+                # get pos relative to iiwa
+                if (iiwa_number == 7):
+                    obj_pos = df_obj['PositionForIiwa7']
+                elif (iiwa_number == 14):
+                    obj_pos = df_obj['PositionForIiwa14']
 
                 for i in range(3):
-                    axs_obj[i].plot(df_obj['RosTime'], df_obj['Position'].apply(lambda x: x[i]))
+                    axs_obj[i].plot(df_obj['RosTime'], obj_pos.apply(lambda x: x[i]))
                     axs_obj[i].set_title(f'Axis {coordinate_labels[i]}')
                     axs_obj[i].grid(True)
                     
@@ -399,18 +427,18 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                 fig_obj.suptitle(f"Object data for hit #{hit_numbers[0]}-{hit_numbers[-1]}")
                 fig_obj.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
             
+            # Print info
+            hit_time = get_impact_time_from_object(path_to_object_hit)
+            flux_at_hit, inertia_at_hit, pos, orient = get_robot_data_at_hit(path_to_robot_hit, hit_time, show_print=False)
+            norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
+            
+            print(f"Hit #{parts[3]}\n"
+                f" Hitting Flux: {flux_at_hit:.4f} \n"
+                f" Hitting inertia: {inertia_at_hit:.4f} \n"
+                f" Distance travelled (norm): {norm_distance:.3f}")
+            
         else :
-            print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")
-        
-        hit_time = get_impact_time_from_object(path_to_object_hit)
-        flux_at_hit, inertia_at_hit, pos, orient = get_robot_data_at_hit(path_to_robot_hit, hit_time, show_print=False)
-        norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
-        
-        print(f"Hit #{parts[3]}\n"
-              f" Hitting Flux: {flux_at_hit:.4f} \n"
-              f" Hitting inertia: {inertia_at_hit:.4f} \n"
-              f" Distance travelled (norm): {norm_distance:.3f}")
-        
+            print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")   
         
     plt.show()
 
@@ -558,7 +586,7 @@ if __name__== "__main__" :
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
     # READ from file using index or enter manually
-    read_hit_info_from_file = True
+    read_hit_info_from_file = False
 
     ### Plots variables
     if read_hit_info_from_file:
@@ -571,13 +599,13 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-03-05_14:04:43"
-        hit_number = 82 #[16,17]
-        iiwa_number = 14
+        folder_name = "2024-04-08_10:06:54"
+        hit_number = [x for x in range(1,10)] #[16,17]
+        iiwa_number = 7
     
 
     ### DATA TO PLOT 
-    plot_this_data = ["Flux","Vel","Torque","Object"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Flux","Vel","Torque","Object", "Pos"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
 
 
     # PLOT FOR SINGLE HIT 

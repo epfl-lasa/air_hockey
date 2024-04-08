@@ -99,16 +99,18 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file,
-                     converters={'RosTime' : parse_value, 'Position': parse_list})
+                     converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list})
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
     # Use derivative to find changes in speed 
-    derivative_threshold = 0.05
+    derivative_threshold = 0.1 #0.05
 
     # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN X AXIS
-    x_values =  df['Position'].apply(lambda x: x[0])
+    x_values =  df['PositionForIiwa7'].apply(lambda x: x[1])
     df['derivative'] = x_values.diff() / df['RosTime'].diff()
 
+    # print(df['derivative'].tail(40))
+    
     # remove zeros
     filtered_df = df[df['derivative'] != 0.0].copy()
 
@@ -121,8 +123,8 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
 
     if show_print: 
         df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
-        print(f"Start moving from {df['Position'].iloc[idx_before_impact]} at {df['RosTime'].iloc[idx_before_impact]}")
-        print(f"Stop moving from {df['Position'].iloc[idx_stop_moving]} at {df['RosTime'].iloc[idx_stop_moving]}")
+        print(f"Start moving from {df['PositionForIiwa7'].iloc[idx_before_impact]} at {df['RosTime'].iloc[idx_before_impact]}")
+        print(f"Stop moving from {df['PositionForIiwa7'].iloc[idx_stop_moving]} at {df['RosTime'].iloc[idx_stop_moving]}")
 
     if not return_indexes: 
         return hit_time
@@ -130,13 +132,12 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
         if show_print : print("Return object movement indexes")
         return idx_before_impact, idx_start_moving, idx_stop_moving
 
-def get_distance_travelled(csv_file, return_distance_in_x=False, show_print=False, show_hit=True):
+def get_distance_travelled(csv_file, return_distance_in_y=False, show_print=False, show_hit=True):
    ### Returns distance travelled  
    
    # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file,
-                     converters={'RosTime' : parse_value, 'Position': parse_list})
-                    #  dtype={'RosTime': 'float64'})
+                     converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list})
 
     # # Make title string
     filename = os.path.basename(csv_file)
@@ -146,21 +147,21 @@ def get_distance_travelled(csv_file, return_distance_in_x=False, show_print=Fals
     idx_before_impact, idx_start_moving, idx_stop_moving = get_impact_time_from_object(csv_file, return_indexes=True)
 
     ### Get distance in X = axis of hit in optitrack frame
-    distance_in_x = df['Position'].iloc[idx_before_impact][0]- df['Position'].iloc[idx_stop_moving][0]
+    distance_in_y = df['PositionForIiwa7'].iloc[idx_before_impact][1]- df['PositionForIiwa7'].iloc[idx_stop_moving][1]
     #### Get distance in norm 
-    norm_distance = np.linalg.norm(np.array(df['Position'].iloc[idx_before_impact])-np.array(df['Position'].iloc[idx_stop_moving]))
+    norm_distance = np.linalg.norm(np.array(df['PositionForIiwa7'].iloc[idx_before_impact])-np.array(df['PositionForIiwa7'].iloc[idx_stop_moving]))
     
     if show_print :
         if show_hit:
             print(f"Hit #{parts[2]}, Object \n")
-        print(f" Distance in Y-axis : {distance_in_x:.3f} \n Normed Distance : {norm_distance:.3f}")
+        print(f" Distance in Y-axis : {distance_in_y:.3f} \n Normed Distance : {norm_distance:.3f}")
 
-    if return_distance_in_x : 
-        return distance_in_x
+    if return_distance_in_y : 
+        return distance_in_y
     else : 
         return norm_distance
 
-def get_object_orientation_at_hit(object_csv, hit_time):
+def get_object_orientation_at_hit(object_csv, hit_time, iiwa_number):
 
     # get hitting params file 
     # parameter_filepath = os.path.join(os.path.dirname(object_csv),"hitting_params.yaml")
@@ -171,27 +172,33 @@ def get_object_orientation_at_hit(object_csv, hit_time):
     # object_offset = [hitting_data[iiwa_nb_str]["object_offset"]["x"],hitting_data[iiwa_nb_str]["object_offset"]["y"],hitting_data[iiwa_nb_str]["object_offset"]["z"]]
 
     # get orientation
-    df = pd.read_csv(object_csv, converters={'RosTime' : parse_value, 'Position': parse_list, 'Orientation': parse_list})
-    object_orient_at_hit =  df[(df['RosTime']-hit_time) >= 0].iloc[0]['Orientation']
+    df = pd.read_csv(object_csv, converters={'RosTime' : parse_value, 'OrientationForIiwa7': parse_list, 'OrientationForIiwa14': parse_list})
+    
+    if(iiwa_number == 7 ) :
+        object_orient_at_hit =  df[(df['RosTime']-hit_time) >= 0].iloc[0]['OrientationForIiwa7']
+    elif(iiwa_number == 14):
+        object_orient_at_hit =  df[(df['RosTime']-hit_time) >= 0].iloc[0]['OrientationForIiwa14']
 
+    
+    ## This is all now done live
     # Define the rotation matrix from camera frame to robot frame
-    rotation_mat_optitrack_to_robot = np.array([[0.0, -1.0, 0.0],[1.0, 0.0, 0.0],[0.0, 0.0, 1.0]])
+    # rotation_mat_optitrack_to_robot = np.array([[0.0, -1.0, 0.0],[1.0, 0.0, 0.0],[0.0, 0.0, 1.0]])
 
-    # convert quaternion from W-xyz to xyz-W
-    new_object_orient_at_hit = object_orient_at_hit[1:] + [object_orient_at_hit[0]]
+    # # convert quaternion from W-xyz to xyz-W
+    # new_object_orient_at_hit = object_orient_at_hit[1:] + [object_orient_at_hit[0]]
 
-    # Convert the quaternion to a rotation matrix
-    r = Rotation.from_quat(new_object_orient_at_hit)
-    rotation_mat_optitrack = r.as_matrix()
+    # # Convert the quaternion to a rotation matrix
+    # r = Rotation.from_quat(new_object_orient_at_hit)
+    # rotation_mat_optitrack = r.as_matrix()
 
-    # Multiply the rotation matrix representing the camera-to-robot transformation with the rotation matrix from the quaternion
-    rotation_mat_robot = np.dot(rotation_mat_optitrack_to_robot, rotation_mat_optitrack)
+    # # Multiply the rotation matrix representing the camera-to-robot transformation with the rotation matrix from the quaternion
+    # rotation_mat_robot = np.dot(rotation_mat_optitrack_to_robot, rotation_mat_optitrack)
 
-    # Convert the resulting rotation matrix back to a quaternion
-    r_robot = Rotation.from_matrix(rotation_mat_robot)
-    q_robot_frame = r_robot.as_quat()
+    # # Convert the resulting rotation matrix back to a quaternion
+    # r_robot = Rotation.from_matrix(rotation_mat_robot)
+    # q_robot_frame = r_robot.as_quat()
 
-    return np.array(q_robot_frame)
+    return np.array(object_orient_at_hit)
 
 def get_info_at_hit_time(robot_csv, object_csv):
 
@@ -204,9 +211,6 @@ def get_info_at_hit_time(robot_csv, object_csv):
     # get distance travelled
     distance_travelled = get_distance_travelled(object_csv, show_print=False)
 
-    # get object orientatino at hit
-    object_orient = get_object_orientation_at_hit(object_csv, hit_time)
-
     # get recording session, iiwa number and hit number from robot_csv name 
     recording_session = os.path.basename(os.path.dirname(robot_csv))
     filename = os.path.basename(robot_csv)
@@ -214,6 +218,9 @@ def get_info_at_hit_time(robot_csv, object_csv):
     parts = filename_without_extension.split('_')
     iiwa_number = parts[1]
     hit_number = parts[3]
+    
+    # get object orientation at hit
+    object_orient = get_object_orientation_at_hit(object_csv, hit_time , iiwa_number)
 
     # get desired flux from top row 
     des_flux = pd.read_csv(robot_csv, nrows=1, header=None).iloc[0].to_list()[1]
