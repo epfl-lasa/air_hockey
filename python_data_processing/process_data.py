@@ -58,10 +58,11 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
     pos_at_hit = post_hit_df.iloc[0]['EEF_Position']
     orient_at_hit = post_hit_df.iloc[0]['EEF_Orientation']
 
+    ### DONE LIVE 
     # convert quaternion from W-xyz to xyz-W
-    new_orient_at_hit = orient_at_hit[1:] + [orient_at_hit[0]]
-    r = Rotation.from_quat(new_orient_at_hit) ## normalizes quaternion
-    new_orient_at_hit = r.as_quat()
+    # new_orient_at_hit = orient_at_hit[1:] + [orient_at_hit[0]]
+    # r = Rotation.from_quat(new_orient_at_hit) ## normalizes quaternion
+    # new_orient_at_hit = r.as_quat()
 
     if get_max_values : 
         # Get max normed vel
@@ -92,7 +93,7 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
         return max_flux, max_vel
 
     else: 
-        return flux_at_hit, dir_inertia_at_hit, pos_at_hit, new_orient_at_hit
+        return flux_at_hit, dir_inertia_at_hit, pos_at_hit, orient_at_hit
     
 def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False):    
     # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
@@ -174,9 +175,9 @@ def get_object_orientation_at_hit(object_csv, hit_time, iiwa_number):
     # get orientation
     df = pd.read_csv(object_csv, converters={'RosTime' : parse_value, 'OrientationForIiwa7': parse_list, 'OrientationForIiwa14': parse_list})
     
-    if(iiwa_number == 7 ) :
+    if(iiwa_number == '7' ) :
         object_orient_at_hit =  df[(df['RosTime']-hit_time) >= 0].iloc[0]['OrientationForIiwa7']
-    elif(iiwa_number == 14):
+    elif(iiwa_number == '14'):
         object_orient_at_hit =  df[(df['RosTime']-hit_time) >= 0].iloc[0]['OrientationForIiwa14']
 
     
@@ -286,7 +287,7 @@ if __name__== "__main__" :
    
     ### Processing variables 
     ### UBUNTU
-    folders_to_process = [ "2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
+    folders_to_process = ["2024-04-08_10:06:54"] # "2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
                             # "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42"]
 
     ### WINDOWS
@@ -294,5 +295,5 @@ if __name__== "__main__" :
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
 
-    process_data_to_one_file(folders_to_process, output_filename="data_consistent_march.csv")
+    process_data_to_one_file(folders_to_process, output_filename="data_test_april.csv")
 

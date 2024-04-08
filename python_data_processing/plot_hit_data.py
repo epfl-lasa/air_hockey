@@ -6,7 +6,9 @@ from datetime import datetime
 import re
 import time
 from process_data import parse_list, parse_value, get_impact_time_from_object, get_robot_data_at_hit, get_distance_travelled, get_info_at_hit_time
-
+import pybullet
+from analyse_data import wrap_angle
+import math 
 ## PLOT FUNCTIONS
 def plot_robot_data(csv_file, show_plot=True):
 
@@ -124,7 +126,8 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
                     #  dtype={'RosTime': 'float64'})
     
     df_obj = pd.read_csv(object_csv,
-                     converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+                     converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list,
+                                  'OrientationForIiwa7': parse_list, 'OrientationForIiwa14': parse_list})
 
     # Define set values from first row
     df_top_row = pd.read_csv(robot_csv, nrows=1, header=None)
@@ -146,7 +149,8 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
 
     # Get the 'Time' column as datetime
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
-
+    df_obj['RosTime'] = pd.to_datetime(df_obj['RosTime'], unit='s')
+        
     # Labels for the coordinates
     coordinate_labels = ['x', 'y', 'z']
 
@@ -213,9 +217,6 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
 
     if "Object" in data_to_plot:
-        # to date time
-        df_obj['RosTime'] = pd.to_datetime(df_obj['RosTime'], unit='s')
-        
         # get pos relative to iiwa
         if (parts[1]== '7'):
             obj_pos = df_obj['PositionForIiwa7']
@@ -238,19 +239,42 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         
     if "Orient" in data_to_plot:
         
-        quat_label = ["x", "y","z","w"]
+        quat_label = ["x","y","z","w"]
         
-        # Plot Object position  
-        fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
-        for i in range(4):
-            ax.plot(df['RosTime'], df['EEF_Orientation'].apply(lambda x: x[i]), label=f'Quat {quat_label[i]}')
+        # get pos relative to iiwa
+        if (parts[1]== '7'):
+            obj_pos = df_obj['PositionForIiwa7']
+            missing_values = pd.Series([np.zeros(4) for _ in range((len(df_obj) - len(df["EEF_Orientation"])))])
+            df_obj["RobotOrientation"] = pd.concat([df['EEF_Orientation'], missing_values], ignore_index=True)
+            df_obj["OrientationError1"] = df_obj.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["OrientationForIiwa7"],row["RobotOrientation"])),axis=1).copy()
+            df_obj["OrientationError2"] = df_obj.apply(lambda row : [pybullet.getEulerFromQuaternion(row["RobotOrientation"])[i]- pybullet.getEulerFromQuaternion(row["OrientationForIiwa7"])[i] for i in range(3)],axis=1).copy()
+        elif (parts[1] == '14'):
+            obj_pos = df_obj['PositionForIiwa14']
+            missing_values = pd.Series([np.zeros(4) for _ in range((len(df_obj) - len(df["EEF_Orientation"])))])
+            df_obj["RobotOrientation"] = pd.concat([df['EEF_Orientation'], missing_values], ignore_index=True)
+            df_obj["OrientationError1"] = df_obj.apply(lambda row : pybullet.getEulerFromQuaternion(
+                pybullet.getDifferenceQuaternion(row["OrientationForIiwa14"],row["RobotOrientation"])),axis=1).copy()
+            df_obj["OrientationError2"] = df_obj.apply(lambda row : [pybullet.getEulerFromQuaternion(row["RobotOrientation"])[i]- pybullet.getEulerFromQuaternion(row["OrientationForIiwa14"])[i] for i in range(3)],axis=1).copy()
+        
+        # get wrapped orientation error
+        # df_obj["OrientationError"] = df_obj["OrientationError"].apply(lambda x : [wrap_angle(i) for i in x]).copy()
 
-        ax.axvline(datetime_hit_time, color = 'r')
-        fig.suptitle(f"EEF Orientation: iiwa {parts[1]}, hit #{parts[3]} ")
-        ax.set_xlabel('Time [s]')
-        ax.set_ylabel('Orientation (quat in rad)')
-        ax.legend()
-        ax.grid(True)
+        
+        # Plot Orientation
+        fig, axs = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
+        for i in range(3):
+            axs[i].plot(df['RosTime'], df['EEF_Orientation'].apply(lambda x: math.degrees(pybullet.getEulerFromQuaternion(x)[i])), label=f'EEF Orientation')
+            axs[i].plot(df_obj['RosTime'], df_obj['OrientationError1'].apply(lambda x: math.degrees(x[i])), label=f'Error quat')
+            axs[i].plot(df_obj['RosTime'], df_obj['OrientationError2'].apply(lambda x: math.degrees(x[i])), label=f'Error euler')
+            axs[i].plot(df_obj['RosTime'], df_obj['OrientationForIiwa7'].apply(lambda x: math.degrees(pybullet.getEulerFromQuaternion(x)[i])), label=f'Object')
+            axs[i].axvline(datetime_hit_time, color = 'r')
+            axs[i].set_ylabel(f'Orientation Error in {coordinate_labels[i]} (deg)')
+            axs[i].legend()
+            axs[i].grid(True)
+        
+        axs[i].set_xlabel('Time [s]')
+        fig.suptitle(f"Orientation Error: iiwa {parts[1]}, hit #{parts[3]} ")
+
         # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
 
     hit_time = get_impact_time_from_object(path_to_object_hit)
@@ -600,12 +624,12 @@ if __name__== "__main__" :
     
     else : ## OTHERWISE FILL THIS 
         folder_name = "2024-04-08_10:06:54"
-        hit_number = [x for x in range(1,10)] #[16,17]
-        iiwa_number = 7
+        hit_number =  6 #[16,17] #[x for x in range(1,10)]
+        iiwa_number = 14
     
 
     ### DATA TO PLOT 
-    plot_this_data = ["Flux","Vel","Torque","Object", "Pos"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Orient"]#"Flux","Vel","Torque","Object", "Pos"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
 
 
     # PLOT FOR SINGLE HIT 
