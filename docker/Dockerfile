@@ -28,7 +28,7 @@ RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit
 USER ${USER}
 
 # Python (for python plots)
-RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch
+RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch gmr
 
 # Copy air_hockey folder inside docker
 WORKDIR /home/${USER}/ros_ws
