@@ -97,17 +97,19 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
     
 def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False):    
     # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
+    
+    pos_name_str = 'Position'
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file,
-                     converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list})
+                     converters={'RosTime' : parse_value, pos_name_str: parse_list}) # 'PositionForIiwa7'
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
     # Use derivative to find changes in speed 
     derivative_threshold = 0.1 #0.05
 
     # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN X AXIS
-    x_values =  df['PositionForIiwa7'].apply(lambda x: x[1])
+    x_values =  df[pos_name_str].apply(lambda x: x[1])
     df['derivative'] = x_values.diff() / df['RosTime'].diff()
 
     # print(df['derivative'].tail(40))
@@ -124,8 +126,8 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
 
     if show_print: 
         df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
-        print(f"Start moving from {df['PositionForIiwa7'].iloc[idx_before_impact]} at {df['RosTime'].iloc[idx_before_impact]}")
-        print(f"Stop moving from {df['PositionForIiwa7'].iloc[idx_stop_moving]} at {df['RosTime'].iloc[idx_stop_moving]}")
+        print(f"Start moving from {df[pos_name_str].iloc[idx_before_impact]} at {df['RosTime'].iloc[idx_before_impact]}")
+        print(f"Stop moving from {df[pos_name_str].iloc[idx_stop_moving]} at {df['RosTime'].iloc[idx_stop_moving]}")
 
     if not return_indexes: 
         return hit_time
@@ -283,17 +285,120 @@ def process_data_to_one_file(recording_sessions, output_filename="test.csv"):
     return
 
 
+def process_data_for_ekf(recording_sessions):
+    
+    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
+    path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/"
+    
+    start_time= time.time()
+    count_removed = 0 
+    
+    # process each rec_sess folder 
+    for rec_sess in recording_sessions: 
+        
+        folder_name = os.path.join(path_to_data_airhockey,rec_sess)
+        
+        # create folder with same name 
+        new_folder = os.path.join(path_to_data_ekf,rec_sess)
+        os.makedirs(new_folder, exist_ok=True)
+
+        # Iterate over files in the folder and write filenames to dictionary
+        hit_files = {}
+        for filename in os.listdir(folder_name):
+            # Check if the file matches the pattern
+            match = re.match(r'(?:IIWA_\d+_hit_|object_hit_)(\d+)\.csv', filename)
+            if match:
+                hit_number = int(match.group(1))
+                # Append the file to the corresponding hit_number key in the dictionary
+                hit_files.setdefault(hit_number, []).append(os.path.join(folder_name, filename))
+
+        # Iterate over pairs of files with the same hit number
+        for hit_number, files in hit_files.items():
+            # Check if there are at least two files with the same hit number
+            if len(files) == 2:
+                
+                files.sort() # Sort the files to process them in order -> robot_csv, then object_csv
+                
+                ## DEBUG print(files[0])
+
+                # Process each "hit_number" set 
+                robot_csv = files[0]
+                object_csv = files[1]
+                     
+                # check if hitting flux is 0 at hit time -> badly recorded
+                hit_time = get_impact_time_from_object(object_csv)
+                hitting_flux, hitting_dir_inertia, hitting_pos, hitting_orientation = get_robot_data_at_hit(robot_csv, hit_time)
+                
+                if hitting_flux == 0 : 
+                    count_removed +=1
+                else :                
+                
+                    #read files
+                    df_obj = pd.read_csv(object_csv, converters={'RosTime' : parse_value, 'Position': parse_list}) #'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+                    df_robot = pd.read_csv(robot_csv, skiprows=1, converters={'RosTime' : parse_value, 'EEF_Position': parse_list})
+                    
+                    # Get different position depending on iiwa !
+                    filename = os.path.basename(robot_csv)
+                    filename_without_extension = os.path.splitext(filename)[0]
+                    parts = filename_without_extension.split('_')
+                    iiwa_number = parts[1]
+                    hit_number = parts[3]
+                    
+                    # newdf with correct shape - [time, z,y,x_o, z,y,x_ee]          
+                    # Merge the dataframes on the 'RosTime' column
+                    df_obj['RosTime'] = df_obj['RosTime'].apply(lambda x : round(x,3))
+                    df_robot['RosTime'] = df_robot['RosTime'].apply(lambda x : round(x,3))
+                    
+                    merged_df = pd.merge(df_obj, df_robot, on='RosTime', how='outer')
+                    merged_df = merged_df[['RosTime', 'Position', 'EEF_Position']]
+                    
+                    # Complete EEF_Position with last know EEF_value 
+                    last_eef_value = df_robot['EEF_Position'].iloc[-1]
+                    temp_arr = [last_eef_value]*(len(df_obj.index)-len(df_robot.index))
+                    temp_series = pd.Series(temp_arr)
+                    merged_df['EEF_Position'] = pd.concat([df_robot['EEF_Position'], temp_series], ignore_index=True)
+                    merged_df.dropna(inplace=True)
+                    
+                    # Reformat for James' EKF -> WATCH OUT INVERTING X AND Y HERE (due to optitrack frame)
+                    formatted_data = merged_df.apply(lambda row : [row['RosTime'], row['Position'][2],row['Position'][1],row['Position'][0], 
+                                                                   row['EEF_Position'][2],row['EEF_Position'][0],row['EEF_Position'][1]], axis=1)
+
+                    formatted_df = pd.DataFrame(formatted_data.tolist(), columns=['time', 'z_o', 'y_o', 'x_o', 'z_eef', 'y_eef', 'x_eef'])
+
+                    # offset x due to wrong frame ! 
+                    df_top_row = pd.read_csv(robot_csv, nrows=1, header=None)
+                    top_row_list = df_top_row.iloc[0].to_list()
+                    des_pos = parse_list(top_row_list[5])
+                    x_offset = float(des_pos[1]-formatted_df['x_o'].iloc[0])
+                    formatted_df['x_o'] = formatted_df['x_o'].apply(lambda x: x+x_offset)
+                    
+                    # write to file with same name
+                    formatted_df.to_csv(os.path.join(new_folder,f"hit_{hit_number}-IIWA_{iiwa_number}.csv"), header=None)
+
+            else :
+                print(f"ERROR : Wrong number of files, discarding the following : \n {files}")
+
+        print(f"FINISHED {rec_sess}")
+
+    print(f"Removing {count_removed} datapoints that were not recorded correctly")
+
+    
+    print(f"Took {time.time()-start_time} seconds \nProcessed impact info for folders : {recording_sessions}")
+
+    return
+    
+
 if __name__== "__main__" :
    
     ### Processing variables 
     ### UBUNTU
-    folders_to_process = ["2024-04-08_10:06:54"] # "2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
-                            # "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42"]
+    folders_to_process = ["2024-03-05_12:20:48"]#,"2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
+                            # "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42"] 
 
     ### WINDOWS
     # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
 
-    process_data_to_one_file(folders_to_process, output_filename="data_test_april.csv")
-
+    # process_data_to_one_file(folders_to_process, output_filename="data_test_april.csv")
+    process_data_for_ekf(folders_to_process)

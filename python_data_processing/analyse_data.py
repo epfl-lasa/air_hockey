@@ -4,21 +4,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
 import time
-from sklearn.linear_model import LinearRegression
+# from sklearn.linear_model import LinearRegression
 import mplcursors
-import mpldatacursor
 from matplotlib.patches import Rectangle
-import pybullet 
+from matplotlib.cm import ScalarMappable
+# import pybullet 
 import math
 
 import sys
 sys.path.append('/home/maxime/Workspace/air_hockey/python_data_processing/gmm_torch')
-from gmm_torch.gmm import GaussianMixture
+# from gmm_torch.gmm import GaussianMixture
 # from gmm_torch.example import plot
-import torch
+# import torch
 
-from gmr.utils import check_random_state
-from gmr import MVN, GMM, plot_error_ellipses
+# from gmr.utils import check_random_state
+# from gmr import MVN, GMM, plot_error_ellipses
 
 from process_data import parse_value, parse_list, parse_strip_list, parse_strip_list_with_commas
 
@@ -247,7 +247,7 @@ def plot_hit_position(df, plot="on object", use_mplcursors=True):
         plt.scatter(0,0, c="red", marker="x")
         
         # Add box - TODO : define it better
-        rect = Rectangle((-10, -10), 20, 20, linewidth=1, edgecolor='r', facecolor='none')
+        rect = Rectangle((-12.5, -11.5), 25, 23, linewidth=1, edgecolor='r', facecolor='none')
         plt.gca().add_patch(rect)
 
         cbar = plt.colorbar(scatter)
@@ -265,7 +265,7 @@ def plot_hit_position(df, plot="on object", use_mplcursors=True):
         plt.scatter(0,0, c="red", marker="x")
         
         # Add box - TODO : define it better
-        rect = Rectangle((-10, -10), 20, 20, linewidth=1, edgecolor='r', facecolor='none')
+        rect = Rectangle((-12.5, -11.5), 25, 23, linewidth=1, edgecolor='r', facecolor='none')
         plt.gca().add_patch(rect)
 
         cbar = plt.colorbar(scatter)
@@ -548,18 +548,126 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
     
     plt.show()
 
+
+def plot_object_trajectory_onefig(df, use_mplcursors=True, selection="all"):
+
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)# 
+
+
+    # Random selection
+    if selection == "all":
+        pass
+    elif selection == "random":
+        nb_samples = 5
+
+        temp_df = pd.DataFrame()
+
+        for iiwa in [7,14]:
+            high_flux_df = df[(df['HittingFlux'] >= 0.90) & (df['IiwaNumber'] == iiwa)].sample(n=nb_samples)
+            med_flux_df = df[(df['HittingFlux'] >= 0.8) & (df['HittingFlux'] <=0.9) & (df['IiwaNumber'] == iiwa)].sample(n=nb_samples)
+            low_flux_df = df[(df['HittingFlux'] <=0.8) & (df['IiwaNumber'] == iiwa)].sample(n=nb_samples)
+
+            temp_df = pd.concat([temp_df, high_flux_df, med_flux_df, low_flux_df])
+
+        df = temp_df
+
+    elif selection == "selected" :
+        # hand selected trajectories to plot 
+        idx_to_plot = [4,21,33,67,69,81,105,115,122,130,169,171,306,357,649,652,655,669,701,755,788,837,845,861,870]
+        df = df[df.index.isin(idx_to_plot)]
+
+    # # get wrapped orientation error
+    # df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1).copy()
+    # df["OrientationError"] = df["OrientationError"].apply(lambda x : [wrap_angle(i) for i in x]).copy()
+    
+    # df["OrientationError2"] = df.apply(lambda row : [pybullet.getEulerFromQuaternion(row["HittingOrientation"])[i]- pybullet.getEulerFromQuaternion(row["ObjectOrientation"])[i] for i in range(3)],axis=1).copy()
+
+    
+    start_pos0 = [] # list for color
+    start_pos1 = []
+
+    for index,row in df.iterrows():
+
+        # get object trajectory from file name
+        data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey/"
+        if os.name == "nt": # Windows OS
+            rec_sess = row["RecSession"].replace(":","_")
+        else : rec_sess = row["RecSession"]
+        
+        obj_fn = data_folder + rec_sess + f"/object_hit_{row['HitNumber']}.csv"
+        
+        df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+
+        if row['IiwaNumber']==7 :
+            
+            axes[0].plot(df_obj['PositionForIiwa7'].apply(lambda x: x[1]), df_obj['PositionForIiwa7'].apply(lambda x: x[0]), alpha=0.8)
+            scatter_iiwa7 = axes[0].scatter(df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0], label=f"idx:{index}")
+            start_pos0.append([df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0]])
+
+            axes[0].set_title("IIWA 7")
+            
+            # Adding info when clicking cursor
+            if use_mplcursors:
+                mplcursors.cursor(scatter_iiwa7, hover=False).connect('add', lambda sel: sel.annotation.set_text(sel.artist.get_label()))   
+
+        if row['IiwaNumber']==14 :
+            
+            axes[1].plot(df_obj['PositionForIiwa14'].apply(lambda x: x[1]), df_obj['PositionForIiwa14'].apply(lambda x: x[0]))
+            scatter_iiwa14 = axes[1].scatter(df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0], label=f"idx:{index}")
+            start_pos1.append([df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0]])
+            
+            axes[1].set_title("IIWA 14")
+            
+            # Adding info when clicking cursor
+            if use_mplcursors:
+                mplcursors.cursor(scatter_iiwa14, hover=False).connect('add', lambda sel: sel.annotation.set_text(sel.artist.get_label()))   
+
+    # add colors
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+    axes[0].scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['HittingFlux'], cmap="viridis")
+    axes[1].scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['HittingFlux'], cmap="viridis")
+    norm = plt.Normalize(vmin=min(df_iiwa7['HittingFlux'].min(), df_iiwa14['HittingFlux'].min()), vmax=max(df_iiwa7['HittingFlux'].max(), df_iiwa14['HittingFlux'].max()))
+    sm = ScalarMappable(norm=norm, cmap="viridis")
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=axes.ravel().tolist())
+    cbar.set_label('Hitting Flux [m/s]')
+
+    for ax in axes:
+        ax.set_xlabel('Y Axis [m]')
+        ax.set_ylabel('X-axis [m]')
+        ax.grid(True)
+        # ax.set_aspect('equal')
+        
+    # move bottom ax for pretty -> DOESN'T WORK
+    # ax_pos = axes[1].get_position()
+    # print(ax_pos)
+    # fig_width, fig_height = fig.get_size_inches()
+    # new_left = ax_pos.x0 - 0.29
+    # ax_pos.x0 = new_left
+    # print(ax_pos)
+    # axes[1].set_position(ax_pos)
+    
+    # leg = fig.legend(loc='center left', bbox_to_anchor=(0.5, 0.5))
+    # leg.set_draggable(state=True)
+    fig.suptitle(f"Object trajectories")
+    # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+    
+    plt.show()
+
+
 if __name__== "__main__" :
     
     processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
     
     ### Datafile to use
-    csv_fn ="all_data_march"# "data_consistent_march" #"data_consistent_march"
+    csv_fn ="data_consistent_march" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
     df = pd.read_csv(processed_data_folder+csv_fn+".csv", index_col="Index", converters={
         'ObjectPos' : parse_strip_list_with_commas, 'HittingPos': parse_strip_list_with_commas, 
-        'ObjectOrientation' : parse_strip_list, 'HittingOrientation': parse_strip_list_with_commas})#
+        'ObjectOrientation' : parse_strip_list, 'HittingOrientation': parse_strip_list})#_with_commas
     
     clean_df = clean_data(df)
     # Saving clean df
@@ -568,12 +676,12 @@ if __name__== "__main__" :
 
     ### Plot functions
     # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
+    plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")
     # flux_hashtable(clean_df)
-    # plot_object_trajectory(clean_df, use_mplcursors=True, selection="selected")
+    # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
 
 
     # test_gmm_torch(clean_df)
-    plot_gmr(clean_df, n=3, plot="only_gmm")
+    # plot_gmr(clean_df, n=3, plot="only_gmm")
 
