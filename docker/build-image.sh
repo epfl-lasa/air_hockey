@@ -2,7 +2,8 @@
 BASE_IMAGE_TAG=noetic
 IMAGE_NAME=air_hockey
 
-IIWA_TOOLKIT_BRANCH="feature_ns_inertial_control"
+ROS_IP="128.178.145.165"
+ROS_MASTER_IP="128.178.145.165"
 
 SERVE_REMOTE=false
 REMOTE_SSH_PORT=3472
@@ -39,7 +40,8 @@ done
 
 # docker pull magnificentmonkey/iiwa-ros
 BUILD_FLAGS+=(--build-arg BASE_IMAGE_TAG="${BASE_IMAGE_TAG}")
-BUILD_FLAGS+=(--build-arg IIWA_TOOLKIT_BRANCH="${IIWA_TOOLKIT_BRANCH}")
+BUILD_FLAGS+=(--build-arg ROS_IP="${ROS_IP}")
+BUILD_FLAGS+=(--build-arg ROS_MASTER_IP="${ROS_MASTER_IP}")
 BUILD_FLAGS+=(-t "${IMAGE_NAME}:${BASE_IMAGE_TAG}")
 BUILD_FLAGS+=(--build-arg HOST_GID=$(id -g))   # Pass the correct GID to avoid issues with mounted volumes
 BUILD_FLAGS+=(--ssh default="${SSH_AUTH_SOCK}") # Pass git ssh key to be able to pull

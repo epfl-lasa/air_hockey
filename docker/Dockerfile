@@ -19,26 +19,26 @@ RUN sudo apt-get update && sudo apt-get install -y \
     ros-noetic-rosbridge-server \
     && sudo apt-get upgrade -y && sudo apt-get clean
 
-# iiwa_toolkit
-# USER root
-# ARG IIWA_TOOLKIT_BRANCH=feature_ns_inertial_control
-# WORKDIR /home/${USER}/ros_ws/src
-# RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit_ns.git --branch ${IIWA_TOOLKIT_BRANCH} 
-# feature_ns_inertial_control feature_ns_full_inertia
-# USER ${USER}
-
 # Python (for python plots)
 RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch gmr
 
-# Copy air_hockey folder inside docker
+# Copysrc, data, python and docker folders inside docker
 WORKDIR /home/${USER}/ros_ws
-COPY --chown=${USER} ./ ./ 
-#COPY --chown=${USER} ./air_hockey ./src/air_hockey
-#COPY --chown=${USER} ./iiwa_toolkit ./src/iiwa_toolkit
-#COPY --chown=${USER} ./data .
-# COPY --chown=${USER} ./iiwa_toolkit ./src/iiwa_toolkit
+COPY --chown=${USER} ./src ./src/
+COPY --chown=${USER} ./data ./data/
+COPY --chown=${USER} ./python ./python/
 
-
+# Build catkin workspace
 WORKDIR /home/${USER}/ros_ws
 ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make"
+
+# Set ROS IP for communciation in real setup
+ARG ROS_IP
+ARG ROS_MASTER_IP
+
+ENV ROS_IP=${ROS_IP}
+ENV ROS_MASTER_URI=http://${ROS_MASTER_URI}:11311
+
+RUN echo "export ROS_MASTER_URI=http://${ROS_MASTER_IP}:11311" >> /home/${USER}/.bashrc;
+RUN echo "export ROS_IP=${ROS_IP}" >> /home/${USER}/.bashrc ;

@@ -95,7 +95,6 @@ if [ "${MODE}" != "connect" ]; then
     FWD_ARGS+=(--volume="${PWD}/src/iiwa_toolkit:/home/ros/ros_ws/src/iiwa_toolkit:rw")
     FWD_ARGS+=(--volume="${PWD}/python:/home/ros/ros_ws/python:rw")
     FWD_ARGS+=(--volume="${PWD}/data:/home/ros/ros_ws/data:rw")
-    FWD_ARGS+=(--volume="${PWD}/docker:/home/ros/ros_ws/docker:rw")
     
     echo ${FWD_ARGS}
 
