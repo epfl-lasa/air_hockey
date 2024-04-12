@@ -354,9 +354,9 @@ def process_data_for_ekf(recording_sessions):
                     
                     # Complete EEF_Position with last know EEF_value 
                     last_eef_value = df_robot['EEF_Position'].iloc[-1]
-                    temp_arr = [last_eef_value]*(len(df_obj.index)-len(df_robot.index))
-                    temp_series = pd.Series(temp_arr)
-                    merged_df['EEF_Position'] = pd.concat([df_robot['EEF_Position'], temp_series], ignore_index=True)
+                    start_eef = merged_df['EEF_Position'].dropna()
+                    end_eef = pd.Series([last_eef_value]*(len(df_obj.index)-len(df_robot.index)))
+                    merged_df['EEF_Position'] = pd.concat([start_eef, end_eef], ignore_index=True)
                     merged_df.dropna(inplace=True)
                     
                     # Reformat for James' EKF -> WATCH OUT INVERTING X AND Y HERE (due to optitrack frame)
@@ -392,7 +392,7 @@ if __name__== "__main__" :
    
     ### Processing variables 
     ### UBUNTU
-    folders_to_process = ["2024-03-05_12:20:48"]#,"2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
+    folders_to_process = ["2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
                             # "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42"] 
 
     ### WINDOWS

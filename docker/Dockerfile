@@ -20,19 +20,24 @@ RUN sudo apt-get update && sudo apt-get install -y \
     && sudo apt-get upgrade -y && sudo apt-get clean
 
 # iiwa_toolkit
-USER root
-ARG IIWA_TOOLKIT_BRANCH=feature_ns_inertial_control
-WORKDIR /home/${USER}/ros_ws/src
-RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit_ns.git --branch ${IIWA_TOOLKIT_BRANCH} 
+# USER root
+# ARG IIWA_TOOLKIT_BRANCH=feature_ns_inertial_control
+# WORKDIR /home/${USER}/ros_ws/src
+# RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit_ns.git --branch ${IIWA_TOOLKIT_BRANCH} 
 # feature_ns_inertial_control feature_ns_full_inertia
-USER ${USER}
+# USER ${USER}
 
 # Python (for python plots)
 RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch gmr
 
 # Copy air_hockey folder inside docker
 WORKDIR /home/${USER}/ros_ws
-COPY --chown=${USER} ./ ./src/air_hockey
+COPY --chown=${USER} ./ ./ 
+#COPY --chown=${USER} ./air_hockey ./src/air_hockey
+#COPY --chown=${USER} ./iiwa_toolkit ./src/iiwa_toolkit
+#COPY --chown=${USER} ./data .
+# COPY --chown=${USER} ./iiwa_toolkit ./src/iiwa_toolkit
+
 
 WORKDIR /home/${USER}/ros_ws
 ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"

@@ -1,0 +1,41 @@
+options:
+  filter_gain: 0.2
+
+control:
+    iiwa1:
+      dsGainPos: 2.0 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
+      lambda0Pos: 70.0 #80.0
+      lambda1Pos: 35.0 #40.0 
+      dsGainOri: 1.0 #2.5 #3.0
+      lambda0Ori: 10.0 # 6.0 #5.0
+      lambda1Ori: 5.0 # 3.0 #2.5
+    iiwa2:
+      dsGainPos: 2.5
+      lambda0Pos: 90.0
+      lambda1Pos: 45.0 
+      dsGainOri: 1.1
+      lambda0Ori: 12.0
+      lambda1Ori: 6.0
+
+
+target:
+    iiwa1:
+      pos: [0.55, -0.2, 0.25] 
+      quat: [0.707, -0.707, 0.0, 0.0] #[0.5, -0.5, -0.5, -0.5 ] 
+    iiwa2:
+      pos: [0.55, 0.2, 0.25]
+      quat: [0.5, 0.5, -0.5, 0.5]  #[-0.707, -0.707, 0.0, 0.0]
+
+inertia:
+    iiwa1:
+      null_gains: [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0]
+      gain: 0.001
+      desired : 5.0
+      direction : [0.0, 1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
+      null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81] #[-0.560, 1.110, -0.121, -1.2, -1.888, -1.816, -0.652] # to test ->[-0.31, 0.97,  -0.23, -1.42, -1.54, -1.81, 0.6] [-0.650, 1.110, -0.121, -1.2, -1.088, -1.816, 0.652] #[0.00, -0.6, 0.0, -1.7, 0.00, 0.00, 0.0]
+    iiwa2:
+      null_gains: [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] 
+      gain: 0.001
+      desired : 10.0
+      direction :  [0.0, -1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
+      null_pos : [0.563, 1.166, -0.134, -1.366, -1.095, 1.763, -0.591] # pos for y=0.3 [0.650, 1.110, -0.121, -1.2, -1.088, 1.816, -0.652] #[0.549, 1.110, -0.121, -1.382, -1.088, 1.816, 1.043]

@@ -1,0 +1,4 @@
+options:
+  is_optitrack_on: true
+  filter_gain: 0.2
+

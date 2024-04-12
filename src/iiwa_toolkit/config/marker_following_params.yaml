@@ -1,0 +1,21 @@
+options:
+  is_optitrack_on: true
+  is_orientation_track_on: true
+
+  filter_gain: 0.2
+
+control:
+    dsGainPos: 6.0
+    lambda0Pos: 40.0
+    lambda1Pos: 40.0
+    dsGainOri: 5.0
+    lambda0Ori: 6.0
+    lambda1Ori: 2.75
+    mass_ee: 0.02
+
+target:
+    pos: [0.5, 0.0, 0.28]
+    quat: [0.7071068, 0.0, 0.7071068,  0.0]
+
+leader:
+    pos: [1.2, 0., 0.25]

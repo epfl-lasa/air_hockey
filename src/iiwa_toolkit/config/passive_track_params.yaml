@@ -1,0 +1,21 @@
+options:
+  filter_gain: 0.2
+
+control:
+    dsGainPos: 6.0
+    lambda0Pos: 70.0
+    lambda1Pos: 35.0
+    dsGainOri: 3.0
+    lambda0Ori: 5.0
+    lambda1Ori: 2.5
+
+target:
+  iiwa:
+    pos: [0.5, -0.25, 0.3]
+    quat: [0.7071068, -0.7071068 , 0.0,  0.0]
+
+inertia:
+  iiwa:
+    null_gains: [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,2.0]
+    gain: 0.001
+    desired : 5.0

@@ -1,0 +1,25 @@
+<launch>
+    <!-- <include file="$(find iiwa_gazebo)/launch/iiwa_gazebo.launch">
+    </include> -->
+     <!-- Select the robot name -->
+    <arg name="robot_name" default="iiwa"/>
+    <arg name="model" default="7" />
+    <arg name="controller" default="TorqueController"/>
+
+
+    <include file="$(find iiwa_driver)/launch/iiwa_bringup.launch">
+        <arg name="robot_name" value="$(arg robot_name)"/>
+        <arg name="model" value="$(arg model)"/>
+        <arg name="controller" value="$(arg controller)" />
+    </include>
+    
+    <group ns="/$(arg robot_name)">
+        <node name="passive_tracking" pkg="iiwa_toolkit" type="passive_track" output="screen">
+        </node>
+        
+        <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="passive_control_gui" />
+
+        <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual_real.yaml" command="load"/>
+    </group>
+    
+</launch>

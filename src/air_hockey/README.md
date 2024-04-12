@@ -1,20 +1,20 @@
 # Air_hockey 
 
-This repository contains the complete code for the data collection framework dubbed "Air Hockey". This framework consists of two KUKA IIWA robots hitting an object back and forth between each other's workspace. The hit object slides on a surface, leaving the hitting robot's workspace to end up in the receiving robot's workspace. The roles are then reversed and the object is hit back in the opposite direction. This setup allows for fast data colelction on hitting objects, sliding and impact.
+This package contains the high-level control for the Air Hockey framework. It consists of :
+- a Finite State Machine node handling the hitting state of the robots, which can be used autonomously or with keyboard input.
+- a recorder node handling the recording of data when hitting. It records both the object and robot state.
+- an optitrack node to transform the raw optitrack data to the base of each robot for cleaner data collection
 
 
-TODO : 
-- add picture + diagram to READ ME
-- make setup.md
-- cite Harhsit's paper
-
+TODO : add airhockey logic digram 
 
 ## Requirements
 airhockey requires several packages to be installed in order to work properly:
 
 It is recommended to install everything using docker (cf. docker section)
 
-* **iiwa_ros**: branch `feature/double_robot_inertia` (and all its dependencies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
+* **iiwa_ros**: branch `feature/inertia` (and all its dependencies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
+* **iiwa_toolkit**: branch `feature_ns_inertial_control` :  https://github.com/epfl-lasa/iiwa_toolkit_ns/tree/feature_ns_inertial_control
 
 ## Docker
 
@@ -47,19 +47,12 @@ The branch of iiwa-toolkit lib can be chosen. The default branch is feature_iner
 
 Run docker:
 ``` bash 
-bash docker/start-docker.sh 
+aica-docker interactive air_hockey:noetic -u ros --net host --no-hostname -v /path_to_project/air_hockey:/home/ros/ros_ws/src/air_hockey --privileged
 ```
-Connect form other terminals :
-``` bash 
-bash docker/start-docker.sh -m connect
-```
-
-Note : volumes are mounted on the folders src/air\_hockey, src/iiwa\_toolkit, python, data and docker. Everything inside the container not in these folders will not be mofified on the host machine!
-
 
 # Run the simulation
 
-Run thedocker container, then in one terminal, launch the gazebo simulation:
+Run the docker container, then in one terminal, launch the gazebo simulation:
 ``` bash
 roslaunch air_hockey airhockey_sim.launch
 ```

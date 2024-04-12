@@ -3,7 +3,7 @@ IMAGE_NAME="air_hockey"
 IMAGE_TAG="noetic"
 CONTAINER_NAME="${IMAGE_NAME//[\/.]/-}"
 USERNAME="ros"
-MODE=()
+MODE="interactive"
 USE_NVIDIA_TOOLKIT=()
 
 # Help
@@ -80,7 +80,8 @@ if [ "${MODE}" != "connect" ]; then
 
     # network for ros
     FWD_ARGS+=(--net=host)
-    FWD_ARGS+=(--env ROS_HOSTNAME="$(hostname)")
+    FWD_ARGS+=(--no-hostname)
+    #FWD_ARGS+=(--env ROS_HOSTNAME="$(hostname)")
 
     # Handle GPU usage
     [[ ${USE_NVIDIA_TOOLKIT} = true ]] && GPU_FLAG="--gpus all" || GPU_FLAG=""
@@ -89,15 +90,13 @@ if [ "${MODE}" != "connect" ]; then
     FWD_ARGS+=("--privileged")
 
 
-    # Add volume air_hockey
-    docker volume rm air_hockey
-    docker volume create --driver local \
-    --opt type="none" \
-    --opt device="${PWD}/air_hockey" \
-    --opt o="bind" \
-    "air_hockey"
-    FWD_ARGS+=(--volume="${PWD}:/home/ros/ros_ws/src/air_hockey:rw")
-
+    # Add volumes for airhockey, toolkit, data, python and docker
+    FWD_ARGS+=(--volume="${PWD}/src/air_hockey:/home/ros/ros_ws/src/air_hockey:rw")
+    FWD_ARGS+=(--volume="${PWD}/src/iiwa_toolkit:/home/ros/ros_ws/src/iiwa_toolkit:rw")
+    FWD_ARGS+=(--volume="${PWD}/python:/home/ros/ros_ws/python:rw")
+    FWD_ARGS+=(--volume="${PWD}/data:/home/ros/ros_ws/data:rw")
+    FWD_ARGS+=(--volume="${PWD}/docker:/home/ros/ros_ws/docker:rw")
+    
     echo ${FWD_ARGS}
 
 fi
