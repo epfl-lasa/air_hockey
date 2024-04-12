@@ -20,7 +20,7 @@ For a quick working test, you can run the gazebo simulation using:
 ``` bash
 cd air_hockey
 bash docker/start-docker.sh
-roslaunch air_hockey airhockey_sim.launch
+roslaunch air_hockey air_hockey_sim.launch
 ```
 
 # Authors/Maintainers 

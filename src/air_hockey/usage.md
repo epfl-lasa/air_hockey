@@ -6,7 +6,7 @@ Run the docker container, then in one terminal, launch the gazebo simulation:
 ``` bash
 cd air_hockey
 bash docker/start-docker.sh
-roslaunch air_hockey airhockey_sim.launch
+roslaunch air_hockey air_hockey_sim.launch
 ```
 
 ## Real-life framework
