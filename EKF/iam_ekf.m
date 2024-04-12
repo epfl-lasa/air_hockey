@@ -51,7 +51,7 @@ classdef iam_ekf < handle
             this.saveFigBool = true;
             this.images_path = 'images/';
             data = dataToy(); % Create data structure from toy model
-%             data = dataSim('../log_box_traj_mu001.txt');
+%             data = dataSim('data/log_box_traj_mu001.txt');
 %             data = dataReal('../log_real_traj.txt');
             this.init(data); % Initalize Kalman filter parameters
             [this.estimateState,this.Xf_pred,this.otherVars_kal] = this.get_estimateState(data);

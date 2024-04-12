@@ -1,64 +1,19 @@
-classdef dataToy < handle
-    %UNTITLED2 Summary of this class goes here
-    %   Detailed explanation goes here
-
-    properties
-
-        % Time values for EKF
-        dt % time step (s)
-        % Set in spesific data function
-        kalTime % kalman filter time (s)
-        t_kal % vector of time steps
-        numSteps % Length of t_kal
-
-        q % Process Noise variance
-        r % Measurement noise variance
-
-        % Measurements sampled with time t with iregulare sampling
-        t % Time sample of measurements
-        measuredStates % measured states values
-        processNoise
-        measurementNoise
-
-        m % Mass of box in toy model (kg) 
-        m_ee % end-effector mass (kg)
-        mu % coefficient of friction (unit less)
-        g % gravitational coefficient (N/kg)
-        restit % Resitution factor (unit less)
-        n % length of state vector
-
-        flux % flux of hit (m/s)
-        
-        V_EE % end-effector speed required to achieve target flux (m/s)
-
-        sigma_2 % standard deviation of ?? (??)
-        sigma_1 % max amplitude of the hitting force (N)
-
-        % Measured quantities
-        x_o % object position (m)
-        dx_o % object speed (m) (estimated by finite diffrence)
-        x_ee % end-effector position (m)
-
-        X_init % Initial State for EKF
-        
-        fileName
-        dataType % 'toy'
-
-        otherVars_data
-
-    end
+classdef dataToy < dataClass
+    % This function inherests the class variables from the general data
+    % Class. It creates the data set from the "Toy" model
 
     methods
 
         function this = dataToy()
 
-            this.dataType = 'toy';
             this.init();
-            this.get_dataToy();
+            this.check_variablesDefined();
 
         end
 
         function [] = init(this)
+
+            this.dataType = 'toy';
 
             this.m = 0.363;
             this.flux = 1; %m/s,
@@ -75,7 +30,7 @@ classdef dataToy < handle
             this.n = length(this.X_init);
 
             % Call get sim_data
-            sim_data = this.get_dataToy();
+            [sim_data,this.processNoise,this.measurementNoise,this.otherVars_data] = this.get_dataToy();
 
             % Simulate box's trajectory and track it
             % Specifying all parameters, boh for simulation (_sim) and for the Extended Kalman Filter
@@ -100,7 +55,7 @@ classdef dataToy < handle
 
         end
 
-        function [sim_data] = get_dataToy(this)
+        function [sim_data,processNoise,measurementNoise,otherVars_data] = get_dataToy(this)
 
             % NO REFRENCE TO "this" OBJECT
 
@@ -125,8 +80,8 @@ classdef dataToy < handle
             impulseOccured = false;
             for i = 2:length(tspan)
 
-                this.processNoise(:,i) = this.q.*randn(this.n,1);
-                this.measurementNoise(:,i) = this.r.*randn(2,1);
+                processNoise(:,i) = this.q.*randn(this.n,1);
+                measurementNoise(:,i) = this.r.*randn(2,1);
 
                 x_o = x(1);
                 dx_o = x(2);
@@ -148,19 +103,19 @@ classdef dataToy < handle
                     f_ext = 0;  % No force acts on box
                 end
 
-                x_o_next =   x_o + dt*dx_o + (dt^2/this.m) * f_ext      + this.processNoise(1,i);
-                dx_o_next =  dx_o + dt * (1/this.m) * f_ext             + this.processNoise(2,i);
-                x_ee_next =  x_ee + dt*dx_ee                            + this.processNoise(3,i);
+                x_o_next =   x_o + dt*dx_o + (dt^2/this.m) * f_ext      + processNoise(1,i);
+                dx_o_next =  dx_o + dt * (1/this.m) * f_ext             + processNoise(2,i);
+                x_ee_next =  x_ee + dt*dx_ee                            + processNoise(3,i);
                 
                 if ~impulseOccured
-                    dx_ee_next = this.X_init(4)                                      + this.processNoise(4,i);
+                    dx_ee_next = this.X_init(4)                                      + processNoise(4,i);
                 elseif impulseOccured && x_ee < this.X_init(3)
-                    dx_ee_next = 0                                                   + this.processNoise(4,i);
+                    dx_ee_next = 0                                                   + processNoise(4,i);
                 elseif impulseOccured
-                    dx_ee_next = 0                                      + this.processNoise(4,i);
+                    dx_ee_next = 0                                      + processNoise(4,i);
                 end
 
-                E_next = E + dt*abs(dx_o*f_impact)                      + this.processNoise(5,i);
+                E_next = E + dt*abs(dx_o*f_impact)                      + processNoise(5,i);
 
                 X_next = [x_o_next;...
                           dx_o_next;...
@@ -171,13 +126,13 @@ classdef dataToy < handle
                 x = X_next; % + sqrt(this.processNoise)*randn(length(x),1); % (CHECK) Add process noise
                 sim_data(:,i) = [tspan(i);...
                                  nan;...
-                                 x(1)              + this.measurementNoise(1,i);...
+                                 x(1)              + measurementNoise(1,i);...
                                  nan;...
                                  nan;...
-                                 x(3)              + this.measurementNoise(2,i);...
+                                 x(3)              + measurementNoise(2,i);...
                                  nan]; % (CHECK) Add measurement noise
-                this.otherVars_data.f_ext(i) = f_ext;
-                this.otherVars_data.E(i) = x(end);
+                otherVars_data.f_ext(i) = f_ext;
+                otherVars_data.E(i) = x(end);
 
             end
         end

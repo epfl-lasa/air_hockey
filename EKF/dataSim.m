@@ -1,62 +1,19 @@
-classdef dataSim < handle
+classdef dataSim < dataClass
     %UNTITLED2 Summary of this class goes here
     %   Detailed explanation goes here
-
-    properties
-
-        % Time values for EKF
-        dt % time step (s)
-        % Set in spesific data function
-        kalTime % kalman filter time (s)
-        t_kal % vector of time steps
-        numSteps % Length of t_kal
-
-        q % Process Noise variance
-        r % Measurement noise variance
-
-        % Measurements sampled with time t with iregulare sampling
-        t % Time sample of measurements
-        measuredStates % measured states values
-        processNoise
-        measurementNoise
-
-        m % Mass of box in toy model (kg) 
-        m_ee % end-effector mass (kg)
-        mu % coefficient of friction (unit less)
-        g % gravitational coefficient (N/kg)
-        restit % Resitution factor (unit less)
-        n % length of state vector
-
-        flux % flux of hit (m/s)
-        
-        V_EE % end-effector speed required to achieve target flux (m/s)
-
-        sigma_2 % standard deviation of ?? (??)
-        sigma_1 % max amplitude of the hitting force (N)
-
-        % Measured quantities
-        x_o % object position (m)
-        dx_o % object speed (m) (estimated by finite diffrence)
-        x_ee % end-effector position (m)
-
-        X_init % Initial State for EKF
-        
-        fileName
-        dataType % 'sim'
-
-    end
 
     methods
 
         function this = dataSim(fileName)
 
-            this.fileName = fileName;
             this.dataType = 'sim';
+            this.fileName = fileName;
             this.init();
+            this.check_variablesDefined();
 
         end
 
-        function [] = init(this)
+        function [this] = init(this)
 
             delimiterIn = ' ';
             sim_data = importdata(this.fileName,delimiterIn)';
@@ -95,6 +52,10 @@ classdef dataSim < handle
             % Define Measured States
             this.measuredStates(1,:) = this.x_o; % X position of the box
             this.measuredStates(2,:) = this.x_ee; % End-effector position
+
+            this.otherVars_data = nan;
+            this.processNoise = nan;
+            this.measurementNoise = nan;
 
         end
 
