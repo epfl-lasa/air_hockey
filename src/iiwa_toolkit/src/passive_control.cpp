@@ -305,7 +305,8 @@ Eigen::VectorXd PassiveControl::computeInertiaTorqueNull(float des_dir_lambda, E
 }
 
 void PassiveControl::computeTorqueCmd(){
-    
+
+    //// POSITION CONTROL
     // desired position values
     Eigen::Vector3d deltaX = _robot.ee_des_pos - _robot.ee_pos;
     double maxDx = 0.1;
@@ -323,33 +324,76 @@ void PassiveControl::computeTorqueCmd(){
 
     if(!is_just_velocity)
         _robot.ee_des_vel   = zgain * dsGain_pos*(Eigen::Matrix3d::Identity()+xgain*std::exp(theta_g)) *deltaX;
-
-    // desired angular values
-    Eigen::Vector4d dqd = Utils<double>::slerpQuaternion(_robot.ee_quat, _robot.ee_des_quat, 0.5);    
-    Eigen::Vector4d deltaQ = dqd -  _robot.ee_quat;
-
-    Eigen::Vector4d qconj = _robot.ee_quat;
-    qconj.segment(1,3) = -1 * qconj.segment(1,3);
-    Eigen::Vector4d temp_angVel = Utils<double>::quaternionProduct(deltaQ, qconj);
-
-    Eigen::Vector3d tmp_angular_vel = temp_angVel.segment(1,3);
-    double maxDq = 0.2;
-    if (tmp_angular_vel.norm() > maxDq)
-        tmp_angular_vel = maxDq * tmp_angular_vel.normalized();
-
-    double theta_gq = (-.5/(4*maxDq*maxDq)) * tmp_angular_vel.transpose() * tmp_angular_vel;
-    _robot.ee_des_angVel  = 2 * dsGain_ori*(1+std::exp(theta_gq)) * tmp_angular_vel;
-
+    
     // -----------------------get desired force in task space
     dsContPos->update(_robot.ee_vel,_robot.ee_des_vel);
     Eigen::Vector3d wrenchPos = dsContPos->get_output() + load_added * 9.8*Eigen::Vector3d::UnitZ();   
     Eigen::VectorXd tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
 
-    // Orientation
-    dsContOri->update(_robot.ee_angVel,_robot.ee_des_angVel);
-    Eigen::Vector3d wrenchAng   = dsContOri->get_output();
-    Eigen::VectorXd tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
+    // ORIENTATION CONTROL
+    bool ori_ctrl_ds = false;
+    Eigen::VectorXd tmp_jnt_trq_ang = Eigen::VectorXd::Zero(7);
 
+    if(ori_ctrl_ds){
+        // desired angular values
+        Eigen::Vector4d dqd = Utils<double>::slerpQuaternion(_robot.ee_quat, _robot.ee_des_quat, 0.5);    
+        Eigen::Vector4d deltaQ = dqd -  _robot.ee_quat;
+
+        Eigen::Vector4d qconj = _robot.ee_quat;
+        qconj.segment(1,3) = -1 * qconj.segment(1,3);
+        Eigen::Vector4d temp_angVel = Utils<double>::quaternionProduct(deltaQ, qconj);
+
+        Eigen::Vector3d tmp_angular_vel = temp_angVel.segment(1,3);
+        double maxDq = 0.2;
+        if (tmp_angular_vel.norm() > maxDq)
+            tmp_angular_vel = maxDq * tmp_angular_vel.normalized();
+
+        double theta_gq = (-.5/(4*maxDq*maxDq)) * tmp_angular_vel.transpose() * tmp_angular_vel;
+        _robot.ee_des_angVel  = 2 * dsGain_ori*(1+std::exp(theta_gq)) * tmp_angular_vel;
+
+        // Orientation
+        dsContOri->update(_robot.ee_angVel,_robot.ee_des_angVel);
+        Eigen::Vector3d wrenchAng = dsContOri->get_output();
+        tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
+        
+    }
+    else{
+        // use James impedance control for orientation torque
+        Eigen::Matrix3d K_r = Eigen::MatrixXd::Identity(3, 3)*50;
+        K_r(0,0) = 260;
+        K_r(1,1) = 260;
+        K_r(2,2) = 100;
+
+        Eigen::Matrix3d R_tcp_des = Eigen::Matrix3d::Zero(3,3);
+        Eigen::Matrix3d R_0_d = Eigen::Matrix3d::Zero(3,3);
+        Eigen::Matrix3d R_0_tcp = Eigen::Matrix3d::Zero(3,3);
+        Eigen::Vector3d u_p = Eigen::Vector3d::Zero(); 
+
+        R_0_d = Utils<double>::quaternionToRotationMatrix(_robot.ee_des_quat);
+        R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
+        R_tcp_des = R_0_tcp.transpose() * R_0_d; // R_0_d desired quaternion, R_0_tcp -> ee_quat
+        Eigen::Quaterniond Qdes(R_tcp_des);
+        Qdes.normalize();
+        double fact = 0;
+        double theta_des = 2 * acos(Qdes.w());
+        if(theta_des == 0.0){
+            fact = 0;
+        } else{
+            fact = 1 / (sin(theta_des/2));
+        }
+        u_p(0) = fact * Qdes.x();
+        u_p(1) = fact * Qdes.y();
+        u_p(2) = fact * Qdes.z();
+        
+        Eigen::Vector3d u_0 = R_0_tcp * u_p;
+
+        Eigen::Vector3d wrenchAng = K_r * u_0 * theta_des;
+
+        tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
+
+        std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;
+        std::cout << "Angular des quat is: " << _robot.ee_des_quat << std::endl;
+    }
 
     //sum up:
     Eigen::VectorXd tmp_jnt_trq = tmp_jnt_trq_pos + tmp_jnt_trq_ang;
@@ -370,22 +414,12 @@ void PassiveControl::computeTorqueCmd(){
     Eigen::VectorXd tmp_null_trq = Eigen::VectorXd::Zero(7);
 
     if(first){ // PD torque controller with big damping for initialization 
-        // Eigen::VectorXd jnt_stiffness_gains = Eigen::VectorXd::Zero(7);
-        // Eigen::VectorXd jnt_damping_gains = Eigen::VectorXd::Zero(7);
-
-        // // PD Control Gains 
-        // jnt_stiffness_gains << 200.0, 110.0, 110.0, 60.0, 37.5, 12.25, 5.0;
-        // jnt_damping_gains << 25.0, 30.0, 25.0, 30.0, 8.0, 1.0 , 0.4;
-
-        // compute PD torque -> LOWERED GAINS FOR IIWA 7 (need higher A6 K, higher damping !!)
+        // compute PD torque 
         for (int i =0; i<7; i++){ 
-            // tmp_null_trq[i] = -(0.55*jnt_stiffness_gains[i] * er_null[i]); // Stiffness
-            // tmp_null_trq[i] += -0.75*jnt_damping_gains[i] * _robot.jnt_velocity[i]; // Damping  
              tmp_null_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
             tmp_null_trq[i] += -start_damping_gains[i] * _robot.jnt_velocity[i]; // Damping            
         }
         // std::cout << "PD torque is: " << tmp_null_trq << std::endl;
-        // std::cout << "null space error is: " << er_null << std::endl;
         ROS_INFO_ONCE("Using PD torque control  "); 
         
         if(er_null.norm()<0.15){ // Go back to usual control when close enough 
@@ -397,7 +431,6 @@ void PassiveControl::computeTorqueCmd(){
         _trq_cmd = tmp_null_trq;
     }
     else{ // USUAL CONTROL
-
         ROS_INFO_ONCE("DS control activated");
 
         // compute null torque
@@ -413,32 +446,9 @@ void PassiveControl::computeTorqueCmd(){
    
         _trq_cmd = tmp_jnt_trq + tmp_null_trq;
     }
-    // std::cout << "null space torque is: " << _trq_cmd << std::endl;
-
-    // if(er_null.norm()<1.5){ 
-    //     first = false;
-    // }
-    // if(er_null.norm()>2e-1){
-    //     er_null = 0.2*er_null.normalized();
-    // }
-    // Eigen::VectorXd tmp_null_trq = Eigen::VectorXd::Zero(7);
-    // for (int i =0; i<7; i++){ 
-    //     tmp_null_trq[i] = -null_gains[i] * er_null[i];
-    //     tmp_null_trq[i] +=-1. * _robot.jnt_velocity[i];
-    // }
-    // if (first){
-    //     // _trq_cmd = tmp_null_trq;
-    //     _trq_cmd = tmp_jnt_trq + 10*tempMat2 * tmp_null_trq;
-    //     ROS_INFO_ONCE("going to the first pose ");                 
-    // }else{
-    //     ROS_INFO_ONCE("Tracking in process");
-    //     _trq_cmd = tmp_jnt_trq + 10*tempMat2 * tmp_null_trq;
-    //     // _trq_cmd = tmp_jnt_trq + 10.*tempMat2 * tmp_null_trq;
-    //     // _trq_cmd = tmp_jnt_trq;
-    // }
+   
 
     // Gravity Compensationn
     // the gravity compensation should've been here, but a server form iiwa tools is doing the job.
    
-
 }
