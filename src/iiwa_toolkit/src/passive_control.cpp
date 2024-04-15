@@ -288,6 +288,12 @@ void PassiveControl::set_inertia_values(const double& gain, const double& desire
     desired_inertia = desired;
 }  
 
+void PassiveControl::set_starting_phase_gains(const Eigen::VectorXd& stiff_gains, const Eigen::VectorXd& damp_gains){
+    start_stiffness_gains = stiff_gains;
+    start_damping_gains = damp_gains;
+}
+
+
 Eigen::VectorXd PassiveControl::computeInertiaTorqueNull(float des_dir_lambda, Eigen::Vector3d& des_vel){
     
     // Eigen::Vector3d direction = des_vel / des_vel.norm();
@@ -350,10 +356,6 @@ void PassiveControl::computeTorqueCmd(){
 
     // null pos control
     Eigen::MatrixXd tempMat2 =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
-    // Eigen::VectorXd nullgains = Eigen::VectorXd::Zero(7);
-    // nullgains << 5.,80,10.,30,5.,2.,2.;
-    // nullgains << 5.,80,30.,30,5.,2.,2.;
-    // nullgains << 20.,5.,20.,10.,10.,2.,2.;
     Eigen::VectorXd er_null;
 
     // Use different nullspace depending on whether we are going to a position or tracking a velocity
@@ -364,26 +366,23 @@ void PassiveControl::computeTorqueCmd(){
         er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia, _robot.ee_des_vel); 
     }
 
-    // er_null = _robot.jnt_position -_robot.nulljnt_position;
-
-    // std::cout << "null space error is: " << er_null << std::endl;
-
-    // Replace strange hacks
-
+    // PD control when starting to reach null space joint position
     Eigen::VectorXd tmp_null_trq = Eigen::VectorXd::Zero(7);
 
     if(first){ // PD torque controller with big damping for initialization 
-        Eigen::VectorXd jnt_stiffness_gains = Eigen::VectorXd::Zero(7);
-        Eigen::VectorXd jnt_damping_gains = Eigen::VectorXd::Zero(7);
+        // Eigen::VectorXd jnt_stiffness_gains = Eigen::VectorXd::Zero(7);
+        // Eigen::VectorXd jnt_damping_gains = Eigen::VectorXd::Zero(7);
 
-        // PD Control Gains 
-        jnt_stiffness_gains << 200.0, 110.0, 110.0, 60.0, 37.5, 12.25, 5.0;
-        jnt_damping_gains << 25.0, 30.0, 25.0, 30.0, 8.0, 1.0 , 0.4;
+        // // PD Control Gains 
+        // jnt_stiffness_gains << 200.0, 110.0, 110.0, 60.0, 37.5, 12.25, 5.0;
+        // jnt_damping_gains << 25.0, 30.0, 25.0, 30.0, 8.0, 1.0 , 0.4;
 
         // compute PD torque -> LOWERED GAINS FOR IIWA 7 (need higher A6 K, higher damping !!)
         for (int i =0; i<7; i++){ 
-            tmp_null_trq[i] = -(0.55*jnt_stiffness_gains[i] * er_null[i]); // Stiffness
-            tmp_null_trq[i] += -0.75*jnt_damping_gains[i] * _robot.jnt_velocity[i]; // Damping            
+            // tmp_null_trq[i] = -(0.55*jnt_stiffness_gains[i] * er_null[i]); // Stiffness
+            // tmp_null_trq[i] += -0.75*jnt_damping_gains[i] * _robot.jnt_velocity[i]; // Damping  
+             tmp_null_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
+            tmp_null_trq[i] += -start_damping_gains[i] * _robot.jnt_velocity[i]; // Damping            
         }
         // std::cout << "PD torque is: " << tmp_null_trq << std::endl;
         // std::cout << "null space error is: " << er_null << std::endl;

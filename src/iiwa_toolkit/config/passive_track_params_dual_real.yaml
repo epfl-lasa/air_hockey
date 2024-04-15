@@ -9,6 +9,7 @@ control:
       dsGainOri: 1.0 #2.5 #3.0
       lambda0Ori: 10.0 # 6.0 #5.0
       lambda1Ori: 5.0 # 3.0 #2.5
+      
     iiwa2:
       dsGainPos: 2.5
       lambda0Pos: 90.0
@@ -16,7 +17,6 @@ control:
       dsGainOri: 1.1
       lambda0Ori: 12.0
       lambda1Ori: 6.0
-
 
 target:
     iiwa1:
@@ -39,3 +39,11 @@ inertia:
       desired : 10.0
       direction :  [0.0, -1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
       null_pos : [0.563, 1.166, -0.134, -1.366, -1.095, 1.763, -0.591] # pos for y=0.3 [0.650, 1.110, -0.121, -1.2, -1.088, 1.816, -0.652] #[0.549, 1.110, -0.121, -1.382, -1.088, 1.816, 1.043]
+
+start: # PD gains for starting phase 
+    iiwa1:
+      stiffness: [110., 60.5, 60.5, 33., 20.625, 6.7375, 2.75  ]
+      damping: [18.75, 22.5, 18.75, 22.5 , 6., 0.75, 0.3 ]
+    iiwa2:
+      stiffness: [200.0, 110.0, 110.0, 60.0, 37.5, 12.25, 5.0]
+      damping: [25.0, 30.0, 25.0, 30.0, 8.0, 1.0 , 0.4]

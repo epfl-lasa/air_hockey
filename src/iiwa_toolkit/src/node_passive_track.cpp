@@ -178,6 +178,18 @@ class IiwaRosMaster
             null_pos(i) = n_pos[i];
         _controller->set_null_pos(null_pos);
 
+        // Get PID gains for starting phase
+        std::vector<double> stiffness;
+        std::vector<double> damping;
+        while(!_n.getParam("start"+ns+"/stiffness", stiffness)){ROS_INFO("Wating For the Parameter start stifness gains");}
+        while(!_n.getParam("start"+ns+"/damping", damping)){ROS_INFO("Wating For the Parameter start dampinggains");}
+
+        for (size_t i = 0; i < stiffness_gains.size(); i++)
+            stiffness_gains(i) = stiffness[i];
+        for (size_t i = 0; i < damping_gains.size(); i++)
+            damping_gains(i) = damping[i];
+        _controller->set_starting_phase_gains(stiffness_gains, damping_gains);
+
         // plotting
         _plotPublisher = _n.advertise<std_msgs::Float64MultiArray>(ns+"/plotvar",1);
         
@@ -264,6 +276,9 @@ class IiwaRosMaster
     double desired_inertia;
     Eigen::Vector3d hit_direction = Eigen::Vector3d::Zero();
     Eigen::VectorXd null_pos = Eigen::VectorXd::Zero(7);
+
+    Eigen::VectorXd stiffness_gains = Eigen::VectorXd::Zero(7);
+    Eigen::VectorXd damping_gains = Eigen::VectorXd::Zero(7);
 
   private:
 
