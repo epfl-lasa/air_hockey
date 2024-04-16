@@ -22,7 +22,7 @@ Computer 1 --> connected to iiwa7 (= iiwa1 = iiwa left)
 * ROS_IP: 128.178.145.165 
 Computer 2 --> connected to iiwa14 (= iiwa2 = iiwa right)
 * ROS_MASTER_URI: 128.178.145.165 
-* ROS_IP: 128.178.96.118 
+* ROS_IP: 128.178.96.208 
 
 ### Terminal setup 
 
