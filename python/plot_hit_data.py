@@ -268,7 +268,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             axs[i].plot(df_obj['RosTime'], df_obj['OrientationError2'].apply(lambda x: math.degrees(x[i])), label=f'Error euler')
             axs[i].plot(df_obj['RosTime'], df_obj['OrientationForIiwa7'].apply(lambda x: math.degrees(pybullet.getEulerFromQuaternion(x)[i])), label=f'Object')
             axs[i].axvline(datetime_hit_time, color = 'r')
-            axs[i].set_ylabel(f'Orientation Error in {coordinate_labels[i]} (deg)')
+            axs[i].set_ylabel(f'Orientation Error in {coordinate_labels[i]} [deg]')
             axs[i].legend()
             axs[i].grid(True)
         
@@ -623,13 +623,13 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-04-08_10:06:54"
-        hit_number =  6 #[16,17] #[x for x in range(1,10)]
+        folder_name = "2024-04-16_14:27:48"
+        hit_number =  [2,3,4,5,6] #[16,17] #[x for x in range(1,10)]
         iiwa_number = 14
     
 
     ### DATA TO PLOT 
-    plot_this_data = ["Orient"]#"Flux","Vel","Torque","Object", "Pos"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Flux","Vel","Torque"]#"Orient","Object", "Pos"["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
 
 
     # PLOT FOR SINGLE HIT 

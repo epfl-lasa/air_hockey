@@ -327,8 +327,7 @@ void PassiveControl::computeTorqueCmd(){
 
     //// POSITION CONTROL
     bool pos_ctrl_ds = true;
-    Eigen::VectorXd tmp_jnt_trq_pos = Eigen::VectorXd::Zero(7);
-
+    
     if(pos_ctrl_ds){
         // desired position values
         Eigen::Vector3d deltaX = _robot.ee_des_pos - _robot.ee_pos;
@@ -376,7 +375,7 @@ void PassiveControl::computeTorqueCmd(){
 
     // ORIENTATION CONTROL
     bool ori_ctrl_ds = false;
-    Eigen::VectorXd tmp_jnt_trq_ang = Eigen::VectorXd::Zero(7);
+
 
     if(ori_ctrl_ds){
         // desired angular values
@@ -403,10 +402,6 @@ void PassiveControl::computeTorqueCmd(){
     }
     else{
         // Impedance control for orientation torque
-        Eigen::Matrix3d R_tcp_des = Eigen::Matrix3d::Zero(3,3);
-        Eigen::Matrix3d R_0_d = Eigen::Matrix3d::Zero(3,3);
-        Eigen::Matrix3d R_0_tcp = Eigen::Matrix3d::Zero(3,3);
-        Eigen::Vector3d u_p = Eigen::Vector3d::Zero(); 
 
         R_0_d = Utils<double>::quaternionToRotationMatrix(_robot.ee_des_quat);
         R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
@@ -424,21 +419,16 @@ void PassiveControl::computeTorqueCmd(){
         u_p(1) = fact * Qdes.y();
         u_p(2) = fact * Qdes.z();
         
-        Eigen::Vector3d u_0 = R_0_tcp * u_p;
-
-        Eigen::Vector3d wrenchAng = K_r * u_0 * theta_des;
-
-        Eigen::VectorXd tau_elastic_rotK = _robot.jacobAng.transpose() * wrenchAng;
+        u_0 = R_0_tcp * u_p;
+        wrenchAng = K_r * u_0 * theta_des;
+        tau_elastic_rotK = _robot.jacobAng.transpose() * wrenchAng;
 
         // Add Damping
-        // Desired angular speed is ZERO
-        Eigen::Vector3d v_ang_0_des = Eigen::Vector3d::Zero();
-
-        // Torque for ang. vel 
-        Eigen::Vector3d w_0_damp_ang = B_ang * (v_ang_0_des - _robot.ee_angVel);
-
-        Eigen::VectorXd tau_damp_ang =  _robot.jacobAng.transpose() * w_0_damp_ang;
+        // Torque for ang. vel -> Desired angular speed is ZERO
+        w_0_damp_ang = B_ang * (v_ang_0_des - _robot.ee_angVel);
+        tau_damp_ang =  _robot.jacobAng.transpose() * w_0_damp_ang;
         
+        // Add up stiffness and damping as torques
         tmp_jnt_trq_ang = tau_elastic_rotK + tau_damp_ang;
 
         // std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;

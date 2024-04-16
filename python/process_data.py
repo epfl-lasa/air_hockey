@@ -98,7 +98,7 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
 def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False):    
     # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
     
-    pos_name_str = 'Position'
+    pos_name_str = 'PositionForIiwa7'
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file,

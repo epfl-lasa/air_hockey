@@ -139,6 +139,19 @@ private:
     // Orientation impedance control
     Eigen::Matrix3d K_r = Eigen::MatrixXd::Identity(3, 3);
     Eigen::Matrix3d B_ang = Eigen::MatrixXd::Identity(3, 3);
+    Eigen::Matrix3d R_tcp_des = Eigen::Matrix3d::Zero(3,3);
+    Eigen::Matrix3d R_0_d = Eigen::Matrix3d::Zero(3,3);
+    Eigen::Matrix3d R_0_tcp = Eigen::Matrix3d::Zero(3,3);
+    Eigen::Vector3d u_p = Eigen::Vector3d::Zero(); 
+    Eigen::Vector3d u_0 = Eigen::Vector3d::Zero();
+    Eigen::Vector3d wrenchAng = Eigen::Vector3d::Zero();
+    Eigen::VectorXd tau_elastic_rotK = Eigen::VectorXd::Zero(7);
+    Eigen::Vector3d v_ang_0_des = Eigen::Vector3d::Zero();
+    Eigen::Vector3d w_0_damp_ang = Eigen::Vector3d::Zero();
+    Eigen::VectorXd tau_damp_ang =  Eigen::VectorXd::Zero(7);
+
+    Eigen::VectorXd tmp_jnt_trq_pos = Eigen::VectorXd::Zero(7);
+    Eigen::VectorXd tmp_jnt_trq_ang = Eigen::VectorXd::Zero(7);
 
     Eigen::VectorXd _trq_cmd = Eigen::VectorXd::Zero(7);
     void computeTorqueCmd();
