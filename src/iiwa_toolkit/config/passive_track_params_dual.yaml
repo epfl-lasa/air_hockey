@@ -4,8 +4,8 @@ options:
 control:
     iiwa1:
       dsGainPos: 2.0 #6.0
-      lambda0Pos: 100 #200.0
-      lambda1Pos: 100 # 200.0 
+      lambda0Pos: 200.0
+      lambda1Pos: 200.0 
       dsGainOri: 3.0
       lambda0Ori: 20.0
       lambda1Ori: 20.0

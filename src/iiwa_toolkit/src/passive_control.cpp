@@ -293,6 +293,25 @@ void PassiveControl::set_starting_phase_gains(const Eigen::VectorXd& stiff_gains
     start_damping_gains = damp_gains;
 }
 
+void PassiveControl::set_impedance_orientation_gains(const Eigen::VectorXd& stiff_gains, const Eigen::VectorXd& damp_gains){
+    K_r(0,0) = stiff_gains[0]; 
+    K_r(1,1) = stiff_gains[1]; 
+    K_r(2,2) = stiff_gains[2];  
+
+    B_ang(0,0) = damp_gains[0];
+    B_ang(1,1) = damp_gains[1];
+    B_ang(2,2) = damp_gains[2];
+}
+
+void PassiveControl::set_impedance_position_gains(const Eigen::VectorXd& stiff_gains, const Eigen::VectorXd& damp_gains){
+    K_t(0,0) = stiff_gains[0]; 
+    K_t(1,1) = stiff_gains[1]; 
+    K_t(2,2) = stiff_gains[2];  
+
+    B_lin(0,0) = damp_gains[0];
+    B_lin(1,1) = damp_gains[1];
+    B_lin(2,2) = damp_gains[2];
+}
 
 Eigen::VectorXd PassiveControl::computeInertiaTorqueNull(float des_dir_lambda, Eigen::Vector3d& des_vel){
     
@@ -335,23 +354,7 @@ void PassiveControl::computeTorqueCmd(){
         tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
     }
     else{
-        // James Impedance control code
-        // Stiffness 
-        Eigen::Matrix3d K_t = Eigen::MatrixXd::Identity(3, 3);
-        //        K_t(0,0) = 750;
-        //        K_t(1,1) = 750;
-        //        K_t(2,2) = 1600;
-        // higher stiffness for freespace
-        K_t(0,0) = 1800;
-        K_t(1,1) = 1800;
-        K_t(2,2) = 2000;
-
-        // Damping
-        Eigen::MatrixXd B_lin = Eigen::MatrixXd::Identity(3, 3);
-        B_lin(0,0) = 43.3;
-        B_lin(1,1) = 31.68;
-        B_lin(2,2) = 37.19;
-
+        // Impedance control
         // Adapt to receiving des_vel or des_pos
         if(is_just_velocity){ // getting onyl vel -> set desired pos to be next step
             _robot.ee_des_pos =  _robot.ee_pos + _robot.ee_des_vel * 0.005;
@@ -400,12 +403,7 @@ void PassiveControl::computeTorqueCmd(){
         
     }
     else{
-        // use James impedance control for orientation torque
-        Eigen::Matrix3d K_r = Eigen::MatrixXd::Identity(3, 3)*50;
-        K_r(0,0) = 260;
-        K_r(1,1) = 260;
-        K_r(2,2) = 100;
-
+        // Impedance control for orientation torque
         Eigen::Matrix3d R_tcp_des = Eigen::Matrix3d::Zero(3,3);
         Eigen::Matrix3d R_0_d = Eigen::Matrix3d::Zero(3,3);
         Eigen::Matrix3d R_0_tcp = Eigen::Matrix3d::Zero(3,3);
@@ -434,12 +432,7 @@ void PassiveControl::computeTorqueCmd(){
         Eigen::VectorXd tau_elastic_rotK = _robot.jacobAng.transpose() * wrenchAng;
 
         // Add Damping
-        Eigen::MatrixXd B_ang = Eigen::MatrixXd::Identity(3, 3);
-        B_ang(0,0) = 3.0;
-        B_ang(1,1) = 3.4;
-        B_ang(2,2) = 1.6;
-
-        // Desired angular speed
+        // Desired angular speed is ZERO
         Eigen::Vector3d v_ang_0_des = Eigen::Vector3d::Zero();
 
         // Torque for ang. vel 
@@ -450,7 +443,7 @@ void PassiveControl::computeTorqueCmd(){
         tmp_jnt_trq_ang = tau_elastic_rotK + tau_damp_ang;
 
         std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;
-        std::cout << "Angular des quat is: " << _robot.ee_des_quat << std::endl;
+        // std::cout << "Angular des quat is: " << _robot.ee_des_quat << std::endl;
     }
 
     //sum up:

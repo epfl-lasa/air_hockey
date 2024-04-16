@@ -128,38 +128,36 @@ class IiwaRosMaster
         
         _controller = std::make_unique<PassiveControl>(urdf_string, end_effector);
         
+        // Get Passive DS parameters
+        while(!_n.getParam("control"+ns+"/dsGainPos", ds_gain_pos)){ROS_WARN("Waiting For the Parameter dsGainPos");}
+        while(!_n.getParam("control"+ns+"/dsGainOri", ds_gain_ori)){ROS_WARN("Waiting For the Parameter dsGainOri");}
+        while(!_n.getParam("control"+ns+"/lambda0Pos",lambda0_pos)){ROS_WARN("Waiting For the Parameter lambda0Pos");}
+        while(!_n.getParam("control"+ns+"/lambda1Pos",lambda1_pos)){ROS_WARN("Waiting For the Parameter lambda1Pos");}
+        while(!_n.getParam("control"+ns+"/lambda0Ori",lambda0_ori)){ROS_WARN("Waiting For the Parameter lambda0Ori");}
+        while(!_n.getParam("control"+ns+"/lambda1Ori",lambda1_ori)){ROS_WARN("Waiting For the Parameter lambda1Ori");}
+        _controller->set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos);
+        _controller->set_ori_gains(ds_gain_ori,lambda0_ori,lambda1_ori);
 
+        // Get desired pose
         std::vector<double> dpos;
         std::vector<double> dquat;
-
-        while(!_n.getParam("control"+ns+"/dsGainPos", ds_gain_pos)){ROS_INFO("Wating For the Parameter dsGainPos");}
-        while(!_n.getParam("control"+ns+"/dsGainOri", ds_gain_ori)){ROS_INFO("Wating For the Parameter dsGainOri");}
-        while(!_n.getParam("control"+ns+"/lambda0Pos",lambda0_pos)){ROS_INFO("Wating For the Parameter lambda0Pos");}
-        while(!_n.getParam("control"+ns+"/lambda1Pos",lambda1_pos)){ROS_INFO("Wating For the Parameter lambda1Pos");}
-        while(!_n.getParam("control"+ns+"/lambda0Ori",lambda0_ori)){ROS_INFO("Wating For the Parameter lambda0Ori");}
-        while(!_n.getParam("control"+ns+"/lambda1Ori",lambda1_ori)){ROS_INFO("Wating For the Parameter lambda1Ori");}
-        
-
-        double angle0 = 0.5*M_PI;
-        des_quat[0] = (std::cos(angle0/2));
-        des_quat.segment(1,3) = (std::sin(angle0/2))* Eigen::Vector3d::UnitY();
-        
-        while(!_n.getParam("target"+ns+"/pos",dpos)){ROS_INFO("Wating For the Parameter target_pos");}
-        while(!_n.getParam("target"+ns+"/quat",dquat)){ROS_INFO("Wating For the Parameter target_pos");}
+        while(!_n.getParam("target"+ns+"/pos",dpos)){ROS_WARN("Waiting For the Parameter target_pos");}
+        while(!_n.getParam("target"+ns+"/quat",dquat)){ROS_WARN("Waiting For the Parameter target_pos");}
         for (size_t i = 0; i < des_pos.size(); i++)
             des_pos(i) = dpos[i];
         for (size_t i = 0; i < des_quat.size(); i++)
             des_quat(i) = dquat[i]; 
+        _controller->set_desired_pose(des_pos,des_quat);
         
         // Get inertia parameters
         std::vector<double> n_gains;
         std::vector<double> hit_dir;
         std::vector<double> n_pos;
-        while(!_n.getParam("inertia"+ns+"/null_gains", n_gains)){ROS_INFO("Wating For the Parameter inertia null gains");}
-        while(!_n.getParam("inertia"+ns+"/gain", inertia_gain)){ROS_INFO("Wating For the Parameter inertia gains");}
-        while(!_n.getParam("inertia"+ns+"/desired", desired_inertia)){ROS_INFO("Wating For the Parameter desired inertia");}
-        while(!_n.getParam("inertia"+ns+"/direction", hit_dir)){ROS_INFO("Wating For the Parameter inertia direction");}
-        while(!_n.getParam("inertia"+ns+"/null_pos", n_pos)){ROS_INFO("Wating For the Parameter null_pos gains");}
+        while(!_n.getParam("inertia"+ns+"/null_gains", n_gains)){ROS_WARN("Waiting For the Parameter inertia null gains");}
+        while(!_n.getParam("inertia"+ns+"/gain", inertia_gain)){ROS_WARN("Waiting For the Parameter inertia gains");}
+        while(!_n.getParam("inertia"+ns+"/desired", desired_inertia)){ROS_WARN("Waiting For the Parameter desired inertia");}
+        while(!_n.getParam("inertia"+ns+"/direction", hit_dir)){ROS_WARN("Waiting For the Parameter inertia direction");}
+        while(!_n.getParam("inertia"+ns+"/null_pos", n_pos)){ROS_WARN("Waiting For the Parameter null_pos gains");}
         _controller->set_inertia_values(inertia_gain, desired_inertia);
         
         for (size_t i = 0; i < hit_direction.size(); i++)
@@ -169,26 +167,46 @@ class IiwaRosMaster
         for (size_t i = 0; i < null_gains.size(); i++)
             null_gains(i) = n_gains[i];
         _controller->set_inertia_null_gains(null_gains);
-        
-        _controller->set_desired_pose(des_pos,des_quat);
-        _controller->set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos);
-        _controller->set_ori_gains(ds_gain_ori,lambda0_ori,lambda1_ori);
 
         for (size_t i = 0; i < null_pos.size(); i++)
             null_pos(i) = n_pos[i];
         _controller->set_null_pos(null_pos);
 
-        // Get PID gains for starting phase
+        // Get PD gains for starting phase
         std::vector<double> stiffness;
         std::vector<double> damping;
-        while(!_n.getParam("start"+ns+"/stiffness", stiffness)){ROS_INFO("Wating For the Parameter start stifness gains");}
-        while(!_n.getParam("start"+ns+"/damping", damping)){ROS_INFO("Wating For the Parameter start dampinggains");}
+        while(!_n.getParam("start"+ns+"/stiffness", stiffness)){ROS_WARN("Waiting For the Parameter start stifness gains");}
+        while(!_n.getParam("start"+ns+"/damping", damping)){ROS_WARN("Waiting For the Parameter start dampinggains");}
 
         for (size_t i = 0; i < stiffness_gains.size(); i++)
             stiffness_gains(i) = stiffness[i];
         for (size_t i = 0; i < damping_gains.size(); i++)
             damping_gains(i) = damping[i];
         _controller->set_starting_phase_gains(stiffness_gains, damping_gains);
+
+        // Get PD gains for Impedance orientation Control
+        std::vector<double> stiff_ori;
+        std::vector<double> damp_ori;
+        while(!_n.getParam("control"+ns+"/ImpedanceOriStiffness", stiff_ori)){ROS_WARN("Waiting For the Parameter start stifness gains");}
+        while(!_n.getParam("start"+ns+"/ImpedanceOriDamping", damp_ori)){ROS_WARN("Waiting For the Parameter start dampinggains");}
+
+        for (size_t i = 0; i < stiffness_gains_ori.size(); i++)
+            stiffness_gains_ori(i) = stiff_ori[i];
+        for (size_t i = 0; i < damping_gains_ori.size(); i++)
+            damping_gains_ori(i) = damp_ori[i];
+        _controller->set_impedance_orientation_gains(stiffness_gains_ori, damping_gains_ori);
+
+        // Get PD gains for Impedance position Control
+        std::vector<double> stiff_pos;
+        std::vector<double> damp_pos;
+        while(!_n.getParam("control"+ns+"/ImpedancePosStiffness", stiff_pos)){ROS_WARN("Waiting For the Parameter start stifness gains");}
+        while(!_n.getParam("start"+ns+"/ImpedancePosDamping", damp_pos)){ROS_WARN("Waiting For the Parameter start dampinggains");}
+
+        for (size_t i = 0; i < stiffness_gains_pos.size(); i++)
+            stiffness_gains_pos(i) = stiff_pos[i];
+        for (size_t i = 0; i < damping_gains_pos.size(); i++)
+            damping_gains_pos(i) = damp_pos[i];
+        _controller->set_impedance_position_gains(stiffness_gains_pos, damping_gains_pos);
 
         // plotting
         _plotPublisher = _n.advertise<std_msgs::Float64MultiArray>(ns+"/plotvar",1);
@@ -268,7 +286,7 @@ class IiwaRosMaster
     double lambda1_pos;
     double lambda0_ori;
     double lambda1_ori;
-    Eigen::Vector3d des_pos = {0.8 , 0., 0.3}; 
+    Eigen::Vector3d des_pos = Eigen::Vector3d::Zero(); 
     Eigen::Vector4d des_quat = Eigen::Vector4d::Zero();
 
     Eigen::VectorXd null_gains = Eigen::VectorXd::Zero(7);
@@ -277,8 +295,17 @@ class IiwaRosMaster
     Eigen::Vector3d hit_direction = Eigen::Vector3d::Zero();
     Eigen::VectorXd null_pos = Eigen::VectorXd::Zero(7);
 
+    // Start phase
     Eigen::VectorXd stiffness_gains = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd damping_gains = Eigen::VectorXd::Zero(7);
+
+    // Orientation Control
+    Eigen::Vector3d stiffness_gains_ori = Eigen::Vector3d::Zero();
+    Eigen::Vector3d damping_gains_ori = Eigen::Vector3d::Zero();
+
+    // Position Control
+    Eigen::Vector3d stiffness_gains_pos = Eigen::Vector3d::Zero();
+    Eigen::Vector3d damping_gains_pos = Eigen::Vector3d::Zero();
 
   private:
 

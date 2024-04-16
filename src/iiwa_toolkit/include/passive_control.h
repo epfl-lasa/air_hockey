@@ -128,8 +128,17 @@ private:
     double inertia_gain;
     double desired_inertia;
 
+    // Starting phase
     Eigen::VectorXd start_stiffness_gains = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd start_damping_gains = Eigen::VectorXd::Zero(7);
+
+    // Position impedance control
+    Eigen::Matrix3d K_t = Eigen::MatrixXd::Identity(3, 3);
+    Eigen::Matrix3d B_lin = Eigen::MatrixXd::Identity(3, 3);
+    
+    // Orientation impedance control
+    Eigen::Matrix3d K_r = Eigen::MatrixXd::Identity(3, 3);
+    Eigen::Matrix3d B_ang = Eigen::MatrixXd::Identity(3, 3);
 
     Eigen::VectorXd _trq_cmd = Eigen::VectorXd::Zero(7);
     void computeTorqueCmd();
@@ -161,6 +170,8 @@ public:
     void set_hit_direction(const Eigen::Vector3d& direction);
 
     void set_starting_phase_gains(const Eigen::VectorXd& stiff_gains, const Eigen::VectorXd& damp_gains);
+    void set_impedance_orientation_gains(const Eigen::VectorXd& stiff_gains, const Eigen::VectorXd& damp_gains);
+    void set_impedance_position_gains(const Eigen::VectorXd& stiff_gains, const Eigen::VectorXd& damp_gains);
 
     Eigen::VectorXd getCmd(){
         computeTorqueCmd();
