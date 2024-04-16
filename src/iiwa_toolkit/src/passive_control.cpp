@@ -374,7 +374,6 @@ void PassiveControl::computeTorqueCmd(){
         tmp_jnt_trq_pos = tau_elastic_linK + tau_damp_lin;
     }
 
-
     // ORIENTATION CONTROL
     bool ori_ctrl_ds = false;
     Eigen::VectorXd tmp_jnt_trq_ang = Eigen::VectorXd::Zero(7);
@@ -442,7 +441,7 @@ void PassiveControl::computeTorqueCmd(){
         
         tmp_jnt_trq_ang = tau_elastic_rotK + tau_damp_ang;
 
-        std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;
+        // std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;
         // std::cout << "Angular des quat is: " << _robot.ee_des_quat << std::endl;
     }
 
@@ -467,7 +466,7 @@ void PassiveControl::computeTorqueCmd(){
     if(first){ // PD torque controller with big damping for initialization 
         // compute PD torque 
         for (int i =0; i<7; i++){ 
-             tmp_null_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
+            tmp_null_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
             tmp_null_trq[i] += -start_damping_gains[i] * _robot.jnt_velocity[i]; // Damping            
         }
         // std::cout << "PD torque is: " << tmp_null_trq << std::endl;

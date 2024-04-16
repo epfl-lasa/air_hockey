@@ -123,26 +123,25 @@ class IiwaRosMaster
 
         // Get the end-effector
         _n.param<std::string>("params/end_effector", end_effector, robot_name+"_link_ee");
+
         // Initialize iiwa tools
-        
-        
         _controller = std::make_unique<PassiveControl>(urdf_string, end_effector);
         
         // Get Passive DS parameters
-        while(!_n.getParam("control"+ns+"/dsGainPos", ds_gain_pos)){ROS_WARN("Waiting For the Parameter dsGainPos");}
-        while(!_n.getParam("control"+ns+"/dsGainOri", ds_gain_ori)){ROS_WARN("Waiting For the Parameter dsGainOri");}
-        while(!_n.getParam("control"+ns+"/lambda0Pos",lambda0_pos)){ROS_WARN("Waiting For the Parameter lambda0Pos");}
-        while(!_n.getParam("control"+ns+"/lambda1Pos",lambda1_pos)){ROS_WARN("Waiting For the Parameter lambda1Pos");}
-        while(!_n.getParam("control"+ns+"/lambda0Ori",lambda0_ori)){ROS_WARN("Waiting For the Parameter lambda0Ori");}
-        while(!_n.getParam("control"+ns+"/lambda1Ori",lambda1_ori)){ROS_WARN("Waiting For the Parameter lambda1Ori");}
+        if(!_n.getParam("control"+ns+"/dsGainPos", ds_gain_pos)){ROS_ERROR("Could not find Parameter dsGainPos");}
+        if(!_n.getParam("control"+ns+"/dsGainOri", ds_gain_ori)){ROS_ERROR("Could not find Parameter dsGainOri");}
+        if(!_n.getParam("control"+ns+"/lambda0Pos",lambda0_pos)){ROS_ERROR("Could not find Parameter lambda0Pos");}
+        if(!_n.getParam("control"+ns+"/lambda1Pos",lambda1_pos)){ROS_ERROR("Could not find Parameter lambda1Pos");}
+        if(!_n.getParam("control"+ns+"/lambda0Ori",lambda0_ori)){ROS_ERROR("Could not find Parameter lambda0Ori");}
+        if(!_n.getParam("control"+ns+"/lambda1Ori",lambda1_ori)){ROS_ERROR("Could not find Parameter lambda1Ori");}
         _controller->set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos);
         _controller->set_ori_gains(ds_gain_ori,lambda0_ori,lambda1_ori);
 
         // Get desired pose
         std::vector<double> dpos;
         std::vector<double> dquat;
-        while(!_n.getParam("target"+ns+"/pos",dpos)){ROS_WARN("Waiting For the Parameter target_pos");}
-        while(!_n.getParam("target"+ns+"/quat",dquat)){ROS_WARN("Waiting For the Parameter target_pos");}
+        if(!_n.getParam("target"+ns+"/pos",dpos)){ROS_ERROR("Could not find Parameter target_pos");}
+        if(!_n.getParam("target"+ns+"/quat",dquat)){ROS_ERROR("Could not find Parameter target_pos");}
         for (size_t i = 0; i < des_pos.size(); i++)
             des_pos(i) = dpos[i];
         for (size_t i = 0; i < des_quat.size(); i++)
@@ -153,11 +152,11 @@ class IiwaRosMaster
         std::vector<double> n_gains;
         std::vector<double> hit_dir;
         std::vector<double> n_pos;
-        while(!_n.getParam("inertia"+ns+"/null_gains", n_gains)){ROS_WARN("Waiting For the Parameter inertia null gains");}
-        while(!_n.getParam("inertia"+ns+"/gain", inertia_gain)){ROS_WARN("Waiting For the Parameter inertia gains");}
-        while(!_n.getParam("inertia"+ns+"/desired", desired_inertia)){ROS_WARN("Waiting For the Parameter desired inertia");}
-        while(!_n.getParam("inertia"+ns+"/direction", hit_dir)){ROS_WARN("Waiting For the Parameter inertia direction");}
-        while(!_n.getParam("inertia"+ns+"/null_pos", n_pos)){ROS_WARN("Waiting For the Parameter null_pos gains");}
+        if(!_n.getParam("inertia"+ns+"/null_gains", n_gains)){ROS_ERROR("Could not find Parameter inertia null gains");}
+        if(!_n.getParam("inertia"+ns+"/gain", inertia_gain)){ROS_ERROR("Could not find Parameter inertia gains");}
+        if(!_n.getParam("inertia"+ns+"/desired", desired_inertia)){ROS_ERROR("Could not find Parameter desired inertia");}
+        if(!_n.getParam("inertia"+ns+"/direction", hit_dir)){ROS_ERROR("Could not find Parameter inertia direction");}
+        if(!_n.getParam("inertia"+ns+"/null_pos", n_pos)){ROS_ERROR("Could not find Parameter null_pos gains");}
         _controller->set_inertia_values(inertia_gain, desired_inertia);
         
         for (size_t i = 0; i < hit_direction.size(); i++)
@@ -175,8 +174,8 @@ class IiwaRosMaster
         // Get PD gains for starting phase
         std::vector<double> stiffness;
         std::vector<double> damping;
-        while(!_n.getParam("start"+ns+"/stiffness", stiffness)){ROS_WARN("Waiting For the Parameter start stifness gains");}
-        while(!_n.getParam("start"+ns+"/damping", damping)){ROS_WARN("Waiting For the Parameter start dampinggains");}
+        if(!_n.getParam("start"+ns+"/stiffness", stiffness)){ROS_ERROR("Could not find Parameter start stiffness gains");}
+        if(!_n.getParam("start"+ns+"/damping", damping)){ROS_ERROR("Could not find Parameter start damping gains");}
 
         for (size_t i = 0; i < stiffness_gains.size(); i++)
             stiffness_gains(i) = stiffness[i];
@@ -187,8 +186,8 @@ class IiwaRosMaster
         // Get PD gains for Impedance orientation Control
         std::vector<double> stiff_ori;
         std::vector<double> damp_ori;
-        while(!_n.getParam("control"+ns+"/ImpedanceOriStiffness", stiff_ori)){ROS_WARN("Waiting For the Parameter start stifness gains");}
-        while(!_n.getParam("start"+ns+"/ImpedanceOriDamping", damp_ori)){ROS_WARN("Waiting For the Parameter start dampinggains");}
+        if(!_n.getParam("control"+ns+"/ImpedanceOriStiffness", stiff_ori)){ROS_ERROR("Could not find Parameter Impedance Ori Stiffness gains");}
+        if(!_n.getParam("control"+ns+"/ImpedanceOriDamping", damp_ori)){ROS_ERROR("Could not find Parameter Impedance Ori Damping gains");}
 
         for (size_t i = 0; i < stiffness_gains_ori.size(); i++)
             stiffness_gains_ori(i) = stiff_ori[i];
@@ -199,8 +198,8 @@ class IiwaRosMaster
         // Get PD gains for Impedance position Control
         std::vector<double> stiff_pos;
         std::vector<double> damp_pos;
-        while(!_n.getParam("control"+ns+"/ImpedancePosStiffness", stiff_pos)){ROS_WARN("Waiting For the Parameter start stifness gains");}
-        while(!_n.getParam("start"+ns+"/ImpedancePosDamping", damp_pos)){ROS_WARN("Waiting For the Parameter start dampinggains");}
+        if(!_n.getParam("control"+ns+"/ImpedancePosStiffness", stiff_pos)){ROS_ERROR("Could not find Parameter Impedance Pos Stifness gains");}
+        if(!_n.getParam("control"+ns+"/ImpedancePosDamping", damp_pos)){ROS_ERROR("Could not find Parameter Impedance Pos Damping gains");}
 
         for (size_t i = 0; i < stiffness_gains_pos.size(); i++)
             stiffness_gains_pos(i) = stiff_pos[i];
@@ -476,7 +475,7 @@ int main (int argc, char **argv)
 
     Passive_Options options;
 
-    while(!n.getParam("options/filter_gain", options.filter_gain)){ROS_INFO("Waiting for the option setting");}
+    if(!n.getParam("options/filter_gain", options.filter_gain)){ROS_ERROR("Could not find option filter gain setting");}
 
 
     std::unique_ptr<IiwaRosMaster> IiwaTrack = std::make_unique<IiwaRosMaster>(n,frequency,options);

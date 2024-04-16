@@ -9,11 +9,10 @@ control:
       dsGainOri: 1.0 #2.5 #3.0
       lambda0Ori: 10.0 # 6.0 #5.0
       lambda1Ori: 5.0 # 3.0 #2.5
-      ImpedanceOriStiffness: [30.0, 30.0, 30.0] # Task space gains in x,y,z
-      ImpedanceOriDamping: [10.0, 10.0, 10.0]
+      ImpedanceOriStiffness: [20.0, 20.0, 20.0] # [260,260,100] # Task space gains in x,y,z  
+      ImpedanceOriDamping: [10.0, 10.0, 10.0] ## [3,3.4,1.6]
       ImpedancePosStiffness: [1800.0, 1800.0, 2000.0]
       ImpedancePosDamping: [43.3, 31.68, 37.19]
-      
     iiwa2:
       dsGainPos: 2.5
       lambda0Pos: 100.0
@@ -21,7 +20,7 @@ control:
       dsGainOri: 1.0
       lambda0Ori: 10.0
       lambda1Ori: 5.0
-      ImpedanceOriStiffness: [30.0, 30.0, 30.0]
+      ImpedanceOriStiffness: [20.0, 20.0, 20.0]
       ImpedanceOriDamping: [10.0, 10.0, 10.0]
       ImpedancePosStiffness: [1800.0, 1800.0, 2000.0]
       ImpedancePosDamping: [43.3, 31.68, 37.19]
