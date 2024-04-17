@@ -142,12 +142,19 @@ private:
     Eigen::VectorXd start_stiffness_gains = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd start_damping_gains = Eigen::VectorXd::Zero(7);
     bool ori_ramp_up = true;
-    int ori_ramp_up_count = 0;
+    float ori_ramp_up_count = 0;
     bool pos_ramp_up = true;
-    int pos_ramp_up_count = 0;
-    int max_ramp_up = 200;
+    float pos_ramp_up_count = 0;
+    float max_ramp_up = 600; // 200 = 1 sec
     Eigen::Vector4d ee_des_quat = Eigen::Vector4d::Zero();
     Eigen::Vector3d ee_des_pos = Eigen::Vector3d::Zero();
+    Eigen::VectorXd first_jnt_pos = Eigen::VectorXd::Zero(7);
+    Eigen::Vector4d initial_ee_quat = Eigen::Vector4d::Zero();
+    Eigen::Vector3d initial_ee_pos = Eigen::Vector3d::Zero();
+    bool get_initial_ee_pos = true;
+    bool get_initial_ee_quat = true;
+    bool get_first_pos = true;
+    int start_count = 0;
 
     // Position impedance control
     Eigen::Matrix3d K_t = Eigen::MatrixXd::Identity(3, 3);
@@ -213,6 +220,7 @@ public:
     Eigen::VectorXd getCmd(){
         computeTorqueCmd();
         return _trq_cmd;}
+    
     Eigen::Vector3d getEEpos();
     Eigen::Vector3d getEEVel();
     Eigen::Vector3d getEEAngVel();

@@ -324,26 +324,43 @@ void PassiveControl::computeTorqueCmd(){
         er_null = _robot.jnt_position -_robot.nulljnt_position;
 
         for (int i =0; i<7; i++){ 
-            tmp_null_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
-            tmp_null_trq[i] += -start_damping_gains[i] * _robot.jnt_velocity[i]; // Damping            
+            tmp_jnt_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
+            tmp_jnt_trq[i] += -start_damping_gains[i] * _robot.jnt_velocity[i]; // Damping            
         }
-        // std::cout << "PD torque is: " << tmp_null_trq << std::endl;
-        ROS_INFO_ONCE("Using joint PD torque control  "); 
+        // std::cout << "PD torque is: " << tmp_jnt_trq << std::endl;
+        ROS_INFO_ONCE("Using joint PD torque control"); 
         
         if(er_null.norm()<0.15){ // Go back to usual control when close enough 
-            start = false;
-            ROS_INFO_ONCE("Close to first pose. Stopping joint PD control."); 
+            
+            // Safety to check we are moving the robot
+            // if(get_first_pos){// get jnt pos when connecting 
+            //     first_jnt_pos = _robot.jnt_position;
+            //     get_first_pos = false;}
+
+            if(_robot.jnt_velocity.norm() < 1e-5){
+                ROS_INFO_ONCE("Waiting for robot to move."); 
+                start_count+=1;
+                if(start_count == 1000){ // Wait 5 seconds
+                     ROS_WARN_ONCE("If FRIOverlay is started and robot is not moving, touch it lightly.");
+                }
+            }
+            else{ // wait for robot to move 
+                start = false;
+                ROS_INFO_ONCE("Close to first pose. Stopping joint PD control.");
+            }
+
+            //  std::cout << "old jnt pos is: " << old_jnt_pos << std::endl;
         } 
 
         // PD joint control 
-        _trq_cmd = tmp_null_trq;
+        _trq_cmd = tmp_jnt_trq;
     }
     else{ // USUAL CONTROL
           
         ROS_INFO_ONCE("Usual control activated");
 
         //// POSITION CONTROL
-        bool pos_ctrl_ds = true;
+        bool pos_ctrl_ds = false;
         
         if(pos_ctrl_ds){
             // desired position values
@@ -372,13 +389,18 @@ void PassiveControl::computeTorqueCmd(){
         else{
             // Impedance control
             if(pos_ramp_up){ // ramp up des_quat on start to avoid big jump
-                ROS_INFO_ONCE("Ramping up position over 1 sec");
-                float t = pos_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
+                ROS_INFO_ONCE("Ramping up position over 3 seconds");
+                float t_pos = pos_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
                 pos_ramp_up_count +=1;
 
-                ee_des_pos = (1-t)*_robot.ee_pos + t*_robot.ee_des_pos; // lin interpolation 
+                if(get_initial_ee_pos){ //get the initial ee_pos once 
+                    initial_ee_pos = _robot.ee_pos;
+                    get_initial_ee_pos = false;
+                }
 
-                if(t == 1.0){// Stop ramping up when reached end of interpolation
+                ee_des_pos = (1-t_pos)*initial_ee_pos + t_pos*_robot.ee_des_pos; // lin interpolation 
+
+                if(t_pos == 1.0){// Stop ramping up when reached end of interpolation
                     pos_ramp_up = false;
                     ROS_INFO_ONCE("Finished ramping up position");}
             }
@@ -432,13 +454,18 @@ void PassiveControl::computeTorqueCmd(){
         else{
             // Impedance control for orientation torque
             if(ori_ramp_up){ // ramp up des_quat on start to avoid big jump
-                ROS_INFO_ONCE("Ramping up orientation over 1 sec");
-                float t = ori_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
+                ROS_INFO_ONCE("Ramping up orientation over 3 seconds");
+                float t_ori = ori_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
                 ori_ramp_up_count +=1;
 
-                ee_des_quat = Utils<double>::slerpQuaternion(_robot.ee_quat, _robot.ee_des_quat, t);
+                if(get_initial_ee_quat){
+                    initial_ee_quat = _robot.ee_quat;
+                    get_initial_ee_quat = false;
+                }
 
-                if(t == 1.0){// Stop ramping up when reached end of interpolation
+                ee_des_quat = Utils<double>::slerpQuaternion(initial_ee_quat, _robot.ee_des_quat, t_ori);
+
+                if(t_ori == 1.0){// Stop ramping up when reached end of interpolation
                     ori_ramp_up = false;
                     ROS_INFO_ONCE("Finished ramping up orientation");}
             }
@@ -475,11 +502,11 @@ void PassiveControl::computeTorqueCmd(){
             tmp_jnt_trq_ang = tau_elastic_rotK + tau_damp_ang;
 
             // std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;
-            // std::cout << "Angular des rot is: " << R_tcp_des << std::endl;
+            // std::cout << "Angular des quat is: " << ee_des_quat << std::endl;
         }
 
         //sum up:
-        tmp_jnt_trq = tmp_jnt_trq_pos + tmp_jnt_trq_ang;
+        tmp_jnt_trq = Eigen::VectorXd::Zero(7) ; //tmp_jnt_trq_pos ; //tmp_jnt_trq_ang; // + 
 
         // NULL SPACE CONTROL
         null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
@@ -503,7 +530,7 @@ void PassiveControl::computeTorqueCmd(){
         tmp_null_trq = 10*null_space_projector * tmp_null_trq;
 
         // Add up null space torques
-        _trq_cmd = tmp_jnt_trq + tmp_null_trq;
+        _trq_cmd = tmp_jnt_trq+ tmp_null_trq;
     }
    
     // Gravity Compensationn

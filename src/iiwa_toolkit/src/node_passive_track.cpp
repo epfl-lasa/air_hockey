@@ -123,6 +123,7 @@ class IiwaRosMaster
 
         // Get the end-effector
         _n.param<std::string>("params/end_effector", end_effector, robot_name+"_link_ee");
+        std::cout << "END EFFECTOR IS  " << end_effector << std::endl;
 
         // Initialize iiwa tools
         _controller = std::make_unique<PassiveControl>(urdf_string, end_effector);
