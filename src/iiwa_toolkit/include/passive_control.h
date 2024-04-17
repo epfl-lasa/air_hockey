@@ -118,7 +118,7 @@ private:
     iiwa_tools::IiwaTools _tools;
     rbd::ForwardDynamics _fdyn;
 
-    bool first = true;
+
     bool is_just_velocity = false;
     double dsGain_pos;
     double dsGain_ori;
@@ -129,8 +129,16 @@ private:
     double desired_inertia;
 
     // Starting phase
+    bool start = true;
     Eigen::VectorXd start_stiffness_gains = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd start_damping_gains = Eigen::VectorXd::Zero(7);
+    bool ori_ramp_up = true;
+    int ori_ramp_up_count = 0;
+    bool pos_ramp_up = true;
+    int pos_ramp_up_count = 0;
+    int max_ramp_up = 200;
+    Eigen::Vector4d ee_des_quat = Eigen::Vector4d::Zero();
+    Eigen::Vector3d ee_des_pos = Eigen::Vector3d::Zero();
 
     // Position impedance control
     Eigen::Matrix3d K_t = Eigen::MatrixXd::Identity(3, 3);
@@ -150,8 +158,15 @@ private:
     Eigen::Vector3d w_0_damp_ang = Eigen::Vector3d::Zero();
     Eigen::VectorXd tau_damp_ang =  Eigen::VectorXd::Zero(7);
 
+    // Null Space control
+    Eigen::VectorXd er_null = Eigen::VectorXd::Zero(7);
+    Eigen::MatrixXd null_space_projector = Eigen::MatrixXd::Zero(7, 7);
+    
+    // Torques
+    Eigen::VectorXd tmp_null_trq = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd tmp_jnt_trq_pos = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd tmp_jnt_trq_ang = Eigen::VectorXd::Zero(7);
+    Eigen::VectorXd tmp_jnt_trq = Eigen::VectorXd::Zero(7);
 
     Eigen::VectorXd _trq_cmd = Eigen::VectorXd::Zero(7);
     void computeTorqueCmd();

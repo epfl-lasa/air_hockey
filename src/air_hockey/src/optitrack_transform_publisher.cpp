@@ -131,7 +131,6 @@ int main(int argc, char** argv) {
   topic_base = "/vrpn_client_node/"+name_base+"/pose";
   ROS_INFO("%s", topic_base.c_str());
 
-
   // Subscribe to each topic in the list
   ROS_INFO("List of topics contains:");
 
