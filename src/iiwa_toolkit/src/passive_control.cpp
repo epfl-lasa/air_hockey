@@ -318,170 +318,194 @@ Eigen::VectorXd PassiveControl::computeInertiaTorqueNull(float des_dir_lambda, E
 
 void PassiveControl::computeTorqueCmd(){
 
-    //// POSITION CONTROL
-    bool pos_ctrl_ds = true;
-    
-    if(pos_ctrl_ds){
-        // desired position values
-        Eigen::Vector3d deltaX = _robot.ee_des_pos - _robot.ee_pos;
-        double maxDx = 0.1;
-        if (deltaX.norm() > maxDx)
-            deltaX = maxDx * deltaX.normalized();
-        
-        double theta_g = (-.5/(4*maxDx*maxDx)) * deltaX.transpose() * deltaX;
-        
-        Eigen::Matrix3d zgain = Eigen::Matrix3d::Identity();
-        zgain(0,0) *= 1.5; 
-        zgain(2,2) *= 1.5; 
-
-        Eigen::Matrix3d xgain = Eigen::Matrix3d::Identity();
-        xgain(0,0) *= 1.5; 
-
-        if(!is_just_velocity)
-            _robot.ee_des_vel   = zgain * dsGain_pos*(Eigen::Matrix3d::Identity()+xgain*std::exp(theta_g)) *deltaX;
-        
-        // -----------------------get desired force in task space
-        dsContPos->update(_robot.ee_vel,_robot.ee_des_vel);
-        Eigen::Vector3d wrenchPos = dsContPos->get_output() + load_added * 9.8*Eigen::Vector3d::UnitZ();   
-        tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
-    }
-    else{
-        // Impedance control
-        // Adapt to receiving des_vel or des_pos
-        if(is_just_velocity){ // getting onyl vel -> set desired pos to be next step
-            _robot.ee_des_pos =  _robot.ee_pos + _robot.ee_des_vel * 0.005;
-        }
-        else if(!is_just_velocity){ // getting onyl pos -> reset des vel
-            _robot.ee_des_vel = Eigen::Vector3d::Zero();
-        }
-
-        // Torque of lin. wrench
-        Eigen::VectorXd w_0_trans  = -K_t * ( _robot.ee_pos - _robot.ee_des_pos); 
-        Eigen::VectorXd tau_elastic_linK = _robot.jacobPos.transpose() * w_0_trans;
-         
-        // Torque of lin. vel
-        Eigen::Vector3d w_lin_0_damp = B_lin * (_robot.ee_des_vel - _robot.ee_vel);
-        Eigen::VectorXd tau_damp_lin = _robot.jacobPos.transpose() * w_lin_0_damp;
-
-        tmp_jnt_trq_pos = tau_elastic_linK + tau_damp_lin;
-    }
-
-    // ORIENTATION CONTROL
-    bool ori_ctrl_ds = false;
-
-
-    if(ori_ctrl_ds){
-        // desired angular values
-        Eigen::Vector4d dqd = Utils<double>::slerpQuaternion(_robot.ee_quat, _robot.ee_des_quat, 0.5);    
-        Eigen::Vector4d deltaQ = dqd -  _robot.ee_quat;
-
-        Eigen::Vector4d qconj = _robot.ee_quat;
-        qconj.segment(1,3) = -1 * qconj.segment(1,3);
-        Eigen::Vector4d temp_angVel = Utils<double>::quaternionProduct(deltaQ, qconj);
-
-        Eigen::Vector3d tmp_angular_vel = temp_angVel.segment(1,3);
-        double maxDq = 0.2;
-        if (tmp_angular_vel.norm() > maxDq)
-            tmp_angular_vel = maxDq * tmp_angular_vel.normalized();
-
-        double theta_gq = (-.5/(4*maxDq*maxDq)) * tmp_angular_vel.transpose() * tmp_angular_vel;
-        _robot.ee_des_angVel  = 2 * dsGain_ori*(1+std::exp(theta_gq)) * tmp_angular_vel;
-
-        // Orientation
-        dsContOri->update(_robot.ee_angVel,_robot.ee_des_angVel);
-        Eigen::Vector3d wrenchAng = dsContOri->get_output();
-        tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
-        
-    }
-    else{
-        // Impedance control for orientation torque
-
-        R_0_d = Utils<double>::quaternionToRotationMatrix(_robot.ee_des_quat);
-        R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
-        R_tcp_des = R_0_tcp.transpose() * R_0_d; // R_0_d desired quaternion, R_0_tcp -> ee_quat
-        Eigen::Quaterniond Qdes(R_tcp_des);
-        Qdes.normalize();
-        double fact = 0;
-        double theta_des = 2 * acos(Qdes.w());
-        if(theta_des == 0.0){
-            fact = 0;
-        } else{
-            fact = 1 / (sin(theta_des/2));
-        }
-        u_p(0) = fact * Qdes.x();
-        u_p(1) = fact * Qdes.y();
-        u_p(2) = fact * Qdes.z();
-        
-        u_0 = R_0_tcp * u_p;
-        wrenchAng = K_r * u_0 * theta_des;
-        tau_elastic_rotK = _robot.jacobAng.transpose() * wrenchAng;
-
-        // Add Damping
-        // Torque for ang. vel -> Desired angular speed is ZERO
-        w_0_damp_ang = B_ang * (v_ang_0_des - _robot.ee_angVel);
-        tau_damp_ang =  _robot.jacobAng.transpose() * w_0_damp_ang;
-        
-        // Add up stiffness and damping as torques
-        tmp_jnt_trq_ang = tau_elastic_rotK + tau_damp_ang;
-
-        // std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;
-        // std::cout << "Angular des quat is: " << _robot.ee_des_quat << std::endl;
-    }
-
-    //sum up:
-    Eigen::VectorXd tmp_jnt_trq =  tmp_jnt_trq_pos + tmp_jnt_trq_ang;
-
-    // null pos control
-    Eigen::MatrixXd tempMat2 =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
-    Eigen::VectorXd er_null;
-
-    // Use different nullspace depending on whether we are going to a position or tracking a velocity
-    if(!is_just_velocity){
-        er_null = _robot.jnt_position -_robot.nulljnt_position;
-    }
-    else{
-        er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia, _robot.ee_des_vel); 
-    }
-
     // PD control when starting to reach null space joint position
-    Eigen::VectorXd tmp_null_trq = Eigen::VectorXd::Zero(7);
-
-    if(first){ // PD torque controller with big damping for initialization 
+    if(start){ // PD torque controller with big damping for initialization 
         // compute PD torque 
+        er_null = _robot.jnt_position -_robot.nulljnt_position;
+
         for (int i =0; i<7; i++){ 
             tmp_null_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
             tmp_null_trq[i] += -start_damping_gains[i] * _robot.jnt_velocity[i]; // Damping            
         }
         // std::cout << "PD torque is: " << tmp_null_trq << std::endl;
-        ROS_INFO_ONCE("Using PD torque control  "); 
+        ROS_INFO_ONCE("Using joint PD torque control  "); 
         
         if(er_null.norm()<0.15){ // Go back to usual control when close enough 
-            first = false;
-            ROS_INFO_ONCE("Close to first pose. Stopping PD control."); 
+            start = false;
+            ROS_INFO_ONCE("Close to first pose. Stopping joint PD control."); 
         } 
 
         // PD joint control 
         _trq_cmd = tmp_null_trq;
     }
     else{ // USUAL CONTROL
-        ROS_INFO_ONCE("DS control activated");
+          
+        ROS_INFO_ONCE("Usual control activated");
+
+        //// POSITION CONTROL
+        bool pos_ctrl_ds = true;
+        
+        if(pos_ctrl_ds){
+            // desired position values
+            Eigen::Vector3d deltaX = _robot.ee_des_pos - _robot.ee_pos;
+            double maxDx = 0.1;
+            if (deltaX.norm() > maxDx)
+                deltaX = maxDx * deltaX.normalized();
+            
+            double theta_g = (-.5/(4*maxDx*maxDx)) * deltaX.transpose() * deltaX;
+            
+            Eigen::Matrix3d zgain = Eigen::Matrix3d::Identity();
+            zgain(0,0) *= 1.5; 
+            zgain(2,2) *= 1.5; 
+
+            Eigen::Matrix3d xgain = Eigen::Matrix3d::Identity();
+            xgain(0,0) *= 1.5; 
+
+            if(!is_just_velocity)
+                _robot.ee_des_vel   = zgain * dsGain_pos*(Eigen::Matrix3d::Identity()+xgain*std::exp(theta_g)) *deltaX;
+            
+            // -----------------------get desired force in task space
+            dsContPos->update(_robot.ee_vel,_robot.ee_des_vel);
+            Eigen::Vector3d wrenchPos = dsContPos->get_output() + load_added * 9.8*Eigen::Vector3d::UnitZ();   
+            tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
+        }
+        else{
+            // Impedance control
+            if(pos_ramp_up){ // ramp up des_quat on start to avoid big jump
+                ROS_INFO_ONCE("Ramping up position over 1 sec");
+                float t = pos_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
+                pos_ramp_up_count +=1;
+
+                ee_des_pos = (1-t)*_robot.ee_pos + t*_robot.ee_des_pos; // lin interpolation 
+
+                if(t == 1.0){// Stop ramping up when reached end of interpolation
+                    pos_ramp_up = false;
+                    ROS_INFO_ONCE("Finished ramping up position");}
+            }
+            else{
+                // Adapt to receiving des_vel or des_pos
+                if(is_just_velocity){ // getting onyl vel -> set desired pos to be next step
+                    ee_des_pos =  _robot.ee_pos + _robot.ee_des_vel * 0.005;
+                }
+                else if(!is_just_velocity){ // getting onyl pos -> reset des vel
+                    _robot.ee_des_vel = Eigen::Vector3d::Zero();
+                    ee_des_pos = _robot.ee_des_pos;
+                }
+            }
+
+            // Torque of lin. wrench
+            Eigen::VectorXd w_0_trans  = -K_t * (_robot.ee_pos - ee_des_pos); 
+            Eigen::VectorXd tau_elastic_linK = _robot.jacobPos.transpose() * w_0_trans;
+            
+            // Torque of lin. vel
+            Eigen::Vector3d w_lin_0_damp = B_lin * (_robot.ee_des_vel - _robot.ee_vel);
+            Eigen::VectorXd tau_damp_lin = _robot.jacobPos.transpose() * w_lin_0_damp;
+
+            tmp_jnt_trq_pos = tau_elastic_linK + tau_damp_lin;
+        }
+
+        // ORIENTATION CONTROL
+        bool ori_ctrl_ds = false;
+
+        if(ori_ctrl_ds){
+            // desired angular values
+            Eigen::Vector4d dqd = Utils<double>::slerpQuaternion(_robot.ee_quat, _robot.ee_des_quat, 0.5);    
+            Eigen::Vector4d deltaQ = dqd -  _robot.ee_quat;
+
+            Eigen::Vector4d qconj = _robot.ee_quat;
+            qconj.segment(1,3) = -1 * qconj.segment(1,3);
+            Eigen::Vector4d temp_angVel = Utils<double>::quaternionProduct(deltaQ, qconj);
+
+            Eigen::Vector3d tmp_angular_vel = temp_angVel.segment(1,3);
+            double maxDq = 0.2;
+            if (tmp_angular_vel.norm() > maxDq)
+                tmp_angular_vel = maxDq * tmp_angular_vel.normalized();
+
+            double theta_gq = (-.5/(4*maxDq*maxDq)) * tmp_angular_vel.transpose() * tmp_angular_vel;
+            _robot.ee_des_angVel  = 2 * dsGain_ori*(1+std::exp(theta_gq)) * tmp_angular_vel;
+
+            // Orientation
+            dsContOri->update(_robot.ee_angVel,_robot.ee_des_angVel);
+            Eigen::Vector3d wrenchAng = dsContOri->get_output();
+            tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
+        }
+        else{
+            // Impedance control for orientation torque
+            if(ori_ramp_up){ // ramp up des_quat on start to avoid big jump
+                ROS_INFO_ONCE("Ramping up orientation over 1 sec");
+                float t = ori_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
+                ori_ramp_up_count +=1;
+
+                ee_des_quat = Utils<double>::slerpQuaternion(_robot.ee_quat, _robot.ee_des_quat, t);
+
+                if(t == 1.0){// Stop ramping up when reached end of interpolation
+                    ori_ramp_up = false;
+                    ROS_INFO_ONCE("Finished ramping up orientation");}
+            }
+            else{
+                ee_des_quat = _robot.ee_des_quat;
+            }
+
+            R_0_d = Utils<double>::quaternionToRotationMatrix(ee_des_quat);
+            R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
+            R_tcp_des = R_0_tcp.transpose() * R_0_d; // R_0_d desired quaternion, R_0_tcp -> ee_quat
+            Eigen::Quaterniond Qdes(R_tcp_des);
+            Qdes.normalize();
+            double fact = 0;
+            double theta_des = 2 * acos(Qdes.w());
+            if(theta_des == 0.0){
+                fact = 0;
+            } else{
+                fact = 1 / (sin(theta_des/2));
+            }
+            u_p(0) = fact * Qdes.x();
+            u_p(1) = fact * Qdes.y();
+            u_p(2) = fact * Qdes.z();
+            
+            u_0 = R_0_tcp * u_p;
+            wrenchAng = K_r * u_0 * theta_des;
+            tau_elastic_rotK = _robot.jacobAng.transpose() * wrenchAng;
+
+            // Add Damping
+            // Torque for ang. vel -> Desired angular speed is ZERO
+            w_0_damp_ang = B_ang * (v_ang_0_des - _robot.ee_angVel);
+            tau_damp_ang =  _robot.jacobAng.transpose() * w_0_damp_ang;
+            
+            // Add up stiffness and damping as torques
+            tmp_jnt_trq_ang = tau_elastic_rotK + tau_damp_ang;
+
+            // std::cout << "Angular torque is: " << tmp_jnt_trq_ang << std::endl;
+            // std::cout << "Angular des rot is: " << R_tcp_des << std::endl;
+        }
+
+        //sum up:
+        tmp_jnt_trq = tmp_jnt_trq_pos + tmp_jnt_trq_ang;
+
+        // NULL SPACE CONTROL
+        null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
+        
+        // Use different nullspace depending on whether we are going to a position or tracking a velocity
+        if(!is_just_velocity){
+            er_null = _robot.jnt_position -_robot.nulljnt_position;
+        }
+        else{// Using inertia for hitting
+            er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia, _robot.ee_des_vel); 
+        }
 
         // compute null torque
         if (er_null.norm()>2e-1){
             er_null = 0.2*er_null.normalized();
         }
-
         for (int i =0; i<7; i++){ 
             tmp_null_trq[i] = -null_gains[i] * er_null[i];
             tmp_null_trq[i] +=-1. * _robot.jnt_velocity[i];
         }
-        tmp_null_trq = 10*tempMat2 * tmp_null_trq;
-   
+        tmp_null_trq = 10*null_space_projector * tmp_null_trq;
+
+        // Add up null space torques
         _trq_cmd = tmp_jnt_trq + tmp_null_trq;
     }
    
-
     // Gravity Compensationn
-    // the gravity compensation should've been here, but a server form iiwa tools is doing the job.
-   
+    // the gravity compensation should've been here, but a server from iiwa tools is doing the job.
 }
