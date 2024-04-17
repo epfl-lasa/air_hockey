@@ -128,6 +128,15 @@ private:
     double inertia_gain;
     double desired_inertia;
 
+    // Variables for directional Inertia gradient calculations
+    Eigen::VectorXd grad = Eigen::VectorXd(7);
+    Eigen::MatrixXd duplicate_joint_inertia = Eigen::MatrixXd(7,7);
+    Eigen::MatrixXd duplicate_task_inertiaPos = Eigen::MatrixXd(6,6);
+    Eigen::MatrixXd duplicate_task_inertiaPos_inverse = Eigen::MatrixXd(6,6);
+    Eigen::MatrixXd jacob = Eigen::MatrixXd(6, 7);
+    Eigen::MatrixXd jacob_drv = Eigen::MatrixXd(6, 7);
+    Eigen::MatrixXd jacobPos = Eigen::MatrixXd(3, 7);
+
     // Starting phase
     Eigen::VectorXd start_stiffness_gains = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd start_damping_gains = Eigen::VectorXd::Zero(7);

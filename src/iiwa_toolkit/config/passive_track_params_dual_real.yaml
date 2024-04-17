@@ -20,8 +20,8 @@ control:
       dsGainOri: 1.0
       lambda0Ori: 10.0
       lambda1Ori: 5.0
-      ImpedanceOriStiffness: [20.0, 20.0, 20.0]
-      ImpedanceOriDamping: [10.0, 10.0, 10.0]
+      ImpedanceOriStiffness: [200.0, 200.0, 200.0]
+      ImpedanceOriDamping: [3.0, 3.0, 3.0]
       ImpedancePosStiffness: [1800.0, 1800.0, 2000.0]
       ImpedancePosDamping: [43.3, 31.68, 37.19]
 

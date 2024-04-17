@@ -204,13 +204,6 @@ Eigen::VectorXd PassiveControl::getDirInertiaGrad(iiwa_tools::RobotState &curren
     // Eigen::MatrixXd task_inertia = _robot.task_inertiaPos;
     // double dir_inertia = direction.transpose() * task_inertia * direction;
     double dir_inertia = 1/(direction.transpose() * _robot.task_inertiaPos_inv * direction);
-    Eigen::VectorXd grad = Eigen::VectorXd(7);
-    Eigen::MatrixXd duplicate_joint_inertia = Eigen::MatrixXd(7,7);
-    Eigen::MatrixXd duplicate_task_inertiaPos = Eigen::MatrixXd(6,6);
-    Eigen::MatrixXd duplicate_task_inertiaPos_inverse = Eigen::MatrixXd(6,6);
-    Eigen::MatrixXd jacob = Eigen::MatrixXd(6, 7);
-    Eigen::MatrixXd jacob_drv = Eigen::MatrixXd(6, 7);
-    Eigen::MatrixXd jacobPos = Eigen::MatrixXd(3, 7);
     double duplicate_dir_inertia;
 
     // create a duplicate current state
@@ -436,7 +429,7 @@ void PassiveControl::computeTorqueCmd(){
     }
 
     //sum up:
-    Eigen::VectorXd tmp_jnt_trq = tmp_jnt_trq_pos + tmp_jnt_trq_ang;
+    Eigen::VectorXd tmp_jnt_trq =  tmp_jnt_trq_pos + tmp_jnt_trq_ang;
 
     // null pos control
     Eigen::MatrixXd tempMat2 =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
