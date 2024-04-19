@@ -390,9 +390,10 @@ void PassiveControl::computeTorqueCmd(){
                 }
 
                 ee_des_vel = (1-t_vel)*initial_ee_vel + t_vel*initial_ee_des_vel; // lin interpolation 
-                std::cout << " from vel: " << initial_ee_vel << std::endl;
-                std::cout << " to vel: " << initial_ee_des_vel << std::endl;
-                std::cout << " interp des vel is: " << ee_des_vel << std::endl;
+                
+                // std::cout << " from vel: " << initial_ee_vel << std::endl;
+                // std::cout << " to vel: " << initial_ee_des_vel << std::endl;
+                // std::cout << " interp des vel is: " << ee_des_vel << std::endl;
 
                 if(t_vel == 1.0){// Stop ramping up when reached end of interpolation
                     ramp_up_vel = false;

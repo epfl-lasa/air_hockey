@@ -22,11 +22,11 @@ iiwa7:
     y: 1 
     z: 0
 
-  hitting_flux : 1.0
+  hitting_flux : 1.2
 
   return_position:
     x: 0.55
-    y: -0.15
+    y: -0.05
     z: 0.25
 
   object_offset:
@@ -37,7 +37,7 @@ iiwa7:
   # position to go to before hiting, relative to object center
   placement_offset:  
     x : 0.00
-    y : -0.6
+    y : -0.4
     z : 0.0
 
 
@@ -58,7 +58,7 @@ iiwa14:
     
   return_position:
     x: 0.55 
-    y: 0.1
+    y: 0.05
     z: 0.25
     
   object_offset:
@@ -68,6 +68,6 @@ iiwa14:
 
   placement_offset: 
     x : 0.00
-    y : 0.6
+    y : 0.4
     z : 0.0
 

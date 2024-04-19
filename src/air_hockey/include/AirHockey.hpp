@@ -53,7 +53,7 @@
 
 class AirHockey {
 private:
-  enum Robot { IIWA_7 = 0, IIWA_14 = 1 };
+  enum Robot { IIWA_7 = 0, IIWA_14 = 1, NONE = 2 };
   enum robotMode{REST, HIT};
 
   struct FSMState{
@@ -163,9 +163,10 @@ public:
 
   void getDesiredFluxes(std::string filename);
 
-  FSMState updateKeyboardControl(FSMState statesvar );
+  FSMState updateKeyboardControl(FSMState statesvar);
   void updateisPaused();
 
-  FSMState updateFSMAutomatic(FSMState statesvar );
+  FSMState updateFSMAutomatic(FSMState statesvar);
+  FSMState preHitPlacement(FSMState statesvar);
 
 };
