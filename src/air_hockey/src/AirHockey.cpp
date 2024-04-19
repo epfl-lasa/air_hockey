@@ -139,12 +139,6 @@ bool AirHockey::init() {
   this->updateDSAttractor(); //update attractor position
 
   // Get hitting parameters
-  if (!nh_.getParam("iiwa7/ref_velocity/y", refVelocity_[IIWA_7][1])) { ROS_ERROR("Param ref_velocity/y not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/y", refVelocity_[IIWA_14][1])) { ROS_ERROR("Param ref_velocity/y not found"); }
-  if (!nh_.getParam("iiwa7/ref_velocity/x", refVelocity_[IIWA_7][0])) { ROS_ERROR("Param ref_velocity/x not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/x", refVelocity_[IIWA_14][0])) { ROS_ERROR("Param ref_velocity/x not found"); }
-  if (!nh_.getParam("iiwa7/ref_velocity/z", refVelocity_[IIWA_7][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/z", refVelocity_[IIWA_14][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
   if (!nh_.getParam("iiwa7/ref_orientation/w", refQuat_[IIWA_7][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
   if (!nh_.getParam("iiwa14/ref_orientation/w", refQuat_[IIWA_14][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
   if (!nh_.getParam("iiwa7/ref_orientation/x", refQuat_[IIWA_7][1])) { ROS_ERROR("Param ref_orientation/x not found"); }
@@ -702,6 +696,7 @@ void AirHockey::run() {
     rate_.sleep();
   }
 
+  std::cout << "STOPPING AIR HOCKEY " << std::endl; 
   // publishVelQuat(refVelocity_, refQuat_);
   publishPosQuat(returnPos_, refQuat_, IIWA_7);
   publishPosQuat(returnPos_, refQuat_, IIWA_14);
