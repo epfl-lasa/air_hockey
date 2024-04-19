@@ -251,17 +251,19 @@ void PassiveControl::set_desired_pose(const Eigen::Vector3d& pos, const Eigen::V
     _robot.ee_des_pos = pos;
     _robot.ee_des_quat = quat;
     is_just_velocity = false;
+    pos_ramp_up = true;
 }
 void PassiveControl::set_desired_position(const Eigen::Vector3d& pos){
     _robot.ee_des_pos = pos;
-     is_just_velocity = false;
+    is_just_velocity = false;
+    pos_ramp_up = true;
 }
 void PassiveControl::set_desired_quat(const Eigen::Vector4d& quat){
     _robot.ee_des_quat = quat;
 }
 void PassiveControl::set_desired_velocity(const Eigen::Vector3d& vel){
-     _robot.ee_des_vel = vel;
-     is_just_velocity = true;
+    _robot.ee_des_vel = vel;
+    is_just_velocity = true;
 }
 
 void PassiveControl::set_load(const double& mass ){
@@ -310,16 +312,26 @@ Eigen::VectorXd PassiveControl::computeInertiaTorqueNull(float des_dir_lambda, E
     
     // Eigen::Vector3d direction = des_vel / des_vel.norm();
     float inertia_error = 1/(_robot.direction.transpose() * _robot.task_inertiaPos_inv * _robot.direction) - des_dir_lambda;
-    Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad * inertia_error;
-    // Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad ;
+    // Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad * inertia_error;
+    Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad ;
 
     return null_torque;
 }
 
 void PassiveControl::computeTorqueCmd(){
 
+    if(start == 0){
+        // Wait for iiwa_ros to initialize to the correct jnt pos and jnt vel
+        ROS_INFO_ONCE("Waiting for initialization");
+        if(_robot.jnt_velocity.norm() < 1e-5){
+            ROS_INFO_ONCE("Robot state initialized, starting PD joint control.");
+            start = 1;
+        }
+
+    }
+
     // PD control when starting to reach null space joint position
-    if(start){ // PD torque controller with big damping for initialization 
+    else if(start == 1){ // PD torque controller with big damping for initialization 
         // compute PD torque 
         er_null = _robot.jnt_position -_robot.nulljnt_position;
 
@@ -329,14 +341,10 @@ void PassiveControl::computeTorqueCmd(){
         }
         // std::cout << "PD torque is: " << tmp_jnt_trq << std::endl;
         ROS_INFO_ONCE("Using joint PD torque control"); 
-        
-        if(er_null.norm()<0.15){ // Go back to usual control when close enough 
-            
+    
+        if(er_null.norm()<0.2){ // Go back to usual control when close enough 
+            ROS_INFO_ONCE("Close to first pose. Waiting for robot to slow down.");
             // Safety to check we are moving the robot
-            // if(get_first_pos){// get jnt pos when connecting 
-            //     first_jnt_pos = _robot.jnt_position;
-            //     get_first_pos = false;}
-
             if(_robot.jnt_velocity.norm() < 1e-5){
                 ROS_INFO_ONCE("Waiting for robot to move."); 
                 start_count+=1;
@@ -344,24 +352,50 @@ void PassiveControl::computeTorqueCmd(){
                      ROS_WARN_ONCE("If FRIOverlay is started and robot is not moving, touch it lightly.");
                 }
             }
-            else{ // wait for robot to move 
-                start = false;
-                ROS_INFO_ONCE("Close to first pose. Stopping joint PD control.");
+            else if(_robot.jnt_velocity.norm() > 5e-4 && _robot.jnt_velocity.norm() < 1e-3){ // wait for robot to have moved then slowed down 
+                start = 2;
+                ROS_INFO_ONCE("Robot slowed down. Stopping joint PD control.");
             }
-
-            //  std::cout << "old jnt pos is: " << old_jnt_pos << std::endl;
         } 
 
         // PD joint control 
         _trq_cmd = tmp_jnt_trq;
     }
-    else{ // USUAL CONTROL
+    else if(start == 2){ // USUAL CONTROL
           
         ROS_INFO_ONCE("Usual control activated");
 
         //// POSITION CONTROL
-        bool pos_ctrl_ds = false;
+        bool pos_ctrl_ds = true;
         
+        // Ramp up des vel from 0 to des when is_just_velocity
+        if(is_just_velocity){
+            if((ee_des_vel - _robot.ee_des_vel).norm()>0.1){ // ramp up des_vel on start of hit  to avoid big jump
+                ROS_INFO_ONCE("Ramping up desired velocity over 20 steps");
+                float t_vel = vel_ramp_up_count/max_ramp_up_vel;// calculate t from 0 to 1 depending on time_step
+                vel_ramp_up_count +=1;
+
+                // ASSUMPTION : Initial_ee_vel is always ZERO 
+                // if(get_initial_ee_vel){ //get the initial ee_pos once 
+                //     initial_ee_vel = _robot.ee_vel;
+                //     get_initial_ee_vel = false;
+                // }
+
+                ee_des_vel = (1-t_vel)*initial_ee_vel + t_vel*_robot.ee_des_vel; // lin interpolation 
+                std::cout << " des vel is: " << ee_des_vel << std::endl;
+
+                if(t_vel == 1.0){// Stop ramping up when reached end of interpolation
+                    t_vel = 0;
+                    // get_initial_ee_vel = true;
+                    ROS_INFO_ONCE("Finished ramping up velocity");}
+            }
+            else{ // close enough to actual des_vel 
+                ee_des_vel = _robot.ee_des_vel;
+            }
+            // std::cout << " des vel is: " << ee_des_vel << std::endl;
+        }
+
+
         if(pos_ctrl_ds){
             // desired position values
             Eigen::Vector3d deltaX = _robot.ee_des_pos - _robot.ee_pos;
@@ -379,10 +413,10 @@ void PassiveControl::computeTorqueCmd(){
             xgain(0,0) *= 1.5; 
 
             if(!is_just_velocity)
-                _robot.ee_des_vel   = zgain * dsGain_pos*(Eigen::Matrix3d::Identity()+xgain*std::exp(theta_g)) *deltaX;
+                ee_des_vel   = zgain * dsGain_pos*(Eigen::Matrix3d::Identity()+xgain*std::exp(theta_g)) *deltaX;
             
             // -----------------------get desired force in task space
-            dsContPos->update(_robot.ee_vel,_robot.ee_des_vel);
+            dsContPos->update(_robot.ee_vel,ee_des_vel);
             Eigen::Vector3d wrenchPos = dsContPos->get_output() + load_added * 9.8*Eigen::Vector3d::UnitZ();   
             tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
         }
@@ -407,10 +441,10 @@ void PassiveControl::computeTorqueCmd(){
             else{
                 // Adapt to receiving des_vel or des_pos
                 if(is_just_velocity){ // getting onyl vel -> set desired pos to be next step
-                    ee_des_pos =  _robot.ee_pos + _robot.ee_des_vel * 0.005;
+                    ee_des_pos =  _robot.ee_pos + ee_des_vel * 0.005;
                 }
                 else if(!is_just_velocity){ // getting onyl pos -> reset des vel
-                    _robot.ee_des_vel = Eigen::Vector3d::Zero();
+                    ee_des_vel = Eigen::Vector3d::Zero();
                     ee_des_pos = _robot.ee_des_pos;
                 }
             }
@@ -420,7 +454,7 @@ void PassiveControl::computeTorqueCmd(){
             Eigen::VectorXd tau_elastic_linK = _robot.jacobPos.transpose() * w_0_trans;
             
             // Torque of lin. vel
-            Eigen::Vector3d w_lin_0_damp = B_lin * (_robot.ee_des_vel - _robot.ee_vel);
+            Eigen::Vector3d w_lin_0_damp = B_lin * (ee_des_vel - _robot.ee_vel);
             Eigen::VectorXd tau_damp_lin = _robot.jacobPos.transpose() * w_lin_0_damp;
 
             tmp_jnt_trq_pos = tau_elastic_linK + tau_damp_lin;
@@ -460,11 +494,12 @@ void PassiveControl::computeTorqueCmd(){
 
                 if(get_initial_ee_quat){
                     initial_ee_quat = _robot.ee_quat;
+                    // std::cout << " init quat is: " << initial_ee_quat << std::endl;
                     get_initial_ee_quat = false;
                 }
 
                 ee_des_quat = Utils<double>::slerpQuaternion(initial_ee_quat, _robot.ee_des_quat, t_ori);
-
+                // std::cout << " des quat is: " << ee_des_quat << std::endl;
                 if(t_ori == 1.0){// Stop ramping up when reached end of interpolation
                     ori_ramp_up = false;
                     ROS_INFO_ONCE("Finished ramping up orientation");}
@@ -505,8 +540,8 @@ void PassiveControl::computeTorqueCmd(){
             // std::cout << "Angular des quat is: " << ee_des_quat << std::endl;
         }
 
-        //sum up:
-        tmp_jnt_trq = Eigen::VectorXd::Zero(7) ; //tmp_jnt_trq_pos ; //tmp_jnt_trq_ang; // + 
+        // SUM UP TASK SPACE CONTROL TORQUES
+        tmp_jnt_trq = tmp_jnt_trq_pos+ tmp_jnt_trq_ang; // //  
 
         // NULL SPACE CONTROL
         null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
@@ -516,7 +551,7 @@ void PassiveControl::computeTorqueCmd(){
             er_null = _robot.jnt_position -_robot.nulljnt_position;
         }
         else{// Using inertia for hitting
-            er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia, _robot.ee_des_vel); 
+            er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
         }
 
         // compute null torque
@@ -527,10 +562,12 @@ void PassiveControl::computeTorqueCmd(){
             tmp_null_trq[i] = -null_gains[i] * er_null[i];
             tmp_null_trq[i] +=-1. * _robot.jnt_velocity[i];
         }
-        tmp_null_trq = 10*null_space_projector * tmp_null_trq;
+        tmp_null_trq = 10 *null_space_projector* tmp_null_trq; //
+        // std::cout << "position torque" << tmp_jnt_trq << std::endl;
+        // std::cout << "null torque" << tmp_null_trq << std::endl;
 
         // Add up null space torques
-        _trq_cmd = tmp_jnt_trq+ tmp_null_trq;
+        _trq_cmd =tmp_jnt_trq + tmp_null_trq; //  //+ ; 
     }
    
     // Gravity Compensationn

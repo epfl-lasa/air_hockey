@@ -138,7 +138,7 @@ private:
     Eigen::MatrixXd jacobPos = Eigen::MatrixXd(3, 7);
 
     // Starting phase
-    bool start = true;
+    int start = 0;
     Eigen::VectorXd start_stiffness_gains = Eigen::VectorXd::Zero(7);
     Eigen::VectorXd start_damping_gains = Eigen::VectorXd::Zero(7);
     bool ori_ramp_up = true;
@@ -155,6 +155,13 @@ private:
     bool get_initial_ee_quat = true;
     bool get_first_pos = true;
     int start_count = 0;
+
+    // ramp up velocity
+    float vel_ramp_up_count = 0;
+    float max_ramp_up_vel = 50;
+    bool get_initial_ee_vel = true;
+    Eigen::Vector3d initial_ee_vel = Eigen::Vector3d::Zero();
+    Eigen::Vector3d ee_des_vel = Eigen::Vector3d::Zero();
 
     // Position impedance control
     Eigen::Matrix3d K_t = Eigen::MatrixXd::Identity(3, 3);

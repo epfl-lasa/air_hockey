@@ -20,17 +20,17 @@ control:
       dsGainOri: 1.0
       lambda0Ori: 10.0
       lambda1Ori: 5.0
-      ImpedanceOriStiffness: [260,260,100] #[70.0, 70.0, 70.0]
-      ImpedanceOriDamping: [3,3.4,1.6] #[2.0, 2.0, 2.0]
-      ImpedancePosStiffness: [1800.0, 1800.0, 2000.0] #[500.0, 500.0, 500.0] #[1800.0, 1800.0, 2000.0]
-      ImpedancePosDamping: [43.3, 31.68, 37.19] #[10.0, 10.0, 10.0] # 
+      ImpedanceOriStiffness: [50, 50, 50] #[70.0, 70.0, 70.0]
+      ImpedanceOriDamping: [3.0, 2.5, 3.0] #[2.7, 2.3, 2.7] # UNTESTED used to be 3 3 2.7
+      ImpedancePosStiffness: [1500.0, 1500.0, 1800.0] #[500.0, 500.0, 500.0] #[1800.0, 1800.0, 2000.0]
+      ImpedancePosDamping: [40.3, 40.68, 40.19] #[10.0, 10.0, 10.0] # 
 
 target:
     iiwa1:
-      pos: [0.55, -0.2, 0.25] 
+      pos: [0.55, -0.1, 0.25] 
       quat: [0.707, -0.707, 0.0, 0.0] #[0.5, -0.5, -0.5, -0.5 ] 
     iiwa2:
-      pos: [0.55, 0.2, 0.25]
+      pos: [0.55, 0.05, 0.25]
       quat: [-0.707, -0.707, 0.0, 0.0]  #[-0.707, -0.707, 0.0, 0.0]
 
 inertia:
@@ -42,7 +42,7 @@ inertia:
       null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81] #
     iiwa2:
       null_gains: [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] 
-      gain: 0.001
+      gain: 0.001 #1.0 #0.5 #0.001100.0
       desired : 10.0
       direction :  [0.0, -1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
       null_pos : [0.563, 1.040, -0.153, -1.438, -1.079, 1.724, -2.170] # config 2 : [0.524, 0.753, 0-0.199, -1.464, 0.136, 0.999, 1.849]
@@ -52,5 +52,5 @@ start: # PD gains for starting phase
       stiffness: [110., 60.5, 60.5, 33., 20.625, 4.7375, 2.75]
       damping: [18.75, 22.5, 18.75, 22.5 , 6., 0.75, 0.3 ]
     iiwa2:
-      stiffness: [200.0, 110.0, 110.0, 60.0, 37.5, 8.25, 4.0]
-      damping: [25.0, 30.0, 25.0, 30.0, 8.0, 0.8 , 0.4]
+      stiffness: [200.0, 110.0, 110.0, 50.0, 20.5, 6.25, 4.5]
+      damping: [25.0, 30.0, 25.0, 15.0, 5.0, 1.1 , 0.8]
