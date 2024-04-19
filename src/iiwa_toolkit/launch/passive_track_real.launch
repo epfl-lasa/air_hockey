@@ -17,7 +17,7 @@
         <node name="passive_tracking" pkg="iiwa_toolkit" type="passive_track" output="screen">
         </node>
         
-        <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="passive_control_gui" />
+        <!-- <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="passive_control_gui" /> -->
 
         <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual_real.yaml" command="load"/>
     </group>

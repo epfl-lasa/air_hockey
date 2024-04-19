@@ -145,7 +145,7 @@ private:
     float ori_ramp_up_count = 0;
     bool pos_ramp_up = true;
     float pos_ramp_up_count = 0;
-    float max_ramp_up = 200; // 200 = 1 sec
+    float max_ramp_up = 400; // 200 = 1 sec
     Eigen::Vector4d ee_des_quat = Eigen::Vector4d::Zero();
     Eigen::Vector3d ee_des_pos = Eigen::Vector3d::Zero();
     Eigen::VectorXd first_jnt_pos = Eigen::VectorXd::Zero(7);
@@ -158,7 +158,7 @@ private:
 
     // ramp up velocity
     bool ramp_up_vel = true;
-    float vel_ramp_up_count = 0;
+    float vel_ramp_up_count = 1;
     float max_ramp_up_vel = 20;
     bool get_initial_ee_des_vel = true;
     Eigen::Vector3d initial_ee_vel = Eigen::Vector3d::Zero();

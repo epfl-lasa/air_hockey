@@ -252,7 +252,7 @@ void PassiveControl::set_desired_pose(const Eigen::Vector3d& pos, const Eigen::V
     _robot.ee_des_quat = quat;
     is_just_velocity = false;
     // pos_ramp_up = true;
-    ramp_up_vel = true;
+    // ramp_up_vel = true;
     get_initial_ee_des_vel = true;
 }
 void PassiveControl::set_desired_position(const Eigen::Vector3d& pos){
@@ -318,8 +318,8 @@ Eigen::VectorXd PassiveControl::computeInertiaTorqueNull(float des_dir_lambda, E
     
     // Eigen::Vector3d direction = des_vel / des_vel.norm();
     float inertia_error = 1/(_robot.direction.transpose() * _robot.task_inertiaPos_inv * _robot.direction) - des_dir_lambda;
-    // Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad * inertia_error;
-    Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad ;
+    Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad * inertia_error;
+    // Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad ;
 
     return null_torque;
 }
@@ -377,30 +377,35 @@ void PassiveControl::computeTorqueCmd(){
         // Ramp up des vel from 0 to des when is_just_velocity
         if(is_just_velocity){// (ee_des_vel - _robot.ee_des_vel).norm()>0.1)
             if(ramp_up_vel){ // ramp up des_vel on start of hit  to avoid big jump
-                ROS_INFO_ONCE("Ramping up desired velocity over 20 steps");
+                // ROS_INFO("Ramping up desired velocity over 20 steps");
                 float t_vel = vel_ramp_up_count/max_ramp_up_vel;// calculate t from 0 to 1 depending on time_step
                 vel_ramp_up_count +=1;
 
                 // ASSUMPTION : Initial_ee_vel is always ZERO 
                 if(get_initial_ee_des_vel){ //get the initial ee_pos once 
+                    ROS_INFO("Ramping up desired velocity over 15 steps");
                     initial_ee_des_vel = _robot.ee_des_vel;
                     initial_ee_vel = _robot.ee_vel;
                     get_initial_ee_des_vel = false;
                 }
 
                 ee_des_vel = (1-t_vel)*initial_ee_vel + t_vel*initial_ee_des_vel; // lin interpolation 
-                // std::cout << " des vel is: " << ee_des_vel << std::endl;
+                std::cout << " from vel: " << initial_ee_vel << std::endl;
+                std::cout << " to vel: " << initial_ee_des_vel << std::endl;
+                std::cout << " interp des vel is: " << ee_des_vel << std::endl;
 
                 if(t_vel == 1.0){// Stop ramping up when reached end of interpolation
                     ramp_up_vel = false;
-                    vel_ramp_up_count = 0;
+                    vel_ramp_up_count = 1;                        
+                    get_initial_ee_des_vel = true;
                     ROS_INFO_ONCE("Finished ramping up velocity");
                     // check if close to actual des_vel
                     if((ee_des_vel - _robot.ee_des_vel).norm()>0.5){
                         // If too far, rmap up again 
-                        ROS_WARN("Ramping up velocity AGAIN");}
+                        std::cout << " RaMP UP VEL AGAIN due to norm " << std::endl;
+                        ROS_WARN("Ramping up velocity AGAIN");
                         ramp_up_vel = true;
-                        get_initial_ee_des_vel = true;
+                    }
                 }
                 
             }
@@ -505,16 +510,18 @@ void PassiveControl::computeTorqueCmd(){
         else{
             // Impedance control for orientation torque
 
-            R_0_d = Utils<double>::quaternionToRotationMatrix(_robot.ee_des_quat);
-            R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
-            R_tcp_des = R_0_tcp.transpose() * R_0_d; // R_0_d desired quaternion, R_0_tcp -> ee_quat
-            R_tcp_des = R_tcp_des - Eigen::MatrixXd::Identity(3,3); // R_0_d desired quaternion, R_0_tcp -> ee_quat
-            // Eigen::Quaterniond Qerr(R_tcp_des);
-            // // Qerr.normalize();
-            // std::cout << " q err is: " << R_tcp_des.norm()  << std::endl;
-            // std::cout << " rot mat is : " << R_tcp_des  << std::endl;
+            // R_0_d = Utils<double>::quaternionToRotationMatrix(_robot.ee_des_quat);
+            // R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
+            // R_tcp_des = R_0_tcp.transpose() * R_0_d; // R_0_d desired quaternion, R_0_tcp -> ee_quat
+            // R_tcp_des = R_tcp_des - Eigen::MatrixXd::Identity(3,3); // R_0_d desired quaternion, R_0_tcp -> ee_quat
+            // if(!ori_ramp_up && R_tcp_des.norm() > 0.1){
+            //     std::cout << " RAMP UP ORI AGAIN !!: " << R_tcp_des.norm() << std::endl;
+            //     ori_ramp_up = true;
+            //     ori_ramp_up_count = 0;
+            //     get_initial_ee_quat = true;
+            // }
 
-            if(ori_ramp_up || R_tcp_des.norm() > 0.4){ // ramp up des_quat on start to avoid big jump
+            if(ori_ramp_up){ // ramp up des_quat on start to avoid big jump
                 float t_ori = ori_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
                 ori_ramp_up_count +=1;
 
