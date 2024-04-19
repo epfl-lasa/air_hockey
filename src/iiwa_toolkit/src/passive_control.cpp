@@ -369,23 +369,33 @@ void PassiveControl::computeTorqueCmd(){
         bool pos_ctrl_ds = true;
         
         // Ramp up des vel from 0 to des when is_just_velocity
-        if(is_just_velocity){
-            if((ee_des_vel - _robot.ee_des_vel).norm()>0.1){ // ramp up des_vel on start of hit  to avoid big jump
+        if(is_just_velocity){// (ee_des_vel - _robot.ee_des_vel).norm()>0.1)
+            if(ramp_up_vel){ // ramp up des_vel on start of hit  to avoid big jump
                 ROS_INFO_ONCE("Ramping up desired velocity over 20 steps");
                 float t_vel = vel_ramp_up_count/max_ramp_up_vel;// calculate t from 0 to 1 depending on time_step
                 vel_ramp_up_count +=1;
 
                 // ASSUMPTION : Initial_ee_vel is always ZERO 
-                // if(get_initial_ee_vel){ //get the initial ee_pos once 
-                //     initial_ee_vel = _robot.ee_vel;
-                //     get_initial_ee_vel = false;
-                // }
+                if(get_initial_ee_des_vel){ //get the initial ee_pos once 
+                    initial_ee_des_vel = _robot.ee_des_vel;
+                    get_initial_ee_des_vel = false;
+                }
 
-                ee_des_vel = (1-t_vel)*initial_ee_vel + t_vel*_robot.ee_des_vel; // lin interpolation 
+                ee_des_vel = (1-t_vel)*initial_ee_vel + t_vel*initial_ee_des_vel; // lin interpolation 
                 std::cout << " des vel is: " << ee_des_vel << std::endl;
 
                 if(t_vel == 1.0){// Stop ramping up when reached end of interpolation
+                    ramp_up_vel = false;
                     t_vel = 0;
+
+                    // check if close to actual des_vel
+                    if((ee_des_vel - _robot.ee_des_vel).norm()>0.1){
+                        // If too far, rmap up again 
+                        ROS_WARN("Ramping up velocity AGAIN");}
+                        ramp_up_vel = true
+                        get_initial_ee_des_vel = true;
+                    }
+
                     // get_initial_ee_vel = true;
                     ROS_INFO_ONCE("Finished ramping up velocity");}
             }

@@ -157,10 +157,12 @@ private:
     int start_count = 0;
 
     // ramp up velocity
+    bool ramp_up_vel = true;
     float vel_ramp_up_count = 0;
     float max_ramp_up_vel = 50;
-    bool get_initial_ee_vel = true;
+    bool get_initial_ee_des_vel = true;
     Eigen::Vector3d initial_ee_vel = Eigen::Vector3d::Zero();
+    Eigen::Vector3d initial_ee_des_vel = Eigen::Vector3d::Zero();
     Eigen::Vector3d ee_des_vel = Eigen::Vector3d::Zero();
 
     // Position impedance control
