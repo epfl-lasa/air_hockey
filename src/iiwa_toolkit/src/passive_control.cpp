@@ -251,12 +251,18 @@ void PassiveControl::set_desired_pose(const Eigen::Vector3d& pos, const Eigen::V
     _robot.ee_des_pos = pos;
     _robot.ee_des_quat = quat;
     is_just_velocity = false;
-    pos_ramp_up = true;
+    // pos_ramp_up = true;
+    ramp_up_vel = true;
+    get_initial_ee_des_vel = true;
 }
 void PassiveControl::set_desired_position(const Eigen::Vector3d& pos){
     _robot.ee_des_pos = pos;
     is_just_velocity = false;
-    pos_ramp_up = true;
+    // pos_ramp_up = true;
+    // ori_ramp_up = true;
+    // set bools for ramping vel for next hit
+    ramp_up_vel = true;
+    get_initial_ee_des_vel = true;
 }
 void PassiveControl::set_desired_quat(const Eigen::Vector4d& quat){
     _robot.ee_des_quat = quat;
@@ -352,7 +358,7 @@ void PassiveControl::computeTorqueCmd(){
                      ROS_WARN_ONCE("If FRIOverlay is started and robot is not moving, touch it lightly.");
                 }
             }
-            else if(_robot.jnt_velocity.norm() > 5e-4 && _robot.jnt_velocity.norm() < 1e-3){ // wait for robot to have moved then slowed down 
+            else if(_robot.jnt_velocity.norm() > 5e-4 && _robot.jnt_velocity.norm() < 5e-3){ // wait for robot to have moved then slowed down 
                 start = 2;
                 ROS_INFO_ONCE("Robot slowed down. Stopping joint PD control.");
             }
@@ -378,26 +384,25 @@ void PassiveControl::computeTorqueCmd(){
                 // ASSUMPTION : Initial_ee_vel is always ZERO 
                 if(get_initial_ee_des_vel){ //get the initial ee_pos once 
                     initial_ee_des_vel = _robot.ee_des_vel;
+                    initial_ee_vel = _robot.ee_vel;
                     get_initial_ee_des_vel = false;
                 }
 
                 ee_des_vel = (1-t_vel)*initial_ee_vel + t_vel*initial_ee_des_vel; // lin interpolation 
-                std::cout << " des vel is: " << ee_des_vel << std::endl;
+                // std::cout << " des vel is: " << ee_des_vel << std::endl;
 
                 if(t_vel == 1.0){// Stop ramping up when reached end of interpolation
                     ramp_up_vel = false;
-                    t_vel = 0;
-
+                    vel_ramp_up_count = 0;
+                    ROS_INFO_ONCE("Finished ramping up velocity");
                     // check if close to actual des_vel
-                    if((ee_des_vel - _robot.ee_des_vel).norm()>0.1){
+                    if((ee_des_vel - _robot.ee_des_vel).norm()>0.5){
                         // If too far, rmap up again 
                         ROS_WARN("Ramping up velocity AGAIN");}
-                        ramp_up_vel = true
+                        ramp_up_vel = true;
                         get_initial_ee_des_vel = true;
-                    }
-
-                    // get_initial_ee_vel = true;
-                    ROS_INFO_ONCE("Finished ramping up velocity");}
+                }
+                
             }
             else{ // close enough to actual des_vel 
                 ee_des_vel = _robot.ee_des_vel;
@@ -433,7 +438,7 @@ void PassiveControl::computeTorqueCmd(){
         else{
             // Impedance control
             if(pos_ramp_up){ // ramp up des_quat on start to avoid big jump
-                ROS_INFO_ONCE("Ramping up position over 3 seconds");
+                ROS_INFO_ONCE("Ramping up position over 1 second");
                 float t_pos = pos_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
                 pos_ramp_up_count +=1;
 
@@ -446,6 +451,8 @@ void PassiveControl::computeTorqueCmd(){
 
                 if(t_pos == 1.0){// Stop ramping up when reached end of interpolation
                     pos_ramp_up = false;
+                    pos_ramp_up_count = 0;
+                    get_initial_ee_pos = true;
                     ROS_INFO_ONCE("Finished ramping up position");}
             }
             else{
@@ -497,12 +504,22 @@ void PassiveControl::computeTorqueCmd(){
         }
         else{
             // Impedance control for orientation torque
-            if(ori_ramp_up){ // ramp up des_quat on start to avoid big jump
-                ROS_INFO_ONCE("Ramping up orientation over 3 seconds");
+
+            R_0_d = Utils<double>::quaternionToRotationMatrix(_robot.ee_des_quat);
+            R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
+            R_tcp_des = R_0_tcp.transpose() * R_0_d; // R_0_d desired quaternion, R_0_tcp -> ee_quat
+            R_tcp_des = R_tcp_des - Eigen::MatrixXd::Identity(3,3); // R_0_d desired quaternion, R_0_tcp -> ee_quat
+            // Eigen::Quaterniond Qerr(R_tcp_des);
+            // // Qerr.normalize();
+            // std::cout << " q err is: " << R_tcp_des.norm()  << std::endl;
+            // std::cout << " rot mat is : " << R_tcp_des  << std::endl;
+
+            if(ori_ramp_up || R_tcp_des.norm() > 0.4){ // ramp up des_quat on start to avoid big jump
                 float t_ori = ori_ramp_up_count/max_ramp_up;// calculate t from 0 to 1 depending on time_step
                 ori_ramp_up_count +=1;
 
                 if(get_initial_ee_quat){
+                    ROS_INFO("Ramping up orientation over 1 second");
                     initial_ee_quat = _robot.ee_quat;
                     // std::cout << " init quat is: " << initial_ee_quat << std::endl;
                     get_initial_ee_quat = false;
@@ -512,7 +529,9 @@ void PassiveControl::computeTorqueCmd(){
                 // std::cout << " des quat is: " << ee_des_quat << std::endl;
                 if(t_ori == 1.0){// Stop ramping up when reached end of interpolation
                     ori_ramp_up = false;
-                    ROS_INFO_ONCE("Finished ramping up orientation");}
+                    ori_ramp_up_count = 0;
+                    get_initial_ee_quat = true;
+                    ROS_INFO("Finished ramping up orientation");}
             }
             else{
                 ee_des_quat = _robot.ee_des_quat;
