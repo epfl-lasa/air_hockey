@@ -25,6 +25,17 @@ def parse_strip_list(cell):
     # Split the space-separated values and parse them as a list of floats
     return [float(value) for value in cell.strip("[]").split()]
 
+def get_orientation_error_x_y_z(q_a, q_b):
+    ### Get 2 quaternions and return orientation error
+    
+    r_a = Rotation.from_quat(q_a).as_matrix()
+    r_b = Rotation.from_quat(q_b).as_matrix()
+    
+    r_ab = r_a.T @ r_b
+    
+    euler_angles = Rotation.from_matrix(r_ab).as_euler('xyz', degrees=True)
+    
+    return euler_angles
 
 def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=False):
     ### Returns robot data info at hit time : Flux, inertia, EFF pose
