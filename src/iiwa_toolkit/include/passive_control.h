@@ -157,7 +157,7 @@ private:
     int start_count = 0;
 
     // ramp up velocity
-    bool ramp_up_vel = true;
+    bool ramp_up_vel = false;
     float vel_ramp_up_count = 1;
     float max_ramp_up_vel = 10;
     bool get_initial_ee_des_vel = true;
