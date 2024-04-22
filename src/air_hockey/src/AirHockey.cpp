@@ -128,12 +128,6 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/object_offset/y", objectOffset_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/object_offset/y not found"); }
   if (!nh_.getParam("iiwa14/object_offset/z", objectOffset_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/object_offset/x not found"); }
 
-  // while (objectPositionFromSource_.norm() == 0) {
-  //   this->updateDSAttractor();
-  //   ros::spinOnce();
-  //   rate_.sleep();
-  // }
-
   generateHitting7_->set_current_position(iiwaPositionFromSource_[IIWA_7]);
   generateHitting14_->set_current_position(iiwaPositionFromSource_[IIWA_14]);
   this->updateDSAttractor(); //update attractor position
@@ -520,16 +514,40 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
 
     // is object stopped?
     else if(!isObjectMoving_){
+      // Go to pre hit placement
+      current_state = preHitPlacement(current_state);
+    }
+  }
 
-      // update return position as soon as object stops
-      updateReturnPosition();
+  return current_state;
+}
 
-      // Get norms
-      float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
-      float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm();
+AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
 
-      // are robots stopped at rest positions ?
-      if(norm_iiwa7 < pos_threshold && norm_iiwa14 < pos_threshold && 
+  float pos_threshold = 4*1e-2;
+  float vel_threshold = 1*1e-3;
+
+  // update return position as soon as object stops
+  updateReturnPosition();
+
+  // Get norms
+  float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
+  float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm();
+
+  if(!isAuto_){ // Then set to HIT depending on norm of individual robot 
+      if(next_hit_ == IIWA_7 && norm_iiwa7 < pos_threshold && iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold ){
+      current_state.mode_iiwa7 = HIT;
+      next_hit_ = NONE;
+      setReturnPositionToInitial();
+    }
+    if(next_hit_ == IIWA_14 && norm_iiwa14 < pos_threshold && iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
+      current_state.mode_iiwa14 = HIT;
+      next_hit_ = NONE;
+      setReturnPositionToInitial();
+    }
+  }
+  if(isAuto_){ // Then set to HIT depending on norm of both robots
+    if(norm_iiwa7 < pos_threshold && norm_iiwa14 < pos_threshold && 
             iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold && 
             iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
 
@@ -545,39 +563,6 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
         // Start by going back to usual pos before adapting to object
         setReturnPositionToInitial();
       }
-    }
-  }
-
-  return current_state;
-}
-
-AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
-
-  // TODO : merge with above using isAuto_
-
-  float pos_threshold = 4*1e-2;
-  float vel_threshold = 1*1e-3;
-  // update return position as soon as object stops
-  updateReturnPosition();
-
-  // Get norms
-  float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
-  float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm();
-
-  // Then set to HIT depending on norm of individual robot 
-  if(next_hit_ == IIWA_7){
-    if(norm_iiwa7 < pos_threshold && iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold ){
-      current_state.mode_iiwa7 = HIT;
-      next_hit_ = NONE;
-      setReturnPositionToInitial();
-    }
-  }
-  if(next_hit_ == IIWA_14){
-    if(norm_iiwa14 < pos_threshold && iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
-      current_state.mode_iiwa14 = HIT;
-      next_hit_ = NONE;
-      setReturnPositionToInitial();
-    }
   }
   
   return current_state;

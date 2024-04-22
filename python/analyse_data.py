@@ -8,7 +8,7 @@ import time
 import mplcursors
 from matplotlib.patches import Rectangle
 from matplotlib.cm import ScalarMappable
-# import pybullet 
+import pybullet 
 import math
 
 import sys
@@ -20,7 +20,7 @@ sys.path.append('/home/maxime/Workspace/air_hockey/python_data_processing/gmm_to
 # from gmr.utils import check_random_state
 # from gmr import MVN, GMM, plot_error_ellipses
 
-from process_data import parse_value, parse_list, parse_strip_list, parse_strip_list_with_commas
+from process_data import parse_value, parse_list, parse_strip_list, parse_strip_list_with_commas, get_orientation_error_x_y_z
 
 # PROCESSING
 def wrap_angle(angle_rad):
@@ -310,11 +310,13 @@ def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True):
     fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
 
     ## calculate quaternion diff
+    
     df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1)
     df["OrientationError"] = df["OrientationError"].apply(lambda x : [wrap_angle(i) for i in x]).copy()
 
     df["OrientationError2"] = df.apply(lambda row : [pybullet.getEulerFromQuaternion(row["HittingOrientation"])[i]- pybullet.getEulerFromQuaternion(row["ObjectOrientation"])[i] for i in range(3)],axis=1).copy()
-
+    df["OrientationError3"] = df.apply(lambda row : get_orientation_error_x_y_z(row["ObjectOrientation"],row["HittingOrientation"]),axis=1).copy()
+    
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
 
@@ -353,6 +355,9 @@ def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True):
         
         scatter = axes[0].scatter(df_iiwa7['HittingFlux'], df_iiwa7['OrientationError2'].apply(lambda x : x[2]), color="blue", label="Euler error")
         axes[1].scatter(df_iiwa14['HittingFlux'], df_iiwa14['OrientationError2'].apply(lambda x : x[2]), color="blue", label="Euler error")
+
+        scatter = axes[0].scatter(df_iiwa7['HittingFlux'], df_iiwa7['OrientationError3'].apply(lambda x : x[2]), color="green", label="Rot error")
+        axes[1].scatter(df_iiwa14['HittingFlux'], df_iiwa14['OrientationError3'].apply(lambda x : x[2]), color="green", label="Rot error")
 
         # scatter = axes[0].scatter(df_iiwa7['DistanceTraveled'], df_iiwa7['HittingOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[0]), c=df_iiwa7['HittingFlux'], cmap="viridis")
         # axes[1].scatter(df_iiwa14['DistanceTraveled'], df_iiwa14['HittingOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[0]), c=df_iiwa14['HittingFlux'], cmap="viridis")
@@ -450,6 +455,7 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
     df["OrientationError"] = df["OrientationError"].apply(lambda x : [wrap_angle(i) for i in x]).copy()
     
     df["OrientationError2"] = df.apply(lambda row : [pybullet.getEulerFromQuaternion(row["HittingOrientation"])[i]- pybullet.getEulerFromQuaternion(row["ObjectOrientation"])[i] for i in range(3)],axis=1).copy()
+    df["OrientationError3"] = df.apply(lambda row : [get_orientation_error_x_y_z(row["HittingOrientation"],row["ObjectOrientation"])],axis=1).copy()
 
     
     start_pos0 = [] # list for color
@@ -676,8 +682,8 @@ if __name__== "__main__" :
 
     ### Plot functions
     # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
-    # plot_orientation_vs_distance(clean_df, axis="z")
+    # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
+    plot_orientation_vs_distance(clean_df, axis="z")
     # flux_hashtable(clean_df)
     # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
 
