@@ -557,6 +557,7 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
 
   float pos_threshold = 4*1e-2;
   float vel_threshold = 1*1e-3;
+  
   // update return position as soon as object stops
   updateReturnPosition();
 

@@ -515,7 +515,7 @@ void PassiveControl::computeTorqueCmd(){
             R_0_tcp = Utils<double>::quaternionToRotationMatrix(_robot.ee_quat);
             R_tcp_des = R_0_tcp.transpose() * R_0_d; // R_0_d desired quaternion, R_0_tcp -> ee_quat
             R_tcp_des = R_tcp_des - Eigen::MatrixXd::Identity(3,3); // R_0_d desired quaternion, R_0_tcp -> ee_quat
-            if(!ori_ramp_up && !is_just_velocity && R_tcp_des.norm() > 0.5){
+            if(!ori_ramp_up && !is_just_velocity && R_tcp_des.norm() > 1.0){
                 std::cout << " RAMP UP ORI AGAIN !!: " << R_tcp_des.norm() << std::endl;
                 ori_ramp_up = true;
                 ori_ramp_up_count = 0;
