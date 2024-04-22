@@ -20,11 +20,7 @@ control:
       dsGainOri: 1.0
       lambda0Ori: 10.0
       lambda1Ori: 5.0
-<<<<<<< HEAD
       ImpedanceOriStiffness: [50, 50, 40] #[70.0, 70.0, 70.0]
-=======
-      ImpedanceOriStiffness: [50, 50, 50] #[70.0, 70.0, 70.0]
->>>>>>> 455e461556c3ce3daed3f61689e8d577a51dfbd2
       ImpedanceOriDamping: [2.5, 2.5, 2.5] #[2.7, 2.3, 2.7] # UNTESTED used to be 3 3 2.7
       ImpedancePosStiffness: [1500.0, 1500.0, 1800.0] #[500.0, 500.0, 500.0] #[1800.0, 1800.0, 2000.0]
       ImpedancePosDamping: [40.3, 40.68, 40.19] #[10.0, 10.0, 10.0] # 
