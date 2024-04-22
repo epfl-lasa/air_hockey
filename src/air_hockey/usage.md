@@ -84,6 +84,9 @@ Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 **Developper Note** : In the start-docker.sh script, volumes are mounted on the folders src/air\_hockey, src/iiwa\_toolkit, python, data. Everything else inside the container and not in these folders will not be mofified on the host machine!
 
 
+
+
+
 # Authors/Maintainers 
 
 Maxime Gautier : maxime.gautier@epfl.ch

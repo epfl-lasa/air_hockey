@@ -3,9 +3,9 @@ recorder_topic: "/recorder/robot_states" # Topic to send the robots REST/HIT sta
 
 passive_control: {
   vel_quat_7: "/passive_control/iiwa1/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
-  vel_quat_14: "/passive_control/iiwa2/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
+  vel_quat_14: "/passive_control/iiwa2/vel_quat", #"blablblba", ## Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
   pos_quat_7: "/passive_control/iiwa1/pos_quat", # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
-  pos_quat_14: "/passive_control/iiwa2/pos_quat", # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
+  pos_quat_14: "/passive_control/iiwa2/pos_quat", #"blablblba" # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
 }
 
 iiwa: {

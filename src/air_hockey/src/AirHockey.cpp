@@ -139,12 +139,6 @@ bool AirHockey::init() {
   this->updateDSAttractor(); //update attractor position
 
   // Get hitting parameters
-  if (!nh_.getParam("iiwa7/ref_velocity/y", refVelocity_[IIWA_7][1])) { ROS_ERROR("Param ref_velocity/y not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/y", refVelocity_[IIWA_14][1])) { ROS_ERROR("Param ref_velocity/y not found"); }
-  if (!nh_.getParam("iiwa7/ref_velocity/x", refVelocity_[IIWA_7][0])) { ROS_ERROR("Param ref_velocity/x not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/x", refVelocity_[IIWA_14][0])) { ROS_ERROR("Param ref_velocity/x not found"); }
-  if (!nh_.getParam("iiwa7/ref_velocity/z", refVelocity_[IIWA_7][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/z", refVelocity_[IIWA_14][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
   if (!nh_.getParam("iiwa7/ref_orientation/w", refQuat_[IIWA_7][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
   if (!nh_.getParam("iiwa14/ref_orientation/w", refQuat_[IIWA_14][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
   if (!nh_.getParam("iiwa7/ref_orientation/x", refQuat_[IIWA_7][1])) { ROS_ERROR("Param ref_orientation/x not found"); }
@@ -181,7 +175,8 @@ bool AirHockey::init() {
 
   // Initialize PAUSE state
   isPaused_ = true;
-  next_hit_ = IIWA_7;
+  if(isAuto_){next_hit_ = IIWA_7;}
+  else if(!isAuto_){next_hit_=NONE;}
 
   // Set return pos to initial
   setReturnPositionToInitial();
@@ -450,12 +445,14 @@ AirHockey::FSMState AirHockey::updateKeyboardControl(FSMState current_state ) {
 
     switch (keyboardCommand) {
       case 'q': {
-        current_state.mode_iiwa7 = HIT;
+        next_hit_ = IIWA_7;
+        // current_state.mode_iiwa7 = HIT;
         std::cout << "q is pressed " << std::endl;
         
       } break;
       case 'p': {
-        current_state.mode_iiwa14 = HIT;
+        next_hit_ = IIWA_14;
+        // current_state.mode_iiwa14 = HIT;
         std::cout << "p is pressed " << std::endl;
       } break;
       case 'r': {
@@ -554,6 +551,38 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
   return current_state;
 }
 
+AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
+
+  // TODO : merge with above using isAuto_
+
+  float pos_threshold = 4*1e-2;
+  float vel_threshold = 1*1e-3;
+  // update return position as soon as object stops
+  updateReturnPosition();
+
+  // Get norms
+  float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
+  float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm();
+
+  // Then set to HIT depending on norm of individual robot 
+  if(next_hit_ == IIWA_7){
+    if(norm_iiwa7 < pos_threshold && iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold ){
+      current_state.mode_iiwa7 = HIT;
+      next_hit_ = NONE;
+      setReturnPositionToInitial();
+    }
+  }
+  if(next_hit_ == IIWA_14){
+    if(norm_iiwa14 < pos_threshold && iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
+      current_state.mode_iiwa14 = HIT;
+      next_hit_ = NONE;
+      setReturnPositionToInitial();
+    }
+  }
+  
+  return current_state;
+}
+
 void AirHockey::run() {
 
   // Set up counters and bool variables
@@ -582,7 +611,10 @@ void AirHockey::run() {
   while (ros::ok()) {
 
     // Use keyboard control if is not automatic (set in yaml file)
-    if(!isAuto_) {fsm_state = updateKeyboardControl(fsm_state); }
+    if(!isAuto_) {
+      fsm_state = updateKeyboardControl(fsm_state); 
+      fsm_state = preHitPlacement(fsm_state);
+      }
     // Otherwise update FSM automatically
     else if (isAuto_)
     {
@@ -702,6 +734,7 @@ void AirHockey::run() {
     rate_.sleep();
   }
 
+  std::cout << "STOPPING AIR HOCKEY " << std::endl; 
   // publishVelQuat(refVelocity_, refQuat_);
   publishPosQuat(returnPos_, refQuat_, IIWA_7);
   publishPosQuat(returnPos_, refQuat_, IIWA_14);

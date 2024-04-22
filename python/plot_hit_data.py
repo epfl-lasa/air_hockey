@@ -168,7 +168,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             axs[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
             axs[i].grid(True)
             axs[i].axvline(datetime_hit_time, color = 'r')
-            axs[i].axvline(recorded_hit_time, color = 'g')
+            # axs[i].axvline(recorded_hit_time, color = 'g')
         axs[i].set_xlabel('Time [s]')
         fig.suptitle(f"Effort vs Cmd : iiwa {parts[1]}, hit #{parts[3]}, flux {des_flux}")
         fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
@@ -180,7 +180,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             axs[i].plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: x[i]), label=f'Velocity')
             axs[i].plot(df['RosTime'], df['EEF_DesiredVelocity'].apply(lambda x: x[i]), color='r',linestyle='--', label=f'Desired')
             axs[i].axvline(datetime_hit_time, color = 'r')
-            axs[i].axvline(recorded_hit_time, color = 'g')
+            # axs[i].axvline(recorded_hit_time, color = 'g')
             axs[i].set_title(f'Axis {coordinate_labels[i]}')
             axs[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
             axs[i].grid(True)
@@ -195,7 +195,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             axs[i].plot(df['RosTime'], df['EEF_Position'].apply(lambda x: x[i]), label=f'Position')
             axs[i].axhline(y=des_pos[i], color='r', linestyle='--')
             axs[i].axvline(datetime_hit_time, color = 'r')
-            axs[i].axvline(recorded_hit_time, color = 'g')
+            # axs[i].axvline(recorded_hit_time, color = 'g')
             axs[i].set_title(f'Axis {coordinate_labels[i]}')
             axs[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
             axs[i].grid(True)
@@ -209,7 +209,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         ax.plot(df['RosTime'], df['HittingFlux'])
         ax.axhline(y=des_flux, color='r', linestyle='--')
         ax.axvline(datetime_hit_time, color = 'r')
-        ax.axvline(recorded_hit_time, color = 'g')
+        # ax.axvline(recorded_hit_time, color = 'g')
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Hitting flux [m/s]')
         ax.grid(True)
@@ -229,7 +229,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             ax.plot(df_obj['RosTime'], obj_pos.apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
         ax.axvline(datetime_hit_time, color = 'r')
-        ax.axvline(recorded_hit_time, color = 'g')
+        # ax.axvline(recorded_hit_time, color = 'g')
         fig.suptitle(f"Object Position: iiwa {parts[1]}, hit #{parts[3]} ")
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Position')
@@ -623,13 +623,13 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-04-16_14:27:48"
-        hit_number =  [2,3,4,5,6] #[16,17] #[x for x in range(1,10)]
-        iiwa_number = 14
+        folder_name = "2024-04-19_14:54:35"
+        hit_number =  8 #[2,3,4,5,6] #[16,17] #[x for x in range(1,10)]
+        iiwa_number = 7
     
 
     ### DATA TO PLOT 
-    plot_this_data = ["Flux","Vel","Torque"]#"Orient","Object", "Pos"["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Orient","Vel","Flux","Torque", "Object"]#" "Pos"["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
 
 
     # PLOT FOR SINGLE HIT 
