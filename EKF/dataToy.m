@@ -25,7 +25,7 @@ classdef dataToy < dataClass
             this.r = [0.001; 0.001].^2;
             this.q = [0.01; 0.03; 0.01; 0.03; 0.01].^2;
 
-            this.V_EE = this.flux * (1 + (this.m/this.m_ee))/(1+this.restit);
+            this.V_EE = this.flux * (1 + (this.m/this.m_ee));
             this.X_init = [0; 0; -0.25; this.V_EE; 0]; % [X_o; dX_o; X_ee; dX_ee; E]
             this.n = length(this.X_init);
 
@@ -80,8 +80,8 @@ classdef dataToy < dataClass
             impulseOccured = false;
             for i = 2:length(tspan)
 
-                processNoise(:,i) = this.q.*randn(this.n,1);
-                measurementNoise(:,i) = this.r.*randn(2,1);
+                processNoise(:,i) = 0.*this.q.*randn(this.n,1);
+                measurementNoise(:,i) = 0.*this.r.*randn(2,1);
 
                 x_o = x(1);
                 dx_o = x(2);
@@ -92,18 +92,17 @@ classdef dataToy < dataClass
                 d = x_ee-x_o; % (FIX) use same function later
                 f_impact = 0;
                 if ~impulseOccured && (d>=0) % Impart impulse
-                    v_o_plus = (1+this.mu)*this.flux; %  (FIX) assumed mu
+                    v_o_plus = (1+this.restit)*this.flux; %  (FIX) assumed mu
                     f_ext = (1/dt)*v_o_plus*this.m;
-                    f_impact = f_ext;
                     impulseOccured = true;
                 elseif abs(dx_o) > 0
-                    f_ext = -abs(dx_o)*this.mu*this.m*this.g; % Friction acts on box
+                    f_ext = -sign(dx_o)*this.mu*this.m*this.g; % Friction acts on box
 
                 else
                     f_ext = 0;  % No force acts on box
                 end
 
-                x_o_next =   x_o + dt*dx_o + (dt^2/this.m) * f_ext      + processNoise(1,i);
+                x_o_next =   x_o  + dt*dx_o + 0.5*(dt^2/this.m) * f_ext     + processNoise(1,i);
                 dx_o_next =  dx_o + dt * (1/this.m) * f_ext             + processNoise(2,i);
                 x_ee_next =  x_ee + dt*dx_ee                            + processNoise(3,i);
                 

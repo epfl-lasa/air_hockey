@@ -47,11 +47,12 @@ classdef iam_ekf < handle
         function this = iam_ekf()
             %UNTITLED2 Construct an instance of this class
             %   Detailed explanation goes here
+            close all
             dbstop if error
             this.saveFigBool = true;
             this.images_path = 'images/';
-            data = dataToy(); % Create data structure from toy model
-%             data = dataSim('data/log_box_traj_mu001.txt');
+%             data = dataToy(); % Create data structure from toy model
+            data = dataSim('data/log_box_traj_mu001.txt');
 %             data = dataReal('../log_real_traj.txt');
             this.init(data); % Initalize Kalman filter parameters
             [this.estimateState,this.Xf_pred,this.otherVars_kal] = this.get_estimateState(data);
@@ -133,11 +134,13 @@ classdef iam_ekf < handle
               
               % Save values
               estimateState(:,k) = x;                  % Save estimate
-              Xf_pred(k) = this.get_Xf_pred(x,u);        % Save Xf_pred
+              [Xf_pred(k),Xf_pred_flux(k),Xf_pred_int(k)] = this.get_Xf_pred(x,u);        % Save Xf_pred
               [otherVars_kal.f_ext(k),otherVars_kal.f_f(k)] = this.get_force(x,u);
               otherVars_kal.P(k,:,:) = P; 
               otherVars_kal.e_bool(k) = this.e_bool;
               otherVars_kal.d(k) = this.get_d(x);
+              otherVars_kal.Xf_pred_flux(k) = Xf_pred_flux(k);
+              otherVars_kal.Xf_pred_int(k) = Xf_pred_int(k);
 
             end
             
@@ -149,7 +152,7 @@ classdef iam_ekf < handle
             % Extract State
             [x_o, dx_o, x_ee, dx_ee, E] = this.get_statesfromX(x);
             [f_ext, f_f] = this.get_force(x,u);
-            x_o_next =   x_o + this.dt*dx_o + (this.dt^2/this.m) * (f_ext+f_f);
+            x_o_next =   x_o + this.dt*dx_o + 0.5*(this.dt^2/this.m) * (f_ext+f_f);
             dx_o_next =  dx_o + this.dt * (1/this.m) * (f_ext+f_f); 
             x_ee_next =  x_ee + this.dt*dx_ee;
             dx_ee_next = dx_ee;
@@ -181,23 +184,25 @@ classdef iam_ekf < handle
             % Extract State
             [x_o, dx_o, x_ee, dx_ee, E] = this.get_statesfromX(x);
             [f_ext,f_f] = this.get_force(x,u);
+
             par_f_par_x_o = -1 * (-this.get_d(x))/this.sigma_2^2 * f_ext;
             par_f_par_x_ee = -1 * par_f_par_x_o; % Same except for negative sign
+            
+            par_x_o_par_x_o = 1 + 0.5*this.dt^2/this.m * par_f_par_x_o;
+            par_x_o_par_x_ee = 0.5*this.dt^2/this.m * par_f_par_x_ee;
 
             par_dx_o_par_x_o =  this.dt * (1/this.m) * par_f_par_x_o;
-            par_dx_o_par_x_ee = this.dt * (1/this.m) * par_f_par_x_ee; 
-            par_dx_o_par_dx_ee = 0;
-            par_dx_o_par_E = 0;
+            par_dx_o_par_x_ee = this.dt * (1/this.m) * par_f_par_x_ee;
 
-            par_E_par_x_o =   this.dt*f_ext + this.dt*x_o*par_f_par_x_o;
-            par_E_par_x_ee =  this.dt*x_o*par_f_par_x_ee; 
+%             par_E_par_x_o =   this.dt*f_ext + this.dt*x_o*par_f_par_x_o;
+%             par_E_par_x_ee =  this.dt*x_o*par_f_par_x_ee; 
 
             % Put in matrix from
-            F = [1,                this.dt,           0,                 0,                  0;... 
-                 par_dx_o_par_x_o, 1,                 par_dx_o_par_x_ee, par_dx_o_par_dx_ee, par_dx_o_par_E;...
+            F = [par_x_o_par_x_o,  this.dt,           par_x_o_par_x_ee,  0,                  0;... 
+                 par_dx_o_par_x_o, 1,                 par_dx_o_par_x_ee, 0,                  0;...
                  0,                0,                 1,                 this.dt,            0;...
                  0,                0,                 0,                 1,                  0;...
-                 par_E_par_x_o,    0,                 par_E_par_x_ee,    0,                  1];
+                 0,                0,                 0,                 0,                  1];
         
         end
 
@@ -215,7 +220,7 @@ classdef iam_ekf < handle
 
             % Friction acts on box
             if abs(dx_o) > 0
-                f_f = -abs(dx_o)*this.mu*this.m*this.g; 
+                f_f = -sign(dx_o)*this.mu*this.m*this.g; 
             else
                 f_f = 0;
             end
@@ -225,12 +230,12 @@ classdef iam_ekf < handle
         % Get sigma_1
         function [sigma_1] = get_sigma_1(this,u)
             flux = u;
-            sigma_1 = this.m * (1+this.mu)^2 * flux^2 / (2*this.sigma_2*sqrt(2*pi)); % (FIX) Assumed mu
+            sigma_1 = this.m * (1+this.restit)^2 * flux^2 / (2*this.sigma_2*sqrt(2*pi)); % (FIX) Assumed restit
 
         end
         
         % Get final box position estimate
-        function [Xf_pred] = get_Xf_pred(this,x,u)
+        function [Xf_pred,Xf_pred_flux,Xf_pred_int] = get_Xf_pred(this,x,u)
 
             [x_o, dx_o, x_ee, dx_ee, E] = this.get_statesfromX(x);
 %             Xf_pred = x_o + (this.m * dx_o^2 / (2 * this.mu * this.g)); % (fix) Assumed mu
@@ -239,10 +244,14 @@ classdef iam_ekf < handle
             flux = u;
             dx_o_postContact = flux*(1+this.restit); % (fix) Assumed mu
             Xf_pred_flux = x_o_init + (dx_o_postContact^2 / (2 * this.mu * this.g)); % (fix) Assumed mu
-            Xf_pred_init = x_o + (dx_o^2 / (2 * this.mu * this.g)); % (fix) Assumed mu
+            Xf_pred_int = x_o + (dx_o^2 / (2 * this.mu * this.g)); % (fix) Assumed mu
             
             alpha = E/this.e_pred;
-            Xf_pred = (1-alpha) * (Xf_pred_flux) + alpha * (Xf_pred_init);
+%             alpha = log2(E / this.e_pred + 1);
+%             alpha = log2( (1/2)*this.m*dx_o^2 / this.e_pred + 1) ; % (fix) assumes m
+
+
+            Xf_pred = (1-alpha) * (Xf_pred_flux) + alpha * (Xf_pred_int);
 
         end
 
@@ -282,6 +291,10 @@ classdef iam_ekf < handle
             plot(data.t,data.x_o,'LineWidth',3,DisplayName="Measured Box Position"); hold on;
             plot(data.t_kal,X_o,'LineWidth',3,DisplayName="Estimated Box Position"); hold on;
             plot(data.t_kal,this.Xf_pred,":",'LineWidth',3,DisplayName="Predicted Distance");
+            plot(data.t_kal,this.otherVars_kal.Xf_pred_flux,":r",'LineWidth',3,DisplayName="Predicted Distance (Flux)");
+            plot(data.t_kal,this.otherVars_kal.Xf_pred_int,":g",'LineWidth',3,DisplayName="Predicted Distance (int)");
+
+
 
 %             plot(data.t_kal,this.Xf_pred,":k",'LineWidth',3,DisplayName="Predicted Final Position");
             ylabel("Position (m)");
@@ -326,6 +339,7 @@ classdef iam_ekf < handle
             box off; set(gca,'linewidth',2.5,'fontsize', 16);
             ylabel('$X_{ee} \textrm{(m)}$','interpreter','latex','fontsize',25);
             xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',25);
+            grid on;
 
             % Distance (d)
             ax(2) = subplot(3,1,2);
@@ -335,6 +349,7 @@ classdef iam_ekf < handle
             box off; set(gca,'linewidth',2.5,'fontsize', 16);
             ylabel('$d \textrm{(m)}$','interpreter','latex','fontsize',25);
             xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',25);
+            grid on;
 
             % Energy (E)
             ax(3) = subplot(3,1,3);
@@ -345,10 +360,12 @@ classdef iam_ekf < handle
             ylabel('$E \textrm{(J)}$','interpreter','latex','fontsize',25);
             xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',25);
             legend('location','southeast');
+            grid on;
 
             if this.saveFigBool
                     saveas(gcf,[this.images_path,'/',this.dataType,'-ContactModeling.png']);
             end
+            linkaxes(ax,'x');
 
 %             figure;
 %             plot(data.x_ee-data.x_o,data.otherVars_data.f_ext); hold on;
