@@ -117,7 +117,7 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
     # Use derivative to find changes in speed 
-    derivative_threshold = 0.1 #0.05
+    derivative_threshold = 0.15 #0.05
 
     # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN X AXIS
     x_values =  df[pos_name_str].apply(lambda x: x[1])

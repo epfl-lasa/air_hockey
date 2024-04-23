@@ -87,6 +87,10 @@ Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 
 
 
+
 # Authors/Maintainers 
 
 Maxime Gautier : maxime.gautier@epfl.ch
+
+iiwa 7 config 2 : position: [-0.2331627428718321, 0.825599845040929, 0.15861307416063644, -1.3348357468465413, -0.22860513010403, 1.0100926132444998, -1.5581756796042097]
+

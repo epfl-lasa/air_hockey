@@ -3,9 +3,9 @@ recorder_topic: "/recorder/robot_states" # Topic to send the robots REST/HIT sta
 
 passive_control: {
   vel_quat_7: "/passive_control/iiwa1/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
-  vel_quat_14: "/passive_control/iiwa2/vel_quat", #"blablblba", ## Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
+  vel_quat_14: "/passive_control/iiwa2/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
   pos_quat_7: "/passive_control/iiwa1/pos_quat", # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
-  pos_quat_14: "/passive_control/iiwa2/pos_quat", #"blablblba" # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
+  pos_quat_14: "/passive_control/iiwa2/pos_quat", # Publisher - Control position - type geometry_msgs::Pose (SIM + REAL)
 }
 
 iiwa: {
@@ -15,19 +15,21 @@ iiwa: {
     pose: "/iiwa1/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
     vel: "/iiwa1/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
     joint_state : "/iiwa1/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
-    trq_cmd : "/iiwa1/TorqueController/command", # Subscriber - iiwa commanded torque - type sensor_msgs::JointState (REAL)
+    trq_cmd : "/iiwa1/TorqueController/command", # Subscriber - iiwa commanded torque -  std_msgs::Float64MultiArray (REAL)
   },
 
   info_14 : {
     pose: "/iiwa2/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
     vel: "/iiwa2/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
     joint_state : "/iiwa2/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
-    trq_cmd : "/iiwa2/TorqueController/command", # Subscriber - iiwa commanded torque - type sensor_msgs::JointState (REAL)
+    trq_cmd : "/iiwa2/TorqueController/command", # Subscriber - iiwa commanded torque -  std_msgs::Float64MultiArray (REAL)
   },
 
   inertia: {
     taskPos_7: "/iiwa1/Inertia/taskPosInv", # Subscriber - Iiwa inertia inverse - type geometry_msgs::Inertia (SIM + REAL)
     taskPos_14: "/iiwa2/Inertia/taskPosInv", # Subscriber - Iiwa inertia inverse - type geometry_msgs::Inertia (SIM + REAL)
+    dirGrad_7 : "/iiwa1/Inertia/dirGrad", # Subscriber - iiwa directional inertia task pos gradient - type  std_msgs::Float64MultiArray (REAL)
+    dirgrad_14 : "/iiwa2/Inertia/dirGrad", # Subscriber - iiwa directional inertia task pos gradient - type  std_msgs::Float64MultiArray (REAL)
   }
 }
 

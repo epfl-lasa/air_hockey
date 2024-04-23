@@ -153,7 +153,7 @@ void PassiveControl::updateRobot(const Eigen::VectorXd& jnt_p,const Eigen::Vecto
     _robot.joint_inertia = _tools.get_joint_inertia(robot_state);
     _robot.task_inertiaPos = jointToTaskInertia(_robot.jacobPos, _robot.joint_inertia);
     _robot.task_inertiaPos_inv = jointToTaskInertiaInverse(_robot.jacobPos, _robot.joint_inertia);
-    _robot.dir_task_inertia_grad = getDirInertiaGrad(robot_state, _robot.direction);
+    _robot.dir_task_inertia_grad = computeDirInertiaGrad(robot_state, _robot.direction);
     
     auto ee_state = _tools.perform_fk(robot_state);
     _robot.ee_pos = ee_state.translation;
@@ -200,7 +200,11 @@ Eigen::MatrixXd PassiveControl::getTaskInertiaPosInv(){
     return _robot.task_inertiaPos_inv;
 }
 
-Eigen::VectorXd PassiveControl::getDirInertiaGrad(iiwa_tools::RobotState &current_state, Eigen::Vector3d &direction){
+Eigen::VectorXd PassiveControl::getDirTaskInertiaGrad(){
+    return _robot.dir_task_inertia_grad;
+}
+
+Eigen::VectorXd PassiveControl::computeDirInertiaGrad(iiwa_tools::RobotState &current_state, Eigen::Vector3d &direction){
     // Eigen::MatrixXd task_inertia = _robot.task_inertiaPos;
     // double dir_inertia = direction.transpose() * task_inertia * direction;
     double dir_inertia = 1/(direction.transpose() * _robot.task_inertiaPos_inv * direction);
@@ -340,6 +344,10 @@ void PassiveControl::computeTorqueCmd(){
     else if(start == 1){ // PD torque controller with big damping for initialization 
         // compute PD torque 
         er_null = _robot.jnt_position -_robot.nulljnt_position;
+        
+        if (er_null.norm()>0.4){ // Clamping to avoid high torques when far away
+            er_null = 0.4*er_null.normalized();
+        }
 
         for (int i =0; i<7; i++){ 
             tmp_jnt_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
@@ -491,7 +499,7 @@ void PassiveControl::computeTorqueCmd(){
         }
 
         // ORIENTATION CONTROL
-        bool ori_ctrl_ds = true;
+        bool ori_ctrl_ds = false;
 
         if(ori_ctrl_ds){
             // desired angular values
@@ -591,27 +599,30 @@ void PassiveControl::computeTorqueCmd(){
         null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
         
         // Use different nullspace depending on whether we are going to a position or tracking a velocity
-        if(!is_just_velocity){
-            er_null = _robot.jnt_position -_robot.nulljnt_position;
-        }
-        else{// Using inertia for hitting
-            er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
-        }
+        // if(!is_just_velocity){
+        //     er_null = _robot.jnt_position -_robot.nulljnt_position;
+        // }
+        // else{// Using inertia for hitting
+        //     er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
+        // }
+
+        er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
 
         // compute null torque
         if (er_null.norm()>2e-1){
+            std::cout << "CLAMPING ER NULL" << er_null.norm() << std::endl;
             er_null = 0.2*er_null.normalized();
         }
         for (int i =0; i<7; i++){ 
             tmp_null_trq[i] = -null_gains[i] * er_null[i];
             tmp_null_trq[i] +=-1. * _robot.jnt_velocity[i];
         }
-        tmp_null_trq = 10 *null_space_projector* tmp_null_trq; //
+        tmp_null_trq = tmp_null_trq; //10 *null_space_projector* 
         // std::cout << "position torque" << tmp_jnt_trq << std::endl;
         // std::cout << "null torque" << tmp_null_trq << std::endl;
 
         // Add up null space torques
-        _trq_cmd =tmp_jnt_trq + tmp_null_trq; //  //+ ; 
+        _trq_cmd = tmp_null_trq; //  //+ ; tmp_jnt_trq + 
     }
    
     // Gravity Compensationn

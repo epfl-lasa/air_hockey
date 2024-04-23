@@ -237,7 +237,8 @@ public:
     Eigen::Vector4d getEEquat();
     
     Eigen::MatrixXd getTaskInertiaPosInv();
-    Eigen::VectorXd getDirInertiaGrad(iiwa_tools::RobotState &current_state, Eigen::Vector3d& direction);
+    Eigen::VectorXd getDirTaskInertiaGrad();
+    Eigen::VectorXd computeDirInertiaGrad(iiwa_tools::RobotState &current_state, Eigen::Vector3d& direction);
     Eigen::MatrixXd jointToTaskInertia(const Eigen::MatrixXd& Jac, const Eigen::MatrixXd& joint_inertia);
     Eigen::MatrixXd jointToTaskInertiaInverse(const Eigen::MatrixXd& Jac, const Eigen::MatrixXd& joint_inertia);
 

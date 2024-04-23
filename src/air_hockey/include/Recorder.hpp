@@ -47,6 +47,7 @@
 #include <limits>
 
 #include "air_hockey/FSM_state.h"
+#include "keyboard_interaction.hpp"
 
 #define NB_ROBOTS 2// Number of robots
 
@@ -76,6 +77,7 @@ private:
     Eigen::Vector3f eef_vel;
     Eigen::Vector3f eef_vel_des;
     Eigen::Matrix<float, 9, 1> inertia;
+    Eigen::VectorXd dir_grad = Eigen::VectorXd(7);
     float hitting_flux;
   };
 
@@ -88,7 +90,7 @@ private:
   };
 
   bool isSim_;
-  bool isRecording_;
+  bool isAuto_;
   bool isFluxFixed_;
 
   FSMState fsmState_;
@@ -112,6 +114,7 @@ private:
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
   std::string iiwaJointStateTopicReal_[NB_ROBOTS];
   std::string iiwaTorqueCmdTopic_[NB_ROBOTS];
+  std::string iiwaDirGradTopic_[NB_ROBOTS];
   std::string FSMTopic_;
 
   ros::Rate rate_;
@@ -126,6 +129,7 @@ private:
   ros::Subscriber iiwaJointStateReal_[NB_ROBOTS];
   ros::Subscriber iiwaDesiredVelocity_[NB_ROBOTS];
   ros::Subscriber iiwaTorqueCmd_[NB_ROBOTS];
+  ros::Subscriber iiwaDirGrad_[NB_ROBOTS];
   ros::Subscriber FSMState_;
 
   geometry_msgs::Pose boxPose_;
@@ -144,6 +148,7 @@ private:
   Eigen::Matrix3f iiwaTaskInertiaPosInv_[NB_ROBOTS];;
   Eigen::Vector3f iiwaDesiredVelocityFromSource_[NB_ROBOTS];
   Eigen::VectorXd iiwaTorqueCmdFromSource_[NB_ROBOTS];
+  Eigen::VectorXd iiwaInertiaDirGrad_[NB_ROBOTS];
   bool isObjectMoving_;
   int moved_manually_count_;
 
@@ -171,6 +176,7 @@ public:
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void iiwaTorqueCmdCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k);
+  void iiwaDirGradCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k);
   void FSMCallback(const air_hockey::FSM_state::ConstPtr& msg);
 
   void recordRobot(Robot robot_name);
@@ -182,4 +188,6 @@ public:
   void setUpRecordingDir();
   std::string robotToString(Robot robot_name);
   float calculateDirFlux(Robot robot_name);
+
+  void updateKeyboardControl();
 };

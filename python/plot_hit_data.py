@@ -122,7 +122,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
     df = pd.read_csv(robot_csv, skiprows=1,
                      converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'JointEffort': parse_list, 
                                  'TorqueCmd': parse_list, 'EEF_Position': parse_list, 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 
-                                 'EEF_DesiredVelocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_value})
+                                 'EEF_DesiredVelocity': parse_list, 'Inertia': parse_list,'DirGrad': parse_list, 'HittingFlux': parse_value})
                     #  dtype={'RosTime': 'float64'})
     
     df_obj = pd.read_csv(object_csv,
@@ -215,7 +215,37 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         ax.grid(True)
         fig.suptitle(f"Hitting Flux : iiwa {parts[1]}, hit #{parts[3]}")
         fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+        
+    if "Inertia" in data_to_plot:
+        fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+        # First project it
+        if iiwa_number == 7:
+            des_direction = np.array([[0.0], [1.0], [0.0]])
+        elif iiwa_number == 14:
+            des_direction = np.array([[0.0], [-1.0], [0.0]])
+        
+        # NOTE : Inertia recorded is actually Inertia Task Position INVERSE
+        projected_inertia = df['Inertia'].apply(lambda x : 1/(des_direction.T @ np.reshape(x, (3,3)) @ des_direction))
 
+        # Then plot
+        ax.plot(df['RosTime'], projected_inertia)
+        ax.set_xlabel('Time [s]')
+        ax.set_ylabel('Inertia [kg.m^2]')
+        ax.grid(True)
+        fig.suptitle(f"Projected Inertia : iiwa {parts[1]}, hit #{parts[3]}")
+        fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
+    
+    if "Joint Vel" in data_to_plot:
+        fig, axs = plt.subplots(7, 1, figsize=(15, 12), sharex=True)
+        for i in range(7):
+            axs[i].plot(df['RosTime'], df['JointVelocity'].apply(lambda x: x[i]))
+            axs[i].set_title(f'Joint{i+1}')
+            axs[i].grid(True)
+        axs[i].set_xlabel('Time [s]')
+        fig.suptitle(f"Joint Velocity : iiwa {parts[1]}, hit #{parts[3]}")
+        fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+            
+    
     if "Object" in data_to_plot:
         # get pos relative to iiwa
         if (parts[1]== '7'):
@@ -236,7 +266,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         ax.legend()
         ax.grid(True)
         # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
-        
+    
     if "Orient" in data_to_plot:
         
         quat_label = ["x","y","z","w"]
@@ -277,6 +307,21 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
 
         # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
 
+    if "Grad" in data_to_plot:
+        # Plot JointEffort vs TorqueCmd
+        fig, axs = plt.subplots(7, 1, figsize=(15, 12), sharex=True)
+        for i in range(7):
+            axs[i].plot(df['RosTime'], df['DirGrad'].apply(lambda x: x[i]), label=f'DirGrad')
+            axs[i].set_title(f'Joint{i+1}')
+            # axs[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
+            axs[i].grid(True)
+            axs[i].axvline(datetime_hit_time, color = 'r')
+            # axs[i].axvline(recorded_hit_time, color = 'g')
+        axs[i].set_xlabel('Time [s]')
+        fig.suptitle(f"Inertia Task Pos Dir Grad : iiwa {parts[1]}, hit #{parts[3]}, flux {des_flux}")
+        fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+
+    
     hit_time = get_impact_time_from_object(path_to_object_hit)
     flux_at_hit, inertia_at_hit, pos, orient = get_robot_data_at_hit(path_to_robot_hit, hit_time, show_print=False)
     norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
@@ -623,13 +668,13 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-04-22_10:35:46"
+        folder_name = "2024-04-23_17:06:39"
         hit_number =  1 #[2,3,4,5,6] #[16,17] #[x for x in range(1,10)]
-        iiwa_number = 14
+        iiwa_number = 7
     
 
     ### DATA TO PLOT 
-    plot_this_data = ["Orient","Vel","Flux","Torque", "Object"]#" "Pos"["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Joint Vel","Torque","Inertia",  "Grad"]#"Orient", "Flux","Object","Pos"["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
 
 
     # PLOT FOR SINGLE HIT 

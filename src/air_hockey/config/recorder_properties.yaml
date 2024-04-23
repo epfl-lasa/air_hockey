@@ -1,5 +1,5 @@
 
-recording: True
+autonomous_recording: False # If True, record hit automatically. If False record with keyboard keys 'R' and 'S'
 
 recorder_folder: "/home/ros/ros_ws/data/airhockey/"
 

@@ -35,8 +35,8 @@ target:
 
 inertia:
     iiwa1:
-      null_gains: [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0]
-      gain: 0.001
+      null_gains: [100.0, 80.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
+      gain: 1.0 #0.001
       desired : 5.0
       direction : [0.0, 1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
       null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81] #
@@ -49,8 +49,8 @@ inertia:
 
 start: # PD gains for starting phase 
     iiwa1:
-      stiffness: [110., 60.5, 60.5, 33., 20.625, 4.7375, 2.75]
-      damping: [18.75, 22.5, 18.75, 22.5 , 6., 0.75, 0.3 ]
+      stiffness: [110., 60.5, 60.5, 33., 20.625, 8.7375, 5.75] # 4.7375, 2.75
+      damping: [18.75, 22.5, 18.75, 22.5 , 6., 0.9, 0.6 ] #0.6, 0.3 ]
     iiwa2:
       stiffness: [200.0, 110.0, 110.0, 50.0, 20.5, 6.25, 4.5]
       damping: [25.0, 30.0, 25.0, 15.0, 5.0, 1.1 , 0.8]

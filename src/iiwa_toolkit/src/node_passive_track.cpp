@@ -101,6 +101,7 @@ class IiwaRosMaster
         _EEPosePublisher = _n.advertise<geometry_msgs::Pose>(ns+"/ee_info/Pose",1);
         _EEVelPublisher = _n.advertise<geometry_msgs::Twist>(ns+"/ee_info/Vel",1);
         _InertiaPublisher = _n.advertise<geometry_msgs::Inertia>(ns+"/Inertia/taskPosInv", 1);
+        _DirGradPublisher = _n.advertise<std_msgs::Float64MultiArray>(ns+"/Inertia/dirGrad",1);
 
         // Get the URDF XML from the parameter server
         std::string urdf_string, full_param;
@@ -227,6 +228,7 @@ class IiwaRosMaster
                 publishPlotVariable(command_plt);
                 publishEEInfo();
                 publishInertiaInfo();
+                publishDirInertiaGrad();
 
                 // publishPlotVariable(_controller->getPlotVariable());
                 
@@ -261,6 +263,7 @@ class IiwaRosMaster
     ros::Publisher _EEPosePublisher;
     ros::Publisher _EEVelPublisher;
     ros::Publisher _InertiaPublisher;
+    ros::Publisher _DirGradPublisher;
 
     ros::Publisher _plotPublisher;
 
@@ -391,7 +394,17 @@ class IiwaRosMaster
 
         _InertiaPublisher.publish(msg1);
     }
+    void publishDirInertiaGrad(){
+        std_msgs::Float64MultiArray _dir_grad;
+        Eigen::VectorXd dirGrad = _controller->getDirTaskInertiaGrad();
+        _dir_grad.data.resize(No_JOINTS);
 
+        if (dirGrad.size() == No_JOINTS){
+            for(int i = 0; i < No_JOINTS; i++)
+                _dir_grad.data[i] = dirGrad[i];
+            _DirGradPublisher.publish(_dir_grad);
+        }
+    }
 
     //TODO clean the optitrack
     void updateControlPos(const geometry_msgs::Pose::ConstPtr& msg){
@@ -460,9 +473,9 @@ class IiwaRosMaster
 
         _controller->set_desired_pose(des_pos+delta_pos,Utils<double>::rotationMatrixToQuaternion(rotMat));
 
-        double inert_gain = config.Inertia_gain;
-        double inert_des = config.Inertia_desired;
-        _controller->set_inertia_values(inert_gain, inert_des);
+        // double inert_gain = config.Inertia_gain;
+        // double inert_des = config.Inertia_desired;
+        // _controller->set_inertia_values(inert_gain, inert_des);
     }
 };
 

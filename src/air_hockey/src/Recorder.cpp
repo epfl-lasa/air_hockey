@@ -6,7 +6,7 @@ bool Recorder::init() {
   if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation not found"); }
 
   // check if recording
-  if (!nh_.getParam("recording",isRecording_)) { ROS_ERROR("Param recording not found"); }
+  if (!nh_.getParam("autonomous_recording",isAuto_)) { ROS_ERROR("Param recording not found"); }
   if (!nh_.getParam("recorder_folder", recordingFolderPath_)) { ROS_ERROR("Param recorder_path not found"); }
   if (!nh_.getParam("time_object_record", recordingTimeObject_)) { ROS_ERROR("Param recorder_time not found"); }
   if (!nh_.getParam("post_hit_record", recordingTimeRobot_)) { ROS_ERROR("Param recorder_time not found"); }
@@ -20,6 +20,8 @@ bool Recorder::init() {
 
   if (!nh_.getParam("/iiwa/inertia/taskPos_7", iiwaInertiaTopic_[IIWA_7])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
   if (!nh_.getParam("/iiwa/inertia/taskPos_14", iiwaInertiaTopic_[IIWA_14])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
+  if (!nh_.getParam("/iiwa/inertia/dirGrad_7", iiwaDirGradTopic_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/Inertia/DirGrad not found");}
+  if (!nh_.getParam("/iiwa/inertia/dirgrad_14", iiwaDirGradTopic_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/Inertia/DirGrad not found");}
 
   if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
   if (!nh_.getParam("/passive_control/vel_quat_14", pubVelQuatTopic_[IIWA_14])) {ROS_ERROR("Topic /passive_control iiwa 14 not found");}
@@ -28,6 +30,7 @@ bool Recorder::init() {
   if (!nh_.getParam("/iiwa/info_14/joint_state", iiwaJointStateTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/joint_state not found");}
   if (!nh_.getParam("/iiwa/info_7/trq_cmd", iiwaTorqueCmdTopic_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/TorqueController/command not found");}
   if (!nh_.getParam("/iiwa/info_14/trq_cmd", iiwaTorqueCmdTopic_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/TorqueController/command not found");}
+
 
   if(isSim_){
     if (!nh_.getParam("/gazebo/link_states", iiwaPositionTopicSim_)) {ROS_ERROR("Topic /gazebo/link_states not found");}
@@ -154,11 +157,20 @@ bool Recorder::init() {
                                           ros::VoidPtr(),
                                           ros::TransportHints().reliable().tcpNoDelay());
 
-  FSMState_ = nh_.subscribe(FSMTopic_,
-                            1,
-                            &Recorder::FSMCallback,
-                            this,
-                            ros::TransportHints().reliable().tcpNoDelay());
+  iiwaDirGrad_[IIWA_7] = 
+      nh_.subscribe<std_msgs::Float64MultiArray>(iiwaDirGradTopic_[IIWA_7], 1,
+                                          boost::bind(&Recorder::iiwaDirGradCallback, this, _1, IIWA_7),
+                                          ros::VoidPtr(),ros::TransportHints().reliable().tcpNoDelay());    
+
+  iiwaDirGrad_[IIWA_14] = 
+      nh_.subscribe<std_msgs::Float64MultiArray>(iiwaDirGradTopic_[IIWA_14], 1,
+                                          boost::bind(&Recorder::iiwaDirGradCallback, this, _1, IIWA_14),
+                                          ros::VoidPtr(), ros::TransportHints().reliable().tcpNoDelay());                                        
+
+  // Only subscribe if recording automatically 
+  if(isAuto_){
+    FSMState_ = nh_.subscribe(FSMTopic_, 1,&Recorder::FSMCallback, this, ros::TransportHints().reliable().tcpNoDelay());
+  }
 
   if(!isSim_){previousObjectPosition_ = objectPositionForIiwa_[IIWA_7]; }// set prev position
   moved_manually_count_ = 1; // set count for moved manually
@@ -166,6 +178,8 @@ bool Recorder::init() {
   // resize once here to avoid doing it in subscriber 
   iiwaTorqueCmdFromSource_[IIWA_7].resize(7);
   iiwaTorqueCmdFromSource_[IIWA_14].resize(7);
+  iiwaInertiaDirGrad_[IIWA_7].resize(7);
+  iiwaInertiaDirGrad_[IIWA_14].resize(7);
 
   return true;
 }
@@ -251,6 +265,15 @@ void Recorder::iiwaTorqueCmdCallback(const std_msgs::Float64MultiArray::ConstPtr
   }
 }
 
+void Recorder::iiwaDirGradCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k){
+  
+  size_t num_elements = msg->data.size();
+
+  for (size_t i = 0; i < num_elements; ++i) {
+      iiwaInertiaDirGrad_[k](i) = msg->data[i];
+  }
+}
+
 void Recorder::FSMCallback(const air_hockey::FSM_state::ConstPtr& msg){
   fsmState_.mode_iiwa7 = static_cast<robotMode>(msg->mode_iiwa7);
   fsmState_.mode_iiwa14 = static_cast<robotMode>(msg->mode_iiwa14);
@@ -307,6 +330,7 @@ void Recorder::recordRobot(Robot robot_name){
   Eigen::Map<Eigen::VectorXd> tempVector3(iiwaJointState_[robot_name].effort.data(), iiwaJointState_[robot_name].effort.size());
   newState.joint_effort =  tempVector3;
 
+  newState.trq_cmd.resize(7);
   newState.trq_cmd = iiwaTorqueCmdFromSource_[robot_name];
 
   newState.eef_pos.resize(3);
@@ -324,6 +348,9 @@ void Recorder::recordRobot(Robot robot_name){
   newState.inertia.resize(9);
   Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector4(iiwaTaskInertiaPosInv_[robot_name].data());
   newState.inertia = tempVector4;
+
+  newState.dir_grad.resize(7);
+  newState.dir_grad = iiwaInertiaDirGrad_[robot_name];
 
   newState.hitting_flux = calculateDirFlux(robot_name);
 
@@ -399,7 +426,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
             << "DesiredPos," << desiredPosition_[robot_name].transpose() << "\n";
 
     // Write CSV header
-    outFile << "RobotName,RosTime,JointPosition,JointVelocity,JointEffort,TorqueCmd,EEF_Position,EEF_Orientation,EEF_Velocity,EEF_DesiredVelocity,Inertia,HittingFlux\n";
+    outFile << "RobotName,RosTime,JointPosition,JointVelocity,JointEffort,TorqueCmd,EEF_Position,EEF_Orientation,EEF_Velocity,EEF_DesiredVelocity,Inertia,DirGrad,HittingFlux\n";
 
     // Write each RobotState structure to the file
     for (const auto& state : robotStatesVector_[robot_name]) {
@@ -415,6 +442,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
                 << state.eef_vel.transpose() << ","
                 << state.eef_vel_des.transpose() << ","
                 << state.inertia.transpose() << ","
+                << state.dir_grad.transpose() << ","
                 << state.hitting_flux << "\n";
     }
 
@@ -558,11 +586,39 @@ void Recorder::setUpRecordingDir(){
   copyYamlFile(desired_fluxes_to_copy, desired_fluxes_fn);
 }
 
+// KEYBOARD INTERACTIONS
+void Recorder::updateKeyboardControl(){
+
+  nonBlock(1);
+
+  if (khBit() != 0) {
+    char keyboardCommand = fgetc(stdin);
+    fflush(stdin);
+
+    switch (keyboardCommand) {
+      case 'z': {
+        fsmState_.mode_iiwa7 = HIT;
+        std::cout << "Recording IIWA 7." << std::endl;
+        
+      } break;
+      case 'm': {
+        fsmState_.mode_iiwa14 = HIT;
+        std::cout << "Recording IIWA 14." << std::endl;
+      } break;
+      case 'g': {
+        fsmState_.mode_iiwa7 = REST;
+        fsmState_.mode_iiwa14 = REST;
+        std::cout << "Stopping recording." << std::endl;
+      } break;
+    }
+  }
+  nonBlock(0);
+}
 
 void Recorder::run() {
 
   // Set up recording directory structure
-  if(isRecording_){setUpRecordingDir();}
+  setUpRecordingDir();
 
   // Set up counters and bool variables
   int print_count = 0;
@@ -577,90 +633,109 @@ void Recorder::run() {
 
   std::cout << "READY TO RECORD " << std::endl;
 
+  if(!isAuto_){ // DISPLAY warnings
+    std::cout << "RECORDING WITH KEYBOARD !! " << std::endl;
+    std::cout << "press 'Z' to record IIWA 7" << std::endl;
+    std::cout << "press 'M' to record IIWA 14" << std::endl;
+    std::cout << "press 'G' to stop recording" << std::endl;
+    std::cout << "You can only record one robot at a time" << std::endl;
+  }
+
   while (ros::ok()) {
 
     // DEBUG
-    if(print_count%20 == 0 ){
+    if(print_count%200 == 0 ){
       // std::cout << "iiwa7_state : " << fsmState_.mode_iiwa7 << " \n iiwa14_state : " << fsmState_.mode_iiwa14<< std::endl;
       // std::cout << "time_since hit : " << time_since_hit << std::endl;
     }
     print_count +=1 ;
 
-    // RECORD during hits
-    if(isRecording_){
-      
-      // Update fixed values for data recording
-      if(fsmState_.isHit){
-        if(fsmState_.mode_iiwa7 == HIT){
-          hittingTime_[IIWA_7] = fsmState_.hit_time;
-          hittingFluxDes_[IIWA_7] = fsmState_.des_flux;
-          desiredPosition_[IIWA_7] = fsmState_.des_pos;
-        }
-        else if(fsmState_.mode_iiwa14 == HIT){
-          hittingTime_[IIWA_14] = fsmState_.hit_time;
-          hittingFluxDes_[IIWA_14] = fsmState_.des_flux;
-          desiredPosition_[IIWA_14] = fsmState_.des_pos;
-        }
-      }
-
-      // Record data logic
-      if(fsmState_.mode_iiwa7 == HIT){
-        recordRobot(IIWA_7);
-        recordObject(manual);
-        write_once_7 = 1;
-        write_once_object =1;
-      }
-
-      if(fsmState_.mode_iiwa14 == HIT){
-        recordRobot(IIWA_14);
-        recordObject(manual);
-        write_once_14 = 1;
-        write_once_object = 1;
-      }
-
-      //// OBJECT RECORDING LOGIC
-      // Keep recording object for X seconds after hit (only when robots are at rest to avoid overlap)
-      auto time_since_hit = ros::Time::now() - fsmState_.hit_time;
-      if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit <= max_recording_time && write_once_object){
-        recordObject(manual);
-      }
-      // Stop recording object and write to file
-      else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
-              time_since_hit > max_recording_time && write_once_object){        
-        std::string fn = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
-        writeObjectStatesToFile(hit_count, fn, manual);
-        std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
-        hit_count += 1;
-        write_once_object = 0;
-        moved_manually_count_ = 1; // reset count for moved manually 
-      }
-      // If not during hit, check if we are moving the object manually, record if so
-      else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
-              time_since_hit > max_recording_time && !write_once_object){
-        if(!isSim_){recordObjectMovedByHand(hit_count-1);}
-      }
-
-      //// ROBOT RECORDING LOGIC 
-      // keep recording robot data for X seconds after hit 
-      if(fsmState_.mode_iiwa7 == REST && time_since_hit <= post_hit_recording_time && write_once_7){
-        recordRobot(IIWA_7);
-      }
-      if(fsmState_.mode_iiwa14 == REST && time_since_hit <= post_hit_recording_time && write_once_14){
-        recordRobot(IIWA_14);
-      }
-
-      // Writing data logic
-      if(fsmState_.mode_iiwa7 == REST && time_since_hit > post_hit_recording_time && write_once_7){
-        writeRobotStatesToFile(IIWA_7, hit_count);
-        write_once_7 = 0;
-      }
-
-      if(fsmState_.mode_iiwa14 == REST && time_since_hit > post_hit_recording_time && write_once_14){
-        writeRobotStatesToFile(IIWA_14, hit_count);
-        write_once_14 = 0;
+    // If recording with keyboard, update with keyboard instead of ros topic
+    if(!isAuto_){ 
+      updateKeyboardControl();
+      if(print_count%1000 == 0 ){
+        std::cout << "RECORDING WITH KEYBOARD !! " << std::endl;
+        std::cout << "press 'Z' to record IIWA 7" << std::endl;
+        std::cout << "press 'M' to record IIWA 14" << std::endl;
+        std::cout << "press 'G' to stop recording" << std::endl;
+        std::cout << "You can only record one robot at a time" << std::endl;
       }
     }
 
+    // RECORD during hits
+    // Update fixed values for data recording
+    if(fsmState_.isHit){
+      if(fsmState_.mode_iiwa7 == HIT){
+        hittingTime_[IIWA_7] = fsmState_.hit_time;
+        hittingFluxDes_[IIWA_7] = fsmState_.des_flux;
+        desiredPosition_[IIWA_7] = fsmState_.des_pos;
+      }
+      else if(fsmState_.mode_iiwa14 == HIT){
+        hittingTime_[IIWA_14] = fsmState_.hit_time;
+        hittingFluxDes_[IIWA_14] = fsmState_.des_flux;
+        desiredPosition_[IIWA_14] = fsmState_.des_pos;
+      }
+    }
+
+    // Record data logic
+    if(fsmState_.mode_iiwa7 == HIT){
+      recordRobot(IIWA_7);
+      recordObject(manual);
+      write_once_7 = 1;
+      write_once_object =1;
+    }
+
+    if(fsmState_.mode_iiwa14 == HIT){
+      recordRobot(IIWA_14);
+      recordObject(manual);
+      write_once_14 = 1;
+      write_once_object = 1;
+    }
+
+    //// OBJECT RECORDING LOGIC
+    // Keep recording object for X seconds after hit (only when robots are at rest to avoid overlap)
+    auto time_since_hit = ros::Time::now() - fsmState_.hit_time;
+    if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit <= max_recording_time && write_once_object){
+      recordObject(manual);
+    }
+    // Stop recording object and write to file
+    else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
+            time_since_hit > max_recording_time && write_once_object){        
+      std::string fn = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
+      writeObjectStatesToFile(hit_count, fn, manual);
+      std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
+      if(isAuto_){hit_count += 1;}
+      write_once_object = 0;
+      moved_manually_count_ = 1; // reset count for moved manually 
+    }
+    // If not during hit, check if we are moving the object manually, record if so
+    else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
+            time_since_hit > max_recording_time && !write_once_object){
+      if(!isSim_){recordObjectMovedByHand(hit_count-1);}
+    }
+
+    //// ROBOT RECORDING LOGIC 
+    // keep recording robot data for X seconds after hit 
+    if(fsmState_.mode_iiwa7 == REST && time_since_hit <= post_hit_recording_time && write_once_7){
+      recordRobot(IIWA_7);
+    }
+    if(fsmState_.mode_iiwa14 == REST && time_since_hit <= post_hit_recording_time && write_once_14){
+      recordRobot(IIWA_14);
+    }
+
+    // Writing data logic
+    if(fsmState_.mode_iiwa7 == REST && time_since_hit > post_hit_recording_time && write_once_7){
+      writeRobotStatesToFile(IIWA_7, hit_count);
+      if(!isAuto_){hit_count += 1;}
+      write_once_7 = 0;
+    }
+
+    if(fsmState_.mode_iiwa14 == REST && time_since_hit > post_hit_recording_time && write_once_14){
+      writeRobotStatesToFile(IIWA_14, hit_count);
+      if(!isAuto_){hit_count += 1;}
+      write_once_14 = 0;
+    }
+    
     ros::spinOnce();
     rate_.sleep();
   }
