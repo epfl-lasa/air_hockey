@@ -124,7 +124,6 @@ class IiwaRosMaster
 
         // Get the end-effector
         _n.param<std::string>("params/end_effector", end_effector, robot_name+"_link_ee");
-        std::cout << "END EFFECTOR IS  " << end_effector << std::endl;
 
         // Initialize iiwa tools
         _controller = std::make_unique<PassiveControl>(urdf_string, end_effector);
@@ -158,7 +157,7 @@ class IiwaRosMaster
         if(!_n.getParam("inertia"+ns+"/gain", inertia_gain)){ROS_ERROR("Could not find Parameter inertia gains");}
         if(!_n.getParam("inertia"+ns+"/desired", desired_inertia)){ROS_ERROR("Could not find Parameter desired inertia");}
         if(!_n.getParam("inertia"+ns+"/direction", hit_dir)){ROS_ERROR("Could not find Parameter inertia direction");}
-        if(!_n.getParam("inertia"+ns+"/null_pos", n_pos)){ROS_ERROR("Could not find Parameter null_pos gains");}
+        if(!_n.getParam("target"+ns+"/null_pos", n_pos)){ROS_ERROR("Could not find Parameter null_pos gains");}
         _controller->set_inertia_values(inertia_gain, desired_inertia);
         
         for (size_t i = 0; i < hit_direction.size(); i++)
