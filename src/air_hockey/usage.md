@@ -84,7 +84,42 @@ Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 **Developper Note** : In the start-docker.sh script, volumes are mounted on the folders src/air\_hockey, src/iiwa\_toolkit, python, data. Everything else inside the container and not in these folders will not be mofified on the host machine!
 
 
+### Configurations
 
+We have tested two different robot configurations for this framework. These configurations include a joint position and a EE Pose
+
+In iiwa_toolkit/config/passive_track_parmas_dual_real.yaml, the following parameters must be changed : target/pos, target/quat, target/null_pos
+In air_hockey/config/hit_properties_air_hockey.yaml, the following parameters must be changed : return_position, ref_orientation
+
+the orientaiotn shoud be the same, the position can change slightly. The joint position is used as the null_space desired position.
+
+#### Configuration 1 
+
+ADD photo 
+
+target:
+    iiwa1:
+      pos: [0.55, -0.05, 0.22] 
+      quat: [0.707, -0.707, 0.0, 0.0] 
+      null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
+    iiwa2:
+      pos: [0.55, 0.05, 0.22]
+      quat: [-0.707, -0.707, 0.0, 0.0]  
+      null_pos : [0.553, 1.128, -0.135, -1.358, -1.092, 1.783, -2.189]
+
+#### Configuration 2
+
+ADD photo 
+
+target:
+    iiwa1:
+      pos: [0.55, -0.15, 0.22] 
+      quat: [0.707, -0.707, 0.0, 0.0] 
+      null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
+    iiwa2:
+      pos: [0.55, 0.15, 0.22]
+      quat: [-0.707, -0.707, 0.0, 0.0] 
+      null_pos : [0.553, 1.128, -0.135, -1.358, -1.092, 1.783, -2.189]
 
 
 # Authors/Maintainers 

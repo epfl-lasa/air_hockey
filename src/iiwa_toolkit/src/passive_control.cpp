@@ -491,7 +491,7 @@ void PassiveControl::computeTorqueCmd(){
         }
 
         // ORIENTATION CONTROL
-        bool ori_ctrl_ds = true;
+        bool ori_ctrl_ds = false;
 
         if(ori_ctrl_ds){
             // desired angular values
