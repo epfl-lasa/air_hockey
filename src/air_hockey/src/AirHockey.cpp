@@ -323,26 +323,32 @@ void AirHockey::updateIsObjectMoving(){
   previousObjectPositionFromSource_ = objectPositionForIiwa_[IIWA_7];
 }
 
-void AirHockey::updateReturnPosition(){
+bool AirHockey::updateReturnPosition(){
 
   if(next_hit_ == IIWA_7){
-    auto temp_pos = objectPositionForIiwa_[IIWA_7] + placementOffset_[IIWA_7];
+    auto temp_pos = generateHitting7_->get_DS_attractor() + placementOffset_[IIWA_7];
     if(temp_pos.norm() < objectSafetyDistance_){
       returnPos_[IIWA_7] = temp_pos;
+      return true;
     }
     else if(temp_pos.norm() >= objectSafetyDistance_){
-      ROS_INFO("Object too far for pre-hit placement");
+      ROS_WARN("Object too far for pre-hit placement, REPLACE OBJECT!");
+      return false;
     } 
   }
   else if(next_hit_ == IIWA_14){
-    auto temp_pos = objectPositionForIiwa_[IIWA_14] + placementOffset_[IIWA_14];
+    auto temp_pos = generateHitting14_->get_DS_attractor() + placementOffset_[IIWA_14];
     if(temp_pos.norm() < objectSafetyDistance_){
       returnPos_[IIWA_14] = temp_pos;
+      return true;
     }
     else if(temp_pos.norm() >= objectSafetyDistance_){
-      ROS_INFO("Object too far for pre-hit placement");
+      ROS_WARN("Object too far for pre-hit placement, REPLACE OBJECT!");
+      return false;
     } 
   }
+  
+  return false;
 }
 
 void AirHockey::setReturnPositionToInitial(){
@@ -452,6 +458,8 @@ AirHockey::FSMState AirHockey::updateKeyboardControl(FSMState current_state ) {
       case 'r': {
         current_state.mode_iiwa7 = REST;
         current_state.mode_iiwa14 = REST;
+        next_hit_ = NONE;
+        setReturnPositionToInitial();
       } break;
       case 'h': { // toggle isHit 
         if(current_state.isHit){ current_state.isHit = 0;}
@@ -527,8 +535,9 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
   float pos_threshold = 4*1e-2;
   float vel_threshold = 1*1e-3;
   
-  // update return position as soon as object stops
-  updateReturnPosition();
+  // update return position, if not possible, do not change state 
+  if(!updateReturnPosition())
+    return current_state;
 
   // Get norms
   float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();

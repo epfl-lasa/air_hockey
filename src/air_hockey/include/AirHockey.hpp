@@ -157,7 +157,7 @@ public:
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
 
   void updateIsObjectMoving();
-  void updateReturnPosition();
+  bool updateReturnPosition();
   void setReturnPositionToInitial();
   void checkObjectIsSafeToHit();
 
