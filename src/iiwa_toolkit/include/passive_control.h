@@ -105,7 +105,7 @@ public:
     PassiveDS(const double& lam0, const double& lam1, const double& a);
     ~PassiveDS();
     void set_damping_eigval(const double& lam0, const double& lam1, const double& a);
-    void update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel);
+    void update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel, const bool& use_alpha);
     Eigen::Vector3d get_output();
 };
 

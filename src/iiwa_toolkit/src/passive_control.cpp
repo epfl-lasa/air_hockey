@@ -53,14 +53,19 @@ void PassiveDS::updateDampingMatrix(const Eigen::Vector3d& ref_vel){
     // otherwise just use the last computed basis
 }
 
-void PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel){
+void PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel, const bool& use_alpha){
     // compute damping
     updateDampingMatrix(des_vel);
     // dissipate
     control_output = -Dmat * vel;
     // compute control
-    control_output += alpha*des_vel;
-    // control_output += eigVal0*des_vel;
+    if(use_alpha){
+        control_output += alpha*des_vel;
+    }
+    else{
+        control_output += eigVal0*des_vel;
+    }
+    
 }
 Eigen::Vector3d PassiveDS::get_output(){ return control_output;}
 
@@ -449,7 +454,7 @@ void PassiveControl::computeTorqueCmd(){
             }
 
             // -----------------------get desired force in task space
-            dsContPos->update(_robot.ee_vel,ee_des_vel);
+            dsContPos->update(_robot.ee_vel,ee_des_vel, is_just_velocity);
             Eigen::Vector3d wrenchPos = dsContPos->get_output() + load_added * 9.8*Eigen::Vector3d::UnitZ();   
             tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
         }
@@ -516,7 +521,7 @@ void PassiveControl::computeTorqueCmd(){
             _robot.ee_des_angVel  = 2 * dsGain_ori*(1+std::exp(theta_gq)) * tmp_angular_vel;
 
             // Orientation
-            dsContOri->update(_robot.ee_angVel,_robot.ee_des_angVel);
+            dsContOri->update(_robot.ee_angVel,_robot.ee_des_angVel, false);
             Eigen::Vector3d wrenchAng = dsContOri->get_output();
             tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
         }

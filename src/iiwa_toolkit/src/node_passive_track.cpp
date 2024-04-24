@@ -156,8 +156,8 @@ class IiwaRosMaster
         std::vector<double> n_damp;
         std::vector<double> hit_dir;
         std::vector<double> n_pos;
-        if(!_n.getParam("inertia"+ns+"/null_stiffness", n_stiff)){ROS_ERROR("Could not find Parameter inertia null gains");}
-        if(!_n.getParam("inertia"+ns+"/null_damping", n_damp)){ROS_ERROR("Could not find Parameter inertia null gains");}
+        if(!_n.getParam("inertia"+ns+"/null_stiffness", n_stiff)){ROS_ERROR("Could not find Parameter inertia null stiffness");}
+        if(!_n.getParam("inertia"+ns+"/null_damping", n_damp)){ROS_ERROR("Could not find Parameter inertia null damping");}
         if(!_n.getParam("inertia"+ns+"/gain", inertia_gain)){ROS_ERROR("Could not find Parameter inertia gains");}
         if(!_n.getParam("inertia"+ns+"/desired", desired_inertia)){ROS_ERROR("Could not find Parameter desired inertia");}
         if(!_n.getParam("inertia"+ns+"/direction", hit_dir)){ROS_ERROR("Could not find Parameter inertia direction");}
