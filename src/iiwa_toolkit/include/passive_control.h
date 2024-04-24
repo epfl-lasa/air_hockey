@@ -94,6 +94,7 @@ class PassiveDS
 private:
     double eigVal0;
     double eigVal1;
+    double alpha;
     Eigen::Matrix3d damping_eigval = Eigen::Matrix3d::Identity();
     Eigen::Matrix3d baseMat = Eigen::Matrix3d::Identity();
 
@@ -101,9 +102,9 @@ private:
     Eigen::Vector3d control_output = Eigen::Vector3d::Zero();
     void updateDampingMatrix(const Eigen::Vector3d& ref_vel);
 public:
-    PassiveDS(const double& lam0, const double& lam1);
+    PassiveDS(const double& lam0, const double& lam1, const double& a);
     ~PassiveDS();
-    void set_damping_eigval(const double& lam0, const double& lam1);
+    void set_damping_eigval(const double& lam0, const double& lam1, const double& a);
     void update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_vel);
     Eigen::Vector3d get_output();
 };
@@ -124,7 +125,8 @@ private:
     double dsGain_ori;
     double load_added = 0.;
 
-    Eigen::VectorXd null_gains = Eigen::VectorXd::Zero(7);
+    Eigen::VectorXd null_stiffness = Eigen::VectorXd::Zero(7);
+    Eigen::VectorXd null_damping = Eigen::VectorXd::Zero(7);
     double inertia_gain;
     double desired_inertia;
 
@@ -212,14 +214,13 @@ public:
     void set_desired_quat(const Eigen::Vector4d& quat);
     void set_desired_velocity(const Eigen::Vector3d& vel);
 
-
-    void set_pos_gains(const double& ds, const double& lambda0,const double& lambda1);
-    void set_ori_gains(const double& ds, const double& lambda0,const double& lambda1);
+    void set_pos_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha);
+    void set_ori_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha);
     void set_null_pos(const Eigen::VectorXd& nullPosition);
     void set_load(const double& mass);
     
     void set_inertia_values(const double& gain, const double& desired);
-    void set_inertia_null_gains(const Eigen::VectorXd& null_mat);
+    void set_inertia_null_gains(const Eigen::VectorXd& null_stiff, const Eigen::VectorXd& null_damp);
     void set_hit_direction(const Eigen::Vector3d& direction);
 
     void set_starting_phase_gains(const Eigen::VectorXd& stiff_gains, const Eigen::VectorXd& damp_gains);

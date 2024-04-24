@@ -135,8 +135,10 @@ class IiwaRosMaster
         if(!_n.getParam("control"+ns+"/lambda1Pos",lambda1_pos)){ROS_ERROR("Could not find Parameter lambda1Pos");}
         if(!_n.getParam("control"+ns+"/lambda0Ori",lambda0_ori)){ROS_ERROR("Could not find Parameter lambda0Ori");}
         if(!_n.getParam("control"+ns+"/lambda1Ori",lambda1_ori)){ROS_ERROR("Could not find Parameter lambda1Ori");}
-        _controller->set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos);
-        _controller->set_ori_gains(ds_gain_ori,lambda0_ori,lambda1_ori);
+        if(!_n.getParam("control"+ns+"/alphaPos", alpha_pos)){ROS_ERROR("Could not find Parameter alphaPos");}
+        if(!_n.getParam("control"+ns+"/alphaOri", alpha_ori)){ROS_ERROR("Could not find Parameter alphaOri");}
+        _controller->set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos, alpha_pos);
+        _controller->set_ori_gains(ds_gain_ori,lambda0_ori,lambda1_ori,alpha_ori);
 
         // Get desired pose
         std::vector<double> dpos;
@@ -150,10 +152,12 @@ class IiwaRosMaster
         _controller->set_desired_pose(des_pos,des_quat);
         
         // Get inertia parameters
-        std::vector<double> n_gains;
+        std::vector<double> n_stiff;
+        std::vector<double> n_damp;
         std::vector<double> hit_dir;
         std::vector<double> n_pos;
-        if(!_n.getParam("inertia"+ns+"/null_gains", n_gains)){ROS_ERROR("Could not find Parameter inertia null gains");}
+        if(!_n.getParam("inertia"+ns+"/null_stiffness", n_stiff)){ROS_ERROR("Could not find Parameter inertia null gains");}
+        if(!_n.getParam("inertia"+ns+"/null_damping", n_damp)){ROS_ERROR("Could not find Parameter inertia null gains");}
         if(!_n.getParam("inertia"+ns+"/gain", inertia_gain)){ROS_ERROR("Could not find Parameter inertia gains");}
         if(!_n.getParam("inertia"+ns+"/desired", desired_inertia)){ROS_ERROR("Could not find Parameter desired inertia");}
         if(!_n.getParam("inertia"+ns+"/direction", hit_dir)){ROS_ERROR("Could not find Parameter inertia direction");}
@@ -164,9 +168,11 @@ class IiwaRosMaster
             hit_direction(i) = hit_dir[i];
         _controller->set_hit_direction(hit_direction);
 
-        for (size_t i = 0; i < null_gains.size(); i++)
-            null_gains(i) = n_gains[i];
-        _controller->set_inertia_null_gains(null_gains);
+        for (size_t i = 0; i < null_stiff.size(); i++)
+            null_stiff(i) = n_stiff[i];
+        for (size_t i = 0; i < null_damp.size(); i++)
+            null_damp(i) = n_damp[i];
+        _controller->set_inertia_null_gains(null_stiff, null_damp);
 
         for (size_t i = 0; i < null_pos.size(); i++)
             null_pos(i) = n_pos[i];
@@ -288,10 +294,13 @@ class IiwaRosMaster
     double lambda1_pos;
     double lambda0_ori;
     double lambda1_ori;
+    double alpha_pos;
+    double alpha_ori;
     Eigen::Vector3d des_pos = Eigen::Vector3d::Zero(); 
     Eigen::Vector4d des_quat = Eigen::Vector4d::Zero();
 
-    Eigen::VectorXd null_gains = Eigen::VectorXd::Zero(7);
+    Eigen::VectorXd null_stiff = Eigen::VectorXd::Zero(7);
+    Eigen::VectorXd null_damp = Eigen::VectorXd::Zero(7);
     double inertia_gain;
     double desired_inertia;
     Eigen::Vector3d hit_direction = Eigen::Vector3d::Zero();
@@ -447,8 +456,8 @@ class IiwaRosMaster
         double sc_ori_ds = config.Orientation_DSgain;
         double sc_pos_lm = config.Position_lambda;
         double sc_ori_lm = config.Orientation_lambda;
-        _controller->set_pos_gains(sc_pos_ds*ds_gain_pos,sc_pos_lm*lambda0_pos,sc_pos_lm*lambda1_pos);
-        _controller->set_ori_gains(sc_ori_ds*ds_gain_ori,sc_ori_lm*lambda0_ori,sc_ori_lm*lambda1_ori);
+        _controller->set_pos_gains(sc_pos_ds*ds_gain_pos,sc_pos_lm*lambda0_pos,sc_pos_lm*lambda1_pos, alpha_pos);
+        _controller->set_ori_gains(sc_ori_ds*ds_gain_ori,sc_ori_lm*lambda0_ori,sc_ori_lm*lambda1_ori, alpha_ori);
         
         Eigen::Vector3d delta_pos = Eigen::Vector3d(config.dX_des,config.dY_des,config.dZ_des);
 
@@ -472,9 +481,9 @@ class IiwaRosMaster
 
         _controller->set_desired_pose(des_pos+delta_pos,Utils<double>::rotationMatrixToQuaternion(rotMat));
 
-        // double inert_gain = config.Inertia_gain;
-        // double inert_des = config.Inertia_desired;
-        // _controller->set_inertia_values(inert_gain, inert_des);
+        double sc_inert_gain = config.Inertia_gain;
+        double delta_inert_des = config.Inertia_desired;
+        _controller->set_inertia_values(sc_inert_gain*inertia_gain, delta_inert_des+desired_inertia);
     }
 };
 

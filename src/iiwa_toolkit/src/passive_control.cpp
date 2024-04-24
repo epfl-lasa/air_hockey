@@ -19,18 +19,19 @@
 
 #include "passive_control.h"
 
-PassiveDS::PassiveDS(const double& lam0, const double& lam1):eigVal0(lam0),eigVal1(lam1){
-    set_damping_eigval(lam0,lam1);
+PassiveDS::PassiveDS(const double& lam0, const double& lam1, const double& a):eigVal0(lam0),eigVal1(lam1),alpha(a){
+    set_damping_eigval(lam0,lam1,a);
 }
 
 PassiveDS::~PassiveDS(){}
-void PassiveDS::set_damping_eigval(const double& lam0, const double& lam1){
-    if((lam0 > 0)&&(lam1 > 0)){
+void PassiveDS::set_damping_eigval(const double& lam0, const double& lam1, const double& a){
+    if((lam0 > 0)&&(lam1 > 0)&&(a>0)){
         eigVal0 = lam0;
         eigVal1 = lam1;
         damping_eigval(0,0) = eigVal0;
         damping_eigval(1,1) = eigVal1;
         damping_eigval(2,2) = eigVal1;
+        alpha = a;
     }else{
         std::cerr << "wrong values for the eigenvalues"<<"\n";
     }
@@ -56,9 +57,10 @@ void PassiveDS::update(const Eigen::Vector3d& vel, const Eigen::Vector3d& des_ve
     // compute damping
     updateDampingMatrix(des_vel);
     // dissipate
-    control_output = - Dmat * vel;
+    control_output = -Dmat * vel;
     // compute control
-    control_output += eigVal0*des_vel;
+    control_output += alpha*des_vel;
+    // control_output += eigVal0*des_vel;
 }
 Eigen::Vector3d PassiveDS::get_output(){ return control_output;}
 
@@ -71,8 +73,8 @@ PassiveControl::PassiveControl(const std::string& urdf_string,const std::string&
     dsGain_pos = 5.00;
     dsGain_ori = 2.50;
 
-    dsContPos = std::make_unique<PassiveDS>( 100., 100.);
-    dsContOri = std::make_unique<PassiveDS>(5., 5.);
+    dsContPos = std::make_unique<PassiveDS>(100., 100., 100.);
+    dsContOri = std::make_unique<PassiveDS>(5., 5., 5.);
     
   
     _robot.name +=std::to_string(0);
@@ -232,14 +234,14 @@ Eigen::VectorXd PassiveControl::computeDirInertiaGrad(iiwa_tools::RobotState &cu
 }
 
 
-void PassiveControl::set_pos_gains(const double& ds, const double& lambda0,const double& lambda1){
+void PassiveControl::set_pos_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha){
     dsGain_pos = ds;
-    dsContPos->set_damping_eigval(lambda0,lambda1);
+    dsContPos->set_damping_eigval(lambda0,lambda1,alpha);
 }
 
-void PassiveControl::set_ori_gains(const double& ds, const double& lambda0,const double& lambda1){
+void PassiveControl::set_ori_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha){
     dsGain_ori = ds;
-    dsContOri->set_damping_eigval(lambda0,lambda1);
+    dsContOri->set_damping_eigval(lambda0,lambda1,alpha);
 }
 
 void PassiveControl::set_null_pos(const Eigen::VectorXd& nullPosition){
@@ -280,8 +282,9 @@ void PassiveControl::set_load(const double& mass ){
     load_added = mass;
 }
 
-void PassiveControl::set_inertia_null_gains(const Eigen::VectorXd& null_mat){
-    null_gains = null_mat;
+void PassiveControl::set_inertia_null_gains(const Eigen::VectorXd& null_stiff, const Eigen::VectorXd& null_damp){
+    null_stiffness = null_stiff;
+    null_damping = null_damp;
 }
 
 void PassiveControl::set_hit_direction(const Eigen::Vector3d& direction){
@@ -444,12 +447,6 @@ void PassiveControl::computeTorqueCmd(){
             if(!is_just_velocity){
                 ee_des_vel   = zgain * dsGain_pos*(Eigen::Matrix3d::Identity()+xgain*std::exp(theta_g)) *deltaX;
             }
-            //filter vel
-            // else if(!is_just_velocity){
-            //     float alpha = 0.9
-            //     ee_des_vel = (1-alpha) * _robot.ee_vel + alpha * _robot.ee_des_vel
-            // }
-
 
             // -----------------------get desired force in task space
             dsContPos->update(_robot.ee_vel,ee_des_vel);
@@ -593,36 +590,36 @@ void PassiveControl::computeTorqueCmd(){
         }
 
         // SUM UP TASK SPACE CONTROL TORQUES
-        tmp_jnt_trq = tmp_jnt_trq_pos+ tmp_jnt_trq_ang; // //  
+        tmp_jnt_trq = tmp_jnt_trq_pos+ tmp_jnt_trq_ang ; // // 
 
         // NULL SPACE CONTROL
         null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
         
         // Use different nullspace depending on whether we are going to a position or tracking a velocity
-        // if(!is_just_velocity){
-        //     er_null = _robot.jnt_position -_robot.nulljnt_position;
-        // }
-        // else{// Using inertia for hitting
-        //     er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
-        // }
+        if(!is_just_velocity){
+            er_null = _robot.jnt_position -_robot.nulljnt_position;
+        }
+        else{// Using inertia for hitting
+            er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
+        }
 
-        er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
+        // er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
 
         // compute null torque
-        if (er_null.norm()>2e-1){
-            std::cout << "CLAMPING ER NULL" << er_null.norm() << std::endl;
-            er_null = 0.2*er_null.normalized();
-        }
+        // if (er_null.norm()>2e-1){
+        //     std::cout << "CLAMPING ER NULL" << er_null.norm() << std::endl;
+        //     er_null = 0.2*er_null.normalized();
+        // }
         for (int i =0; i<7; i++){ 
-            tmp_null_trq[i] = -null_gains[i] * er_null[i];
-            tmp_null_trq[i] +=-1. * _robot.jnt_velocity[i];
+            tmp_null_trq[i] = -null_stiffness[i] * er_null[i];
+            tmp_null_trq[i] += -null_damping[i] * _robot.jnt_velocity[i];
         }
-        tmp_null_trq = tmp_null_trq; //10 *null_space_projector* 
+        tmp_null_trq = null_space_projector* tmp_null_trq; //10 *
         // std::cout << "position torque" << tmp_jnt_trq << std::endl;
         // std::cout << "null torque" << tmp_null_trq << std::endl;
 
         // Add up null space torques
-        _trq_cmd = tmp_null_trq; //  //+ ; tmp_jnt_trq + 
+        _trq_cmd =  tmp_jnt_trq+ tmp_null_trq; //  //+ ; tmp_jnt_trq + 
     }
    
     // Gravity Compensationn
