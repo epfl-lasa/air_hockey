@@ -4,14 +4,14 @@ classdef dataToy < dataClass
 
     methods
 
-        function this = dataToy()
+        function this = dataToy(initialCoeff)
 
-            this.init();
+            this.init(initialCoeff);
             this.check_variablesDefined();
 
         end
 
-        function [] = init(this)
+        function [] = init(this,initialCoeff)
 
             this.dataType = 'toy';
 
@@ -22,11 +22,16 @@ classdef dataToy < dataClass
             this.g = 9.81;
             this.restit = 0.7;
 
+            mu_initial = initialCoeff(1);
+            restit_initial = initialCoeff(2);
+
             this.r = [0.001; 0.001].^2;
-            this.q = [0.01; 0.03; 0.01; 0.03; 0.01].^2;
+            this.q = [0.01; 0.03; 0.01; 0.03; 0.01; 0.01; 0.01].^2;
 
             this.V_EE = this.flux * (1 + (this.m/this.m_ee));
-            this.X_init = [0; 0; -0.25; this.V_EE; 0]; % [X_o; dX_o; X_ee; dX_ee; E]
+            this.X_init = [0; 0; -0.25; this.V_EE; 0; mu_initial; restit_initial]; % [X_o; dX_o; X_ee; dX_ee; E; mu; restit]
+%             this.X_init = [0; 0; -0.25; this.V_EE; 0; 0.31; 0.54]; % [X_o; dX_o; X_ee; dX_ee; E; mu; restit]
+
             this.n = length(this.X_init);
 
             % Call get sim_data
@@ -46,7 +51,7 @@ classdef dataToy < dataClass
             this.dx_o(end+1) = this.dx_o(end);
             this.x_ee = sim_data(6,:); % (CHECK)
 
-            this.sigma_2 = 0.01; % Standard deviation
+            this.sigma_2 = 0.005; % Standard deviation
             this.sigma_1 = this.m*((1+this.restit)^2 * this.flux^2) / (2 * this.sigma_2 * sqrt(2*pi));
 
             % Define Measured States
@@ -120,7 +125,9 @@ classdef dataToy < dataClass
                           dx_o_next;...
                           x_ee_next;...
                           dx_ee_next;...
-                          E_next];
+                          E_next;...
+                          this.mu;...
+                          this.restit];
                         
                 x = X_next; % + sqrt(this.processNoise)*randn(length(x),1); % (CHECK) Add process noise
                 sim_data(:,i) = [tspan(i);...
@@ -131,7 +138,7 @@ classdef dataToy < dataClass
                                  x(3)              + measurementNoise(2,i);...
                                  nan]; % (CHECK) Add measurement noise
                 otherVars_data.f_ext(i) = f_ext;
-                otherVars_data.E(i) = x(end);
+                otherVars_data.E(i) = x(5);
 
             end
         end

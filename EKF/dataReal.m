@@ -1,10 +1,10 @@
-classdef dataSim < dataClass
+classdef dataReal < dataClass
     %UNTITLED2 Summary of this class goes here
     %   Detailed explanation goes here
 
     methods
 
-        function this = dataSim(fileName)
+        function this = dataReal(fileName)
 
             this.dataType = 'sim';
             this.fileName = fileName;
@@ -15,22 +15,22 @@ classdef dataSim < dataClass
 
         function [this] = init(this)
 
-            delimiterIn = ' ';
+            delimiterIn = ',';
             sim_data = importdata(this.fileName,delimiterIn)';
+
+            this.t = sim_data(1,:)- sim_data(1,1);
+            this.x_o = sim_data(3,:) - sim_data(3,1); % X position of the box
+            this.dx_o = (1./diff(this.t)).*diff(this.x_o);
+            this.dx_o(end+1) = this.dx_o(end);
+            this.x_ee = sim_data(6,:); % (CHECK)
 
             % Simulate box's trajectory and track it
             % Specifying all parameters, boh for simulation (_sim) and for the Extended Kalman Filter
             this.dt = 0.001;
             % Initalize Sampling
-            this.kalTime = sim_data(1,end);
+            this.kalTime = this.t(end);
             this.t_kal   = this.dt:this.dt:this.kalTime;
             this.numSteps = length(this.t_kal);
-
-            this.t = sim_data(1,:);
-            this.x_o = sim_data(3,:); % X position of the box
-            this.dx_o = (1./diff(this.t)).*diff(this.x_o);
-            this.dx_o(end+1) = this.dx_o(end);
-            this.x_ee = sim_data(6,:); % (CHECK)
 
             this.m = 0.363;
             this.m_ee = 2;
@@ -43,7 +43,7 @@ classdef dataSim < dataClass
 
             this.flux = 1; %m/s,
             this.V_EE = this.flux * (1 + (this.m/this.m_ee))/(1+this.restit);
-            this.X_init = [this.x_o(1); 0; this.x_ee(1); 0; 0; 0.31; 0.72];
+            this.X_init = [this.x_o(1); 0; this.x_ee(1); 0; 0; 0.5; 0.5];
             this.n = length(this.X_init);
 
             this.sigma_2 = 0.005; % Standard deviation
