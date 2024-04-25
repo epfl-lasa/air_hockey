@@ -668,8 +668,8 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-04-25_10:49:16"
-        hit_number =  2 #[2,3,4,5,6] #[16,17] #[x for x in range(1,20)]
+        folder_name = "2024-04-25_11:25:37"
+        hit_number =  3 #[2,3,4,5,6] #[16,17] #[x for x in range(1,20)]
         iiwa_number = 7
     
 

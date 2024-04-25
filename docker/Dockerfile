@@ -22,8 +22,39 @@ RUN sudo apt-get update && sudo apt-get install -y \
 # Python (for python plots)
 RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch gmr
 
+# install development dependencies and copy licenses
+COPY --from=ghcr.io/aica-technology/control-libraries/development-dependencies:20.04 /usr/local /tmp/local
+RUN sudo cp -R /tmp/local/* /usr/local && sudo rm -r /tmp/local
+COPY --from=ghcr.io/aica-technology/control-libraries/development-dependencies:20.04 \
+  /usr/share/doc/control-libraries/licenses /usr/share/doc/control-libraries/licenses
+  
+FROM install_stage AS control-libraries-build
+WORKDIR ${HOME}
+
+RUN sudo ldconfig
+
+ARG CL_BRANCH=main
+RUN git clone -b ${CL_BRANCH} --depth 1 https://github.com/aica-technology/control-libraries.git
+
+# install source
+RUN sudo ./control-libraries/source/install.sh -y
+
+# install protocol
+RUN sudo ./control-libraries/protocol/install.sh -y
+
+# install python bindings
+#RUN sudo pip3 install ./control-libraries/python
+
+# clean image
+RUN sudo rm -rf ./control-libraries && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
+
+FROM install_stage AS copy_cl_stage
+RUN sudo rm -rf /usr/include/eigen3
+COPY --from=control-libraries-build /usr/ /usr/
+RUN sudo ldconfig
+
 # Copy src, data, python and docker folders inside docker
-FROM install_stage AS copy_stage
+FROM copy_cl_stage AS copy_stage
 WORKDIR /home/${USER}/ros_ws
 COPY --chown=${USER} ./data ./data/
 COPY --chown=${USER} ./python ./python/
@@ -34,6 +65,7 @@ FROM copy_stage AS build_stage
 WORKDIR /home/${USER}/ros_ws
 ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make"
+
 
 # Set ROS IP for communciation in real setup
 FROM build_stage AS ros_stage

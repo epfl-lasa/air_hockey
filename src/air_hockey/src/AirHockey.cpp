@@ -742,7 +742,7 @@ int main(int argc, char** argv) {
   //ROS Initialization
   ros::init(argc, argv, "airhockey");
   ros::NodeHandle nh;
-  float frequency = 200.0f;
+  float frequency = 400.0f;
 
   std::unique_ptr<AirHockey> generate_motion = std::make_unique<AirHockey>(nh, frequency);
 

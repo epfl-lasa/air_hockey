@@ -5,7 +5,7 @@ control:
     iiwa1:
       dsGainPos: 2.5 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
       lambda0Pos: 40.0 #30  #70.0 #80.0
-      lambda1Pos: 20.0 #70  ##35.0 40.0
+      lambda1Pos: 70.0 #70  ##35.0 40.0
       alphaPos: 150 #150.0  
       dsGainOri: 1.0 #2.5 #3.0
       lambda0Ori: 10.0 # 6.0 #5.0
