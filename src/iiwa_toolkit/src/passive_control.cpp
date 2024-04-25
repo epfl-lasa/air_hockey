@@ -618,13 +618,15 @@ void PassiveControl::computeTorqueCmd(){
         for (int i =0; i<7; i++){ 
             tmp_null_trq[i] = -null_stiffness[i] * er_null[i];
             tmp_null_trq[i] += -null_damping[i] * _robot.jnt_velocity[i];
+
         }
         tmp_null_trq = null_space_projector* tmp_null_trq; //10 *
-        // std::cout << "position torque" << tmp_jnt_trq << std::endl;
+
+        // std::cout << "null damping " << null_damping << std::endl;
         // std::cout << "null torque" << tmp_null_trq << std::endl;
 
         // Add up null space torques
-        _trq_cmd =  tmp_jnt_trq+ tmp_null_trq; //  //+ ; tmp_jnt_trq + 
+        _trq_cmd =  tmp_jnt_trq + tmp_null_trq; //  //+ ;
     }
    
     // Gravity Compensationn

@@ -91,7 +91,7 @@ We have tested two different robot configurations for this framework. These conf
 In iiwa_toolkit/config/passive_track_parmas_dual_real.yaml, the following parameters must be changed : target/pos, target/quat, target/null_pos
 In air_hockey/config/hit_properties_air_hockey.yaml, the following parameters must be changed : return_position, ref_orientation
 
-the orientaiotn shoud be the same, the position can change slightly. The joint position is used as the null_space desired position.
+The orientation shoud be the same, the position can change slightly. The joint position is used as the null_space desired position.
 
 #### Configuration 1 
 

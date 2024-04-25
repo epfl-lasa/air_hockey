@@ -31,13 +31,13 @@ iiwa7:
 
   object_offset:
     x : 0.0 #0.02 0.04
-    y : -0.12 #-0.15
-    z : -0.05 # -0.05 #-0.12 #-0.05
+    y : -0.11 #-0.15
+    z : -0.06 # -0.05 #-0.12 #-0.05
   
   # position to go to before hiting, relative to object center + object_offset
   placement_offset:  
     x : 0.00
-    y : -0.3
+    y : -0.25 #0.25
     z : 0.0
 
 

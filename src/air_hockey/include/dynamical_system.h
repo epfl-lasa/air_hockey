@@ -35,7 +35,7 @@ private:
   Eigen::Vector3f current_position_;
   Eigen::Vector3f des_direction_ = Eigen::Vector3f::Zero(3);// to be updated in the main code of hitting
   Eigen::Vector3f DS_attractor_ = {0.3, 0.3, 0.5};
-  Eigen::Matrix3f gain_ = -2.0 * Eigen::Matrix3f::Identity(3, 3);
+  Eigen::Matrix3f gain_ = -10.0 * Eigen::Matrix3f::Identity(3, 3);
 
 public:
   hitting_DS(Eigen::Vector3f& current_end_effector);

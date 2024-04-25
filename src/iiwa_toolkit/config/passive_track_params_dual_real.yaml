@@ -3,10 +3,10 @@ options:
 
 control:
     iiwa1:
-      dsGainPos: 2.0 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
-      lambda0Pos: 30.0 #70.0 #80.0
-      lambda1Pos: 70.0 ##35.0 40.0
-      alphaPos: 150.0  
+      dsGainPos: 2.5 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
+      lambda0Pos: 40.0 #30  #70.0 #80.0
+      lambda1Pos: 20.0 #70  ##35.0 40.0
+      alphaPos: 150 #150.0  
       dsGainOri: 1.0 #2.5 #3.0
       lambda0Ori: 10.0 # 6.0 #5.0
       lambda1Ori: 5.0 # 3.0 #2.5
@@ -19,9 +19,11 @@ control:
       dsGainPos: 1.1 #1.3 #1.5 # 2.5
       lambda0Pos: 110 #120 # 90 #100.0
       lambda1Pos: 110 #60 # 30 #50.0 (lower than 30 to avoid oscillations when hitting)
+      alphaPos: 150 #150.0
       dsGainOri: 1.0
       lambda0Ori: 8.0 #10.0
       lambda1Ori: 4.0 # 5.0
+      alphaOri: 10.0
       ImpedanceOriStiffness: [50, 50, 50] #[70.0, 70.0, 70.0]
       ImpedanceOriDamping: [2.5, 2.5, 2.5] #[2.7, 2.3, 2.7] # UNTESTED used to be 3 3 2.7
       ImpedancePosStiffness: [1500.0, 1500.0, 1800.0] #[500.0, 500.0, 500.0] #[1800.0, 1800.0, 2000.0]
@@ -39,9 +41,9 @@ target:
 
 inertia:
     iiwa1:
-      null_stiffness: [100.0, 80.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
-      null_damping: [10.0, 8.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
-      gain: 1.0 #0.001
+      null_stiffness: [100.0, 120.0, 50.0, 50.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
+      null_damping: [10.0, 12.0, 5.0, 5.0, 2.0, 1.0 ,1.0] 
+      gain: 1.0 #1.0 #0.001
       desired : 5.0
       direction : [0.0, 1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
     iiwa2:
