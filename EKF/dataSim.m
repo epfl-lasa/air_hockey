@@ -4,11 +4,11 @@ classdef dataSim < dataClass
 
     methods
 
-        function this = dataSim(fileName)
+        function this = dataSim(fileName,initialCoeff)
 
             this.dataType = 'sim';
             this.fileName = fileName;
-            this.init();
+            this.init(initialCoeff);
             this.check_variablesDefined();
 
         end
@@ -17,6 +17,9 @@ classdef dataSim < dataClass
 
             delimiterIn = ' ';
             sim_data = importdata(this.fileName,delimiterIn)';
+
+            mu_initial = initialCoeff(1);
+            restit_initial = initialCoeff(2);
 
             % Simulate box's trajectory and track it
             % Specifying all parameters, boh for simulation (_sim) and for the Extended Kalman Filter
@@ -43,7 +46,7 @@ classdef dataSim < dataClass
 
             this.flux = 1; %m/s,
             this.V_EE = this.flux * (1 + (this.m/this.m_ee))/(1+this.restit);
-            this.X_init = [this.x_o(1); 0; this.x_ee(1); 0; 0; 0.31; 0.72];
+            this.X_init = [this.x_o(1); 0; this.x_ee(1); 0; 0; mu_initial; restit_initial];
             this.n = length(this.X_init);
 
             this.sigma_2 = 0.005; % Standard deviation
@@ -61,13 +64,3 @@ classdef dataSim < dataClass
 
     end
 end
-
-
-
-
-
-
-
-
-
-

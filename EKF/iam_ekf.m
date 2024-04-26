@@ -64,10 +64,10 @@ classdef iam_ekf < handle
 
             % Change to run mulitple trials with diffrent coefficients
             initialCoeffients = [0.5;0.5];
-            for i = 1:10
+            for i = 1:20
 %                 data = dataToy(initialCoeffients(:,i));
-%                 data = dataSim('data/log_box_traj_mu001.txt');
-                data = dataReal('data/hit_1-IIWA_7.csv');
+%                 data = dataSim('data/log_box_traj_mu001.txt',initialCoeffients(:,i));
+                data = dataReal('data/hit_1-IIWA_7.csv',initialCoeffients(:,i));
 
                 this.init(data);
                 [this.fullModel{i}] = this.get_estimateState_fullModel(data);
@@ -76,9 +76,20 @@ classdef iam_ekf < handle
             [this.boxModel] = this.get_estimateState_boxModel(data);
 
             trialDex = 1;
-            get_plots(this,data,trialDex);
+%             get_plots(this,data,trialDex);
+%             get_plots(this,data,2);
+%             get_plots(this,data,5);
+            get_plots(this,data,20);
 
-            figure;plot(initialCoeffients');
+            figure; 
+            plot(initialCoeffients','.','markersize',30,'linewidth',2.5); hold on;
+            box off; set(gca,'linewidth',2.5,'fontsize', 16);
+            ylim([0 1]);
+            ylabel('Coefficient (au)','interpreter','latex','fontsize',25);
+            xlabel('Trial Number','interpreter','latex','fontsize',25);
+            legend('location','southeast');
+            grid on;
+
             disp('test');
 
         end
@@ -96,6 +107,8 @@ classdef iam_ekf < handle
                 this.d_offset = 0.15;
             elseif strcmp(this.dataType,'toy')
                 this.d_offset = 0;
+            elseif strcmp(this.dataType,'real')
+                this.d_offset = -0.277;
             end
 
 
@@ -454,7 +467,9 @@ classdef iam_ekf < handle
             legend('location','southeast'); box off; set(gca,'linewidth',2.5,'fontsize', 16);
             
             ax(2) = subplot(3,1,2);
-%             plot(data.t,data.dx_o,'LineWidth',3,DisplayName="Measured Box Speed"); hold on;
+%             if strcmp(this.dataType,'toy')
+            plot(data.t,data.dx_o,'LineWidth',3,DisplayName="Measured Box Speed"); hold on;
+%             end
             plot(data.t_kal,dX_o,'LineWidth',3,DisplayName="Estimated Box Speed"); hold on;
 %             plot(data.t_kal,data.trueStates(5,:),'LineWidth',3,DisplayName="Speed of ee (m/s)");
             ylabel("Speed (m/s)");
@@ -551,15 +566,19 @@ classdef iam_ekf < handle
 % 
 %             figure;plot(data.t_kal,this.otherVars_kal.e_bool);
 
-%             figure('position',[923 294 560 420]);
-%             plot(data.t_kal, this.otherVars_kal.P(:,1,1),'linewidth',2.5,DisplayName="Covariance Box Position"); hold on;
-%             plot(data.t_kal, this.otherVars_kal.P(:,1,1),'linewidth',2.5,DisplayName="Covariance Box Velocity"); hold on;
-%             plot(data.t_kal, this.otherVars_kal.P(:,1,1),'linewidth',2.5,DisplayName="Covariance EE Position"); hold on;
-%             plot(data.t_kal, this.otherVars_kal.P(:,1,1),'linewidth',2.5,DisplayName="Covariance Box Position"); hold on;
-%             box off; set(gca,'linewidth',2.5,'fontsize', 16);
-%             ylabel('$au$','interpreter','latex','fontsize',25);
-%             xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',25);
-%             legend('location','southeast');
+            figure('position',[923 294 560 420]);
+            plot(data.t_kal, this.fullModel{trialDex}.otherVars_kal.P(:,1,1),'linewidth',2.5,DisplayName="Covariance Box Position"); hold on;
+            plot(data.t_kal, this.fullModel{trialDex}.otherVars_kal.P(:,2,2),'linewidth',2.5,DisplayName="Covariance Box Velocity"); hold on;
+            plot(data.t_kal, this.fullModel{trialDex}.otherVars_kal.P(:,3,3),'linewidth',2.5,DisplayName="Covariance EE Position"); hold on;
+            plot(data.t_kal, this.fullModel{trialDex}.otherVars_kal.P(:,4,4),'linewidth',2.5,DisplayName="Covariance EE Velocity"); hold on;
+            plot(data.t_kal, this.fullModel{trialDex}.otherVars_kal.P(:,5,5),'linewidth',2.5,DisplayName="Covariance Energy"); hold on;
+            plot(data.t_kal, this.fullModel{trialDex}.otherVars_kal.P(:,6,6),'linewidth',2.5,DisplayName="Covariance mu"); hold on;
+            plot(data.t_kal, this.fullModel{trialDex}.otherVars_kal.P(:,7,7),'linewidth',2.5,DisplayName="Covariance e"); hold on;
+            legend();
+            box off; set(gca,'linewidth',2.5,'fontsize', 16);
+            ylabel('$au$','interpreter','latex','fontsize',25);
+            xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',25);
+            legend('location','southeast');
     
         end
 

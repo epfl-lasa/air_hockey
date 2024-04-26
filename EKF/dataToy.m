@@ -25,7 +25,7 @@ classdef dataToy < dataClass
             mu_initial = initialCoeff(1);
             restit_initial = initialCoeff(2);
 
-            this.r = [0.001; 0.001].^2;
+            this.r = [0.01; 0.01].^2;
             this.q = [0.01; 0.03; 0.01; 0.03; 0.01; 0.01; 0.01].^2;
 
             this.V_EE = this.flux * (1 + (this.m/this.m_ee));
@@ -85,8 +85,8 @@ classdef dataToy < dataClass
             impulseOccured = false;
             for i = 2:length(tspan)
 
-                processNoise(:,i) = 0.*this.q.*randn(this.n,1);
-                measurementNoise(:,i) = 0.*this.r.*randn(2,1);
+                processNoise(:,i) = this.q.*randn(this.n,1);
+                measurementNoise(:,i) = this.r.*randn(2,1);
 
                 x_o = x(1);
                 dx_o = x(2);
@@ -108,18 +108,18 @@ classdef dataToy < dataClass
                 end
 
                 x_o_next =   x_o  + dt*dx_o + 0.5*(dt^2/this.m) * f_ext     + processNoise(1,i);
-                dx_o_next =  dx_o + dt * (1/this.m) * f_ext             + processNoise(2,i);
-                x_ee_next =  x_ee + dt*dx_ee                            + processNoise(3,i);
+                dx_o_next =  dx_o + dt * (1/this.m) * f_ext                 + processNoise(2,i);
+                x_ee_next =  x_ee + dt*dx_ee                                + processNoise(3,i);
                 
                 if ~impulseOccured
-                    dx_ee_next = this.X_init(4)                                      + processNoise(4,i);
+                    dx_ee_next = this.X_init(4)                             + processNoise(4,i);
                 elseif impulseOccured && x_ee < this.X_init(3)
-                    dx_ee_next = 0                                                   + processNoise(4,i);
+                    dx_ee_next = 0                                          + processNoise(4,i);
                 elseif impulseOccured
-                    dx_ee_next = 0                                      + processNoise(4,i);
+                    dx_ee_next = 0                                          + processNoise(4,i);
                 end
 
-                E_next = E + dt*abs(dx_o*f_impact)                      + processNoise(5,i);
+                E_next = E + dt*abs(dx_o*f_impact)                          + processNoise(5,i);
 
                 X_next = [x_o_next;...
                           dx_o_next;...
