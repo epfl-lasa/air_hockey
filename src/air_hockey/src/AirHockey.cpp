@@ -133,14 +133,15 @@ bool AirHockey::init() {
   this->updateDSAttractor(); //update attractor position
 
   // Get hitting parameters
-  if (!nh_.getParam("iiwa7/ref_orientation/w", refQuat_[IIWA_7][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
-  if (!nh_.getParam("iiwa14/ref_orientation/w", refQuat_[IIWA_14][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
-  if (!nh_.getParam("iiwa7/ref_orientation/x", refQuat_[IIWA_7][1])) { ROS_ERROR("Param ref_orientation/x not found"); }
-  if (!nh_.getParam("iiwa14/ref_orientation/x", refQuat_[IIWA_14][1])) { ROS_ERROR("Param ref_orientation/x not found"); }
-  if (!nh_.getParam("iiwa7/ref_orientation/y", refQuat_[IIWA_7][2])) { ROS_ERROR("Param ref_orientation/y not found"); }
-  if (!nh_.getParam("iiwa14/ref_orientation/y", refQuat_[IIWA_14][2])) { ROS_ERROR("Param ref_orientation/y not found"); }
-  if (!nh_.getParam("iiwa7/ref_orientation/z", refQuat_[IIWA_7][3])) { ROS_ERROR("Param ref_orientation/z not found"); }
-  if (!nh_.getParam("iiwa14/ref_orientation/z", refQuat_[IIWA_14][3])) { ROS_ERROR("Param ref_orientation/z not found"); }
+  std::vector<double> dquat1;
+  std::vector<double> dquat2;
+  if (!nh_.getParam("/iiwa1/target/iiwa1/quat", dquat1)) { ROS_ERROR("Param /iiwa1/target/iiwa1/quat not found"); }
+  for (size_t i = 0; i < refQuat_[IIWA_7].size(); i++)
+    refQuat_[IIWA_7](i) = dquat1[i]; 
+  if (!nh_.getParam("/iiwa1/target/iiwa2/quat", dquat2)) { ROS_ERROR("Param /iiwa1/target/iiwa2/quat not found"); }
+    for (size_t i = 0; i < refQuat_[IIWA_14].size(); i++)
+    refQuat_[IIWA_14](i) = dquat2[i]; 
+
   if (!nh_.getParam("iiwa7/return_position/x", returnPosInitial_[IIWA_7][0])) { ROS_ERROR("Param ref_quat/x not found"); }
   if (!nh_.getParam("iiwa14/return_position/x", returnPosInitial_[IIWA_14][0])) { ROS_ERROR("Param return_position/x not found"); }
   if (!nh_.getParam("iiwa7/return_position/y", returnPosInitial_[IIWA_7][1])) { ROS_ERROR("Param return_position/y not found"); }
@@ -532,7 +533,7 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
 
 AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
 
-  float pos_threshold = 4*1e-2;
+  float pos_threshold = 1*1e-2;
   float vel_threshold = 1*1e-3;
   
   // update return position, if not possible, do not change state 
@@ -742,7 +743,7 @@ int main(int argc, char** argv) {
   //ROS Initialization
   ros::init(argc, argv, "airhockey");
   ros::NodeHandle nh;
-  float frequency = 400.0f;
+  float frequency = 200.0f;
 
   std::unique_ptr<AirHockey> generate_motion = std::make_unique<AirHockey>(nh, frequency);
 

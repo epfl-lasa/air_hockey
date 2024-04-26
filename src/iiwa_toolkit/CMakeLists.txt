@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.3.2)
 project(iiwa_toolkit)
 
 add_compile_options(-std=c++17)
@@ -27,6 +27,7 @@ generate_dynamic_reconfigure_options(
 )
 
 find_package(Eigen3 REQUIRED eigen3) 
+find_package(control_libraries 7.4.0 REQUIRED) # controllers state_representation)
 
 catkin_package(
  INCLUDE_DIRS include
@@ -40,10 +41,8 @@ include_directories( include ${catkin_INCLUDE_DIRS})
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 
-
-
 add_executable(passive_track src/node_passive_track.cpp  src/passive_control.cpp include/thirdparty/Utils.cpp ${MODEL_SOURCES})
-target_link_libraries(passive_track ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+target_link_libraries(passive_track ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} ${control_libraries_LIBRARIES})
 add_dependencies(passive_track ${PROJECT_NAME}_gencfg)
 
 

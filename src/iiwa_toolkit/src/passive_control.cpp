@@ -121,6 +121,21 @@ PassiveControl::PassiveControl(const std::string& urdf_string,const std::string&
     _robot.pseudo_inv_jacob.setZero();   
     _robot.pseudo_inv_jacobPos.setZero();
 
+    // Eigen::MatrixXd k = Eigen::MatrixXd::Zero(6, 6);
+    // Eigen::MatrixXd d = Eigen::MatrixXd::Zero(6, 6);
+    // k.diagonal() << 100, 100, 100, 0, 0, 0;
+    // d.diagonal() << 10, 10, 10, 0, 0, 0;
+
+    // parameters.emplace_back(make_shared_parameter("stiffness", k));
+    // parameters.emplace_back(make_shared_parameter("damping", d));
+    // twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::VELOCITY_IMPEDANCE, parameters); 
+
+    parameters.emplace_back(make_shared_parameter("linear_principle_damping", 150.0));
+    parameters.emplace_back(make_shared_parameter("linear_orthogonal_damping",100.0));
+    parameters.emplace_back(make_shared_parameter("angular_stiffness", 0.0));
+    parameters.emplace_back(make_shared_parameter("angular_damping", 0.0));
+    twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::COMPLIANT_TWIST, parameters); //, *model_
+
     // _robot.nulljnt_position << 0.0, 0.0, 0.0, -.75, 0., 0.0, 0.0;
     // _robot.nulljnt_position << -1.09, 1.59, 1.45, -1.6, -2.81, 0.0, 0.0; // inertia
     // _robot.nulljnt_position << 0.00, -0.6, 0.50, -1.7, 0.00, 0.00, 0.0; // manipulability  0.00, -0.6, 0.00, -1.7, 0.00, 0.00, 0.0;
@@ -190,6 +205,9 @@ Eigen::Vector3d PassiveControl::getEEVel(){
 Eigen::Vector3d PassiveControl::getEEAngVel(){
     return _robot.ee_angVel;
 }
+Eigen::Vector3d PassiveControl::getEEDesVel(){
+    return dsContPos->get_output();
+}
 
 Eigen::MatrixXd PassiveControl::jointToTaskInertia(const Eigen::MatrixXd& Jac, const Eigen::MatrixXd& joint_inertia){
     Eigen::MatrixXd task_inertia_inverse = Jac * joint_inertia.inverse() * Jac.transpose();
@@ -239,9 +257,13 @@ Eigen::VectorXd PassiveControl::computeDirInertiaGrad(iiwa_tools::RobotState &cu
 }
 
 
-void PassiveControl::set_pos_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha){
+void PassiveControl::set_pos_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alp, const double& lambda0_hit){
     dsGain_pos = ds;
-    dsContPos->set_damping_eigval(lambda0,lambda1,alpha);
+    lam0_return = lambda0;
+    lam0_hit = lambda0_hit;
+    lam1 = lambda1;
+    alpha = alp;
+    dsContPos->set_damping_eigval(lambda0,lambda1,alp);
 }
 
 void PassiveControl::set_ori_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha){
@@ -264,11 +286,17 @@ void PassiveControl::set_desired_pose(const Eigen::Vector3d& pos, const Eigen::V
     is_just_velocity = false;
     // pos_ramp_up = true;
     // ramp_up_vel = true;
-    get_initial_ee_des_vel = true;
+    // get_initial_ee_des_vel = true;
 }
 void PassiveControl::set_desired_position(const Eigen::Vector3d& pos){
     _robot.ee_des_pos = pos;
     is_just_velocity = false;
+    if(reset_lambda_2){
+        dsContPos->set_damping_eigval(lam0_return,lam1,alpha);
+        reset_lambda_1 = false;
+        reset_lambda_1 = true;
+    }
+
     // pos_ramp_up = true;
     // ori_ramp_up = true;
     // set bools for ramping vel for next hit
@@ -281,6 +309,12 @@ void PassiveControl::set_desired_quat(const Eigen::Vector4d& quat){
 void PassiveControl::set_desired_velocity(const Eigen::Vector3d& vel){
     _robot.ee_des_vel = vel;
     is_just_velocity = true;
+    if(reset_lambda_1){
+        dsContPos->set_damping_eigval(lam0_hit,lam1,alpha);
+        reset_lambda_1 = false;
+        reset_lambda_2 = true;
+    }
+    
 }
 
 void PassiveControl::set_load(const double& mass ){
@@ -436,7 +470,7 @@ void PassiveControl::computeTorqueCmd(){
         if(pos_ctrl_ds){
             // desired position values
             Eigen::Vector3d deltaX = _robot.ee_des_pos - _robot.ee_pos;
-            double maxDx = 0.1;
+            double maxDx = 0.06;
             if (deltaX.norm() > maxDx)
                 deltaX = maxDx * deltaX.normalized();
             
@@ -457,6 +491,23 @@ void PassiveControl::computeTorqueCmd(){
             dsContPos->update(_robot.ee_vel,ee_des_vel, is_just_velocity);
             Eigen::Vector3d wrenchPos = dsContPos->get_output() + load_added * 9.8*Eigen::Vector3d::UnitZ();   
             tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
+
+            // ----------------------- USING AICA CONTROLLERS
+            // Eigen::VectorXd actual_twist = Eigen::VectorXd::Zero(6);
+            // Eigen::VectorXd desired_twist = Eigen::VectorXd::Zero(6);
+
+            // actual_twist.head(3) = _robot.ee_vel;
+            // desired_twist.head(3) = ee_des_vel;
+
+            // feedback_state.set_twist(actual_twist);
+            // command_state.set_twist(desired_twist);
+            
+            // // compute the command output
+            // auto command_output = twist_ctrl->compute_command(command_state, feedback_state);
+            // Eigen::VectorXd wrench = command_output.get_wrench();
+            // Eigen::Vector3d wrenchPos = wrench.head(3);
+
+            // tmp_jnt_trq_pos = _robot.jacobPos.transpose() * wrenchPos;
         }
         else{
             // Impedance control
@@ -595,7 +646,7 @@ void PassiveControl::computeTorqueCmd(){
         }
 
         // SUM UP TASK SPACE CONTROL TORQUES
-        tmp_jnt_trq = tmp_jnt_trq_pos+ tmp_jnt_trq_ang ; // // 
+        tmp_jnt_trq = tmp_jnt_trq_pos + tmp_jnt_trq_ang; // // 
 
         // NULL SPACE CONTROL
         null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;

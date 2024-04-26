@@ -16,6 +16,9 @@
 //|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //|    GNU General Public License for more details.
 //|
+
+#include <pinocchio/fwd.hpp>
+
 #ifndef __PASSIVE_CONTROL__
 #define __PASSIVE_CONTROL__
 #include "ros/ros.h"
@@ -32,6 +35,15 @@
 #include <RBDyn/FD.h>
 #include "thirdparty/Utils.h"
 
+
+#include "controllers/ControllerFactory.hpp"
+#include "state_representation/parameters/ParameterInterface.hpp"
+#include "state_representation/space/cartesian/CartesianState.hpp"
+#include <robot_model/Model.hpp>
+// #include <eigen3/Eigen/Dense>
+
+using namespace controllers;
+using namespace state_representation;
 
 struct Robot
 {
@@ -130,6 +142,14 @@ private:
     double inertia_gain;
     double desired_inertia;
 
+    // Varying gains for hit and return 
+    bool reset_lambda_1 = true;
+    bool reset_lambda_2 = true;
+    double lam0_return;
+    double lam0_hit;
+    double lam1;
+    double alpha;
+
     // Variables for directional Inertia gradient calculations
     Eigen::VectorXd grad = Eigen::VectorXd(7);
     Eigen::MatrixXd duplicate_joint_inertia = Eigen::MatrixXd(7,7);
@@ -170,7 +190,19 @@ private:
     // Position impedance control
     Eigen::Matrix3d K_t = Eigen::MatrixXd::Identity(3, 3);
     Eigen::Matrix3d B_lin = Eigen::MatrixXd::Identity(3, 3);
-    
+
+    // Position cartesian twsit contorller
+    // create a Cartesian impedance controller
+    // std::string pathUrdf_ = "/home/ros/ros_ws/src/iiwa_ros/iiwa_description/urdf/iiwa7.urdf.xacro";
+    std::string robotName_ = "iiwa1";
+    // std::string baseLink_ = "iiwa1_link_0";
+    // std::unique_ptr<robot_model::Model> model_ = std::make_unique<robot_model::Model>(robotName_, pathUrdf_);
+    std::list<std::shared_ptr<state_representation::ParameterInterface>> parameters;
+    std::shared_ptr<controllers::IController<state_representation::CartesianState>> twist_ctrl;
+
+    state_representation::CartesianState command_state = state_representation::CartesianState(robotName_); // , baseLink_);
+    state_representation::CartesianState feedback_state = state_representation::CartesianState(robotName_); //, baseLink_);
+
     // Orientation impedance control
     Eigen::Matrix3d K_r = Eigen::MatrixXd::Identity(3, 3);
     Eigen::Matrix3d B_ang = Eigen::MatrixXd::Identity(3, 3);
@@ -214,7 +246,7 @@ public:
     void set_desired_quat(const Eigen::Vector4d& quat);
     void set_desired_velocity(const Eigen::Vector3d& vel);
 
-    void set_pos_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha);
+    void set_pos_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha, const double& lambda0_hit);
     void set_ori_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alpha);
     void set_null_pos(const Eigen::VectorXd& nullPosition);
     void set_load(const double& mass);
@@ -234,6 +266,7 @@ public:
     Eigen::Vector3d getEEpos();
     Eigen::Vector3d getEEVel();
     Eigen::Vector3d getEEAngVel();
+    Eigen::Vector3d getEEDesVel();
 
     Eigen::Vector4d getEEquat();
     

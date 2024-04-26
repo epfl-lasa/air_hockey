@@ -122,7 +122,8 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
     df = pd.read_csv(robot_csv, skiprows=1,
                      converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'JointEffort': parse_list, 
                                  'TorqueCmd': parse_list, 'EEF_Position': parse_list, 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 
-                                 'EEF_DesiredVelocity': parse_list, 'Inertia': parse_list,'DirGrad': parse_list, 'HittingFlux': parse_value})
+                                 'EEF_DesiredVelocity': parse_list, 'EEF_CommandedVelocity':parse_list, 'Inertia': parse_list,
+                                 'DirGrad': parse_list, 'HittingFlux': parse_value})
                     #  dtype={'RosTime': 'float64'})
     
     df_obj = pd.read_csv(object_csv,
@@ -179,6 +180,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         for i in range(3):
             axs[i].plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: x[i]), label=f'Velocity')
             axs[i].plot(df['RosTime'], df['EEF_DesiredVelocity'].apply(lambda x: x[i]), color='r',linestyle='--', label=f'Desired')
+            # axs[i].plot(df['RosTime'], df['EEF_CommandedVelocity'].apply(lambda x: x[i]), color='g',linestyle='--', label=f'Commanded')
             axs[i].axvline(datetime_hit_time, color = 'r')
             # axs[i].axvline(recorded_hit_time, color = 'g')
             axs[i].set_title(f'Axis {coordinate_labels[i]}')
@@ -193,7 +195,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         fig, axs = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
         for i in range(3):
             axs[i].plot(df['RosTime'], df['EEF_Position'].apply(lambda x: x[i]), label=f'Position')
-            axs[i].axhline(y=des_pos[i], color='r', linestyle='--')
+            axs[i].axhline(y=des_pos[i], color='r', linestyle='--', label=f'Desired')
             axs[i].axvline(datetime_hit_time, color = 'r')
             # axs[i].axvline(recorded_hit_time, color = 'g')
             axs[i].set_title(f'Axis {coordinate_labels[i]}')
@@ -668,8 +670,8 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-04-25_11:25:37"
-        hit_number =  3 #[2,3,4,5,6] #[16,17] #[x for x in range(1,20)]
+        folder_name = "2024-04-25_16:38:24"
+        hit_number =  8 #[2,3,4,5,6] #[16,17] #[x for x in range(1,20)]
         iiwa_number = 7
     
 

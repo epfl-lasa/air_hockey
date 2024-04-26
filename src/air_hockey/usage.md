@@ -89,9 +89,10 @@ Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 We have tested two different robot configurations for this framework. These configurations include a joint position and a EE Pose
 
 In iiwa_toolkit/config/passive_track_parmas_dual_real.yaml, the following parameters must be changed : target/pos, target/quat, target/null_pos
-In air_hockey/config/hit_properties_air_hockey.yaml, the following parameters must be changed : return_position, ref_orientation
+In air_hockey/config/hit_properties_air_hockey.yaml, the following parameter must be changed : return_position
 
 The orientation shoud be the same, the position can change slightly. The joint position is used as the null_space desired position.
+The orientation quaternion has the format W-xyz.
 
 #### Configuration 1 
 
@@ -114,12 +115,13 @@ ADD photo
 target:
     iiwa1:
       pos: [0.55, -0.15, 0.22] 
-      quat: [0.707, -0.707, 0.0, 0.0] 
+      quat: [0.0, 1.0, 0.0, 0.0] 
       null_pos : [-0.233, 0.826,  0.159, -1.335, 0.229, 1.010, -1.558]
     iiwa2:
       pos: [0.55, 0.15, 0.22]
       quat: [-0.707, -0.707, 0.0, 0.0] 
-      null_pos : [0.553, 1.128, -0.135, -1.358, -1.092, 1.783, -2.189]
+      null_pos : [0.524, 0.753, 0-0.199, -1.464, 0.136, 0.999, 1.849]
+
 
 
 

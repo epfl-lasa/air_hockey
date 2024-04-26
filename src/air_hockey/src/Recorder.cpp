@@ -25,6 +25,10 @@ bool Recorder::init() {
 
   if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
   if (!nh_.getParam("/passive_control/vel_quat_14", pubVelQuatTopic_[IIWA_14])) {ROS_ERROR("Topic /passive_control iiwa 14 not found");}
+  
+  if (!nh_.getParam("/iiwa/info_7/des_vel", iiwaCommandedVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa/info_7/des_vel not found");}
+  if (!nh_.getParam("/iiwa/info_14/des_vel", iiwaCommandedVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa/info_7/des_vel not found");}
+
 
   if (!nh_.getParam("/iiwa/info_7/joint_state", iiwaJointStateTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/joint_state not found");}
   if (!nh_.getParam("/iiwa/info_14/joint_state", iiwaJointStateTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/joint_state not found");}
@@ -88,20 +92,20 @@ bool Recorder::init() {
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
  
-  iiwaVelocityReal_[IIWA_7] = 
-      nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_7],
-                                          1,
-                                          boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_7),
-                                          ros::VoidPtr(),
-                                          ros::TransportHints().reliable().tcpNoDelay());    
+    iiwaVelocityReal_[IIWA_7] = 
+        nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_7],
+                                            1,
+                                            boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_7),
+                                            ros::VoidPtr(),
+                                            ros::TransportHints().reliable().tcpNoDelay());    
 
-  iiwaVelocityReal_[IIWA_14] = 
-      nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_14],
-                                          1,
-                                          boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_14),
-                                          ros::VoidPtr(),
-                                          ros::TransportHints().reliable().tcpNoDelay());
-  }
+    iiwaVelocityReal_[IIWA_14] = 
+        nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_14],
+                                            1,
+                                            boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_14),
+                                            ros::VoidPtr(),
+                                            ros::TransportHints().reliable().tcpNoDelay());
+    }
 
   iiwaJointStateReal_[IIWA_7] = 
       nh_.subscribe<sensor_msgs::JointState>(iiwaJointStateTopicReal_[IIWA_7],
@@ -165,7 +169,17 @@ bool Recorder::init() {
   iiwaDirGrad_[IIWA_14] = 
       nh_.subscribe<std_msgs::Float64MultiArray>(iiwaDirGradTopic_[IIWA_14], 1,
                                           boost::bind(&Recorder::iiwaDirGradCallback, this, _1, IIWA_14),
-                                          ros::VoidPtr(), ros::TransportHints().reliable().tcpNoDelay());                                        
+                                          ros::VoidPtr(), ros::TransportHints().reliable().tcpNoDelay());       
+
+  iiwaCommandedVelocityReal_[IIWA_7] = 
+      nh_.subscribe<geometry_msgs::Twist>(iiwaCommandedVelocityTopicReal_[IIWA_7], 1,
+                                            boost::bind(&Recorder::iiwaCommandedVelocityCallbackReal, this, _1, IIWA_7),
+                                            ros::VoidPtr(), ros::TransportHints().reliable().tcpNoDelay());    
+
+  iiwaCommandedVelocityReal_[IIWA_14] = 
+       nh_.subscribe<geometry_msgs::Twist>(iiwaCommandedVelocityTopicReal_[IIWA_14], 1,
+                                            boost::bind(&Recorder::iiwaCommandedVelocityCallbackReal, this, _1, IIWA_14),
+                                            ros::VoidPtr(), ros::TransportHints().reliable().tcpNoDelay());                                 
 
   // Only subscribe if recording automatically 
   if(isAuto_){
@@ -254,6 +268,10 @@ void Recorder::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPt
 
 void Recorder::iiwaDesiredVelocityCallback(const geometry_msgs::Pose::ConstPtr& msg, int k){
   iiwaDesiredVelocityFromSource_[k]  << msg->position.x, msg->position.y, msg->position.z;
+}
+
+void Recorder::iiwaCommandedVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k){
+  iiwaCommandedVelocityFromSource_[k]  << msg->linear.x, msg->linear.y, msg->linear.z;
 }
 
 void Recorder::iiwaTorqueCmdCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k){
@@ -345,6 +363,9 @@ void Recorder::recordRobot(Robot robot_name){
   newState.eef_vel_des.resize(3);
   newState.eef_vel_des = iiwaDesiredVelocityFromSource_[robot_name];
 
+  newState.eef_vel_cmd.resize(3);
+  newState.eef_vel_cmd = iiwaCommandedVelocityFromSource_[robot_name];
+
   newState.inertia.resize(9);
   Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector4(iiwaTaskInertiaPosInv_[robot_name].data());
   newState.inertia = tempVector4;
@@ -426,7 +447,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
             << "DesiredPos," << desiredPosition_[robot_name].transpose() << "\n";
 
     // Write CSV header
-    outFile << "RobotName,RosTime,JointPosition,JointVelocity,JointEffort,TorqueCmd,EEF_Position,EEF_Orientation,EEF_Velocity,EEF_DesiredVelocity,Inertia,DirGrad,HittingFlux\n";
+    outFile << "RobotName,RosTime,JointPosition,JointVelocity,JointEffort,TorqueCmd,EEF_Position,EEF_Orientation,EEF_Velocity,EEF_DesiredVelocity,EEF_CommandedVelocity,Inertia,DirGrad,HittingFlux\n";
 
     // Write each RobotState structure to the file
     for (const auto& state : robotStatesVector_[robot_name]) {
@@ -441,6 +462,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
                 << state.eef_orientation.transpose() << ","
                 << state.eef_vel.transpose() << ","
                 << state.eef_vel_des.transpose() << ","
+                << state.eef_vel_cmd.transpose() << ","
                 << state.inertia.transpose() << ","
                 << state.dir_grad.transpose() << ","
                 << state.hitting_flux << "\n";

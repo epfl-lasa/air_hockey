@@ -76,6 +76,7 @@ private:
     Eigen::Vector4f eef_orientation;
     Eigen::Vector3f eef_vel;
     Eigen::Vector3f eef_vel_des;
+    Eigen::Vector3f eef_vel_cmd;
     Eigen::Matrix<float, 9, 1> inertia;
     Eigen::VectorXd dir_grad = Eigen::VectorXd(7);
     float hitting_flux;
@@ -115,6 +116,7 @@ private:
   std::string iiwaJointStateTopicReal_[NB_ROBOTS];
   std::string iiwaTorqueCmdTopic_[NB_ROBOTS];
   std::string iiwaDirGradTopic_[NB_ROBOTS];
+  std::string iiwaCommandedVelocityTopicReal_[NB_ROBOTS];
   std::string FSMTopic_;
 
   ros::Rate rate_;
@@ -130,6 +132,7 @@ private:
   ros::Subscriber iiwaDesiredVelocity_[NB_ROBOTS];
   ros::Subscriber iiwaTorqueCmd_[NB_ROBOTS];
   ros::Subscriber iiwaDirGrad_[NB_ROBOTS];
+  ros::Subscriber iiwaCommandedVelocityReal_[NB_ROBOTS];
   ros::Subscriber FSMState_;
 
   geometry_msgs::Pose boxPose_;
@@ -147,6 +150,7 @@ private:
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPosInv_[NB_ROBOTS];;
   Eigen::Vector3f iiwaDesiredVelocityFromSource_[NB_ROBOTS];
+  Eigen::Vector3f iiwaCommandedVelocityFromSource_[NB_ROBOTS];
   Eigen::VectorXd iiwaTorqueCmdFromSource_[NB_ROBOTS];
   Eigen::VectorXd iiwaInertiaDirGrad_[NB_ROBOTS];
   bool isObjectMoving_;
@@ -170,6 +174,7 @@ public:
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
   void iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k);
   void iiwaDesiredVelocityCallback(const geometry_msgs::Pose::ConstPtr& msg, int k);
+  void iiwaCommandedVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
 
   void iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k);
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);

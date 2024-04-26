@@ -16,6 +16,9 @@
 //|    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //|    GNU General Public License for more details.
 //|
+
+#include <pinocchio/fwd.hpp>
+
 #include <mutex>
 #include <fstream>
 #include <pthread.h>
@@ -38,12 +41,7 @@
 #define No_Robots 1
 #define TOTAL_No_MARKERS 2
 
-struct Passive_Options
-{
-    std::string control_mode;
-    bool is_optitrack_on;
-    double filter_gain = 0.;
-};
+
 
 struct feedback
 {
@@ -56,11 +54,9 @@ struct feedback
 class IiwaRosMaster 
 {
   public:
-    IiwaRosMaster(ros::NodeHandle &n,double frequency, Passive_Options options):
-    _n(n), _loopRate(frequency), _dt(1.0f/frequency),_options(options){
+    IiwaRosMaster(ros::NodeHandle &n,double frequency):
+    _n(n), _loopRate(frequency), _dt(1.0f/frequency){
         _stop =false;
-
-
     }
 
     ~IiwaRosMaster(){}
@@ -102,6 +98,7 @@ class IiwaRosMaster
         _EEVelPublisher = _n.advertise<geometry_msgs::Twist>(ns+"/ee_info/Vel",1);
         _InertiaPublisher = _n.advertise<geometry_msgs::Inertia>(ns+"/Inertia/taskPosInv", 1);
         _DirGradPublisher = _n.advertise<std_msgs::Float64MultiArray>(ns+"/Inertia/dirGrad",1);
+        _EEDesVelPublisher = _n.advertise<geometry_msgs::Twist>(ns+"/ee_info/DesVel",1);
 
         // Get the URDF XML from the parameter server
         std::string urdf_string, full_param;
@@ -137,7 +134,8 @@ class IiwaRosMaster
         if(!_n.getParam("control"+ns+"/lambda1Ori",lambda1_ori)){ROS_ERROR("Could not find Parameter lambda1Ori");}
         if(!_n.getParam("control"+ns+"/alphaPos", alpha_pos)){ROS_ERROR("Could not find Parameter alphaPos");}
         if(!_n.getParam("control"+ns+"/alphaOri", alpha_ori)){ROS_ERROR("Could not find Parameter alphaOri");}
-        _controller->set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos, alpha_pos);
+        if(!_n.getParam("control"+ns+"/lambda0PosHit",lambda0_hit)){ROS_ERROR("Could not find Parameter lambda0Pos");}
+        _controller->set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos, alpha_pos, lambda0_hit);
         _controller->set_ori_gains(ds_gain_ori,lambda0_ori,lambda1_ori,alpha_ori);
 
         // Get desired pose
@@ -218,9 +216,12 @@ class IiwaRosMaster
         _plotPublisher = _n.advertise<std_msgs::Float64MultiArray>(ns+"/plotvar",1);
         
         // dynamic configure:
-        _dynRecCallback = boost::bind(&IiwaRosMaster::param_cfg_callback,this,_1,_2);
-        _dynRecServer.setCallback(_dynRecCallback);
-        //todo condition here
+        if(!_n.getParam("use_rqt", use_rqt)){ROS_ERROR("Could not find Parameter use_rqt");}
+        if(use_rqt){
+            _dynRecCallback = boost::bind(&IiwaRosMaster::param_cfg_callback,this,_1,_2);
+            _dynRecServer.setCallback(_dynRecCallback);
+        }
+
         return true;
     }
     //
@@ -234,7 +235,8 @@ class IiwaRosMaster
                 publishEEInfo();
                 publishInertiaInfo();
                 publishDirInertiaGrad();
-
+                publishEEDesVel();
+            
                 // publishPlotVariable(_controller->getPlotVariable());
                 
             _mutex.unlock();
@@ -250,17 +252,12 @@ class IiwaRosMaster
 
   protected:
     double _dt;
-    Passive_Options _options; 
 
     ros::NodeHandle _n;
     ros::Rate _loopRate;
 
     ros::Subscriber _subRobotStates[No_Robots];
-
     ros::Subscriber _subControl[2];
-
-
-
     ros::Subscriber _subOptitrack[TOTAL_No_MARKERS];  // optitrack markers pose
 
     ros::Publisher _TrqCmdPublisher;
@@ -269,9 +266,12 @@ class IiwaRosMaster
     ros::Publisher _EEVelPublisher;
     ros::Publisher _InertiaPublisher;
     ros::Publisher _DirGradPublisher;
+    ros::Publisher _EEDesVelPublisher;
 
     ros::Publisher _plotPublisher;
 
+
+    bool use_rqt;
     dynamic_reconfigure::Server<iiwa_toolkit::passive_cfg_paramsConfig> _dynRecServer;
     dynamic_reconfigure::Server<iiwa_toolkit::passive_cfg_paramsConfig>::CallbackType _dynRecCallback;
 
@@ -296,6 +296,7 @@ class IiwaRosMaster
     double lambda1_ori;
     double alpha_pos;
     double alpha_ori;
+    double lambda0_hit;
     Eigen::Vector3d des_pos = Eigen::Vector3d::Zero(); 
     Eigen::Vector4d des_quat = Eigen::Vector4d::Zero();
 
@@ -414,6 +415,18 @@ class IiwaRosMaster
         }
     }
 
+    void publishEEDesVel(){
+        geometry_msgs::Twist msg;
+  
+        Eigen::Vector3d vel =  _controller->getEEDesVel();
+        // Eigen::Vector3d angVel =  _controller->dsContOri->get_output();
+
+        msg.linear.x = vel[0];msg.linear.y = vel[1];msg.linear.z = vel[2];
+        // msg.angular.x = angVel[0];msg.angular.y = angVel[1];msg.angular.z = angVel[2];
+
+        _EEDesVelPublisher.publish(msg);
+    }
+
     //TODO clean the optitrack
     void updateControlPos(const geometry_msgs::Pose::ConstPtr& msg){
         Eigen::Vector3d pos;
@@ -456,30 +469,31 @@ class IiwaRosMaster
         double sc_ori_ds = config.Orientation_DSgain;
         double sc_pos_lm = config.Position_lambda;
         double sc_ori_lm = config.Orientation_lambda;
-        _controller->set_pos_gains(sc_pos_ds*ds_gain_pos,sc_pos_lm*lambda0_pos,sc_pos_lm*lambda1_pos, alpha_pos);
+        _controller->set_pos_gains(sc_pos_ds*ds_gain_pos,sc_pos_lm*lambda0_pos,sc_pos_lm*lambda1_pos, alpha_pos, lambda0_hit);
         _controller->set_ori_gains(sc_ori_ds*ds_gain_ori,sc_ori_lm*lambda0_ori,sc_ori_lm*lambda1_ori, alpha_ori);
         
         Eigen::Vector3d delta_pos = Eigen::Vector3d(config.dX_des,config.dY_des,config.dZ_des);
 
-        Eigen::Vector4d q_x = Eigen::Vector4d::Zero();
-        q_x(0) = std::cos(config.dX_des_angle/2);
-        q_x(1) = std::sin(config.dX_des_angle/2);
-        Eigen::Matrix3d rotMat_x = Utils<double>::quaternionToRotationMatrix(q_x);
+        // THIS DOES NOT WORK !!!!!
+        // Eigen::Vector4d q_x = Eigen::Vector4d::Zero();
+        // q_x(0) = std::cos(config.dX_des_angle/2);
+        // q_x(1) = std::sin(config.dX_des_angle/2);
+        // Eigen::Matrix3d rotMat_x = Utils<double>::quaternionToRotationMatrix(q_x);
 
-        Eigen::Vector4d q_y = Eigen::Vector4d::Zero();
-        q_y(0) = std::cos(config.dY_des_angle/2);
-        q_y(2) = std::sin(config.dY_des_angle/2);
-        Eigen::Matrix3d rotMat_y = Utils<double>::quaternionToRotationMatrix(q_y);
+        // Eigen::Vector4d q_y = Eigen::Vector4d::Zero();
+        // q_y(0) = std::cos(config.dY_des_angle/2);
+        // q_y(2) = std::sin(config.dY_des_angle/2);
+        // Eigen::Matrix3d rotMat_y = Utils<double>::quaternionToRotationMatrix(q_y);
 
-        Eigen::Vector4d q_z = Eigen::Vector4d::Zero();
-        q_z(0) = std::cos(config.dZ_des_angle/2);
-        q_z(3) = std::sin(config.dZ_des_angle/2);
-        Eigen::Matrix3d rotMat_z = Utils<double>::quaternionToRotationMatrix(q_z);
+        // Eigen::Vector4d q_z = Eigen::Vector4d::Zero();
+        // q_z(0) = std::cos(config.dZ_des_angle/2);
+        // q_z(3) = std::sin(config.dZ_des_angle/2);
+        // Eigen::Matrix3d rotMat_z = Utils<double>::quaternionToRotationMatrix(q_z);
 
-        //! this part has to be improved
-        Eigen::Matrix3d rotMat = rotMat_z*rotMat_y*rotMat_x * Utils<double>::quaternionToRotationMatrix(des_quat);
+        // //! this part has to be improved
+        // Eigen::Matrix3d rotMat = rotMat_z*rotMat_y*rotMat_x * Utils<double>::quaternionToRotationMatrix(des_quat);
 
-        _controller->set_desired_pose(des_pos+delta_pos,Utils<double>::rotationMatrixToQuaternion(rotMat));
+        _controller->set_desired_pose(des_pos+delta_pos,des_quat);
 
         double sc_inert_gain = config.Inertia_gain;
         double delta_inert_des = config.Inertia_desired;
@@ -495,12 +509,7 @@ int main (int argc, char **argv)
     ros::init(argc,argv, "iiwa_passive_track");
     ros::NodeHandle n;
 
-    Passive_Options options;
-
-    if(!n.getParam("options/filter_gain", options.filter_gain)){ROS_ERROR("Could not find option filter gain setting");}
-
-
-    std::unique_ptr<IiwaRosMaster> IiwaTrack = std::make_unique<IiwaRosMaster>(n,frequency,options);
+    std::unique_ptr<IiwaRosMaster> IiwaTrack = std::make_unique<IiwaRosMaster>(n,frequency);
 
     if (!IiwaTrack->init()){
         return -1;
