@@ -98,7 +98,6 @@ class IiwaRosMaster
         _EEVelPublisher = _n.advertise<geometry_msgs::Twist>(ns+"/ee_info/Vel",1);
         _InertiaPublisher = _n.advertise<geometry_msgs::Inertia>(ns+"/Inertia/taskPosInv", 1);
         _DirGradPublisher = _n.advertise<std_msgs::Float64MultiArray>(ns+"/Inertia/dirGrad",1);
-        _EEDesVelPublisher = _n.advertise<geometry_msgs::Twist>(ns+"/ee_info/DesVel",1);
 
         // Get the URDF XML from the parameter server
         std::string urdf_string, full_param;
@@ -235,8 +234,7 @@ class IiwaRosMaster
                 publishEEInfo();
                 publishInertiaInfo();
                 publishDirInertiaGrad();
-                publishEEDesVel();
-            
+
                 // publishPlotVariable(_controller->getPlotVariable());
                 
             _mutex.unlock();
@@ -266,7 +264,6 @@ class IiwaRosMaster
     ros::Publisher _EEVelPublisher;
     ros::Publisher _InertiaPublisher;
     ros::Publisher _DirGradPublisher;
-    ros::Publisher _EEDesVelPublisher;
 
     ros::Publisher _plotPublisher;
 
@@ -415,19 +412,6 @@ class IiwaRosMaster
         }
     }
 
-    void publishEEDesVel(){
-        geometry_msgs::Twist msg;
-  
-        Eigen::Vector3d vel =  _controller->getEEDesVel();
-        // Eigen::Vector3d angVel =  _controller->dsContOri->get_output();
-
-        msg.linear.x = vel[0];msg.linear.y = vel[1];msg.linear.z = vel[2];
-        // msg.angular.x = angVel[0];msg.angular.y = angVel[1];msg.angular.z = angVel[2];
-
-        _EEDesVelPublisher.publish(msg);
-    }
-
-    //TODO clean the optitrack
     void updateControlPos(const geometry_msgs::Pose::ConstPtr& msg){
         Eigen::Vector3d pos;
         Eigen::Vector4d quat;

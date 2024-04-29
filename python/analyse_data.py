@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
 import time
-# from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression
 import mplcursors
 from matplotlib.patches import Rectangle
 from matplotlib.cm import ScalarMappable
@@ -681,9 +681,9 @@ if __name__== "__main__" :
 
 
     ### Plot functions
-    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
-    plot_orientation_vs_distance(clean_df, axis="z")
+    # plot_orientation_vs_distance(clean_df, axis="z")
     # flux_hashtable(clean_df)
     # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
 
