@@ -8,3 +8,5 @@ time_object_record: 1.2 # seconds of recording object position after hitting (mu
 post_hit_record: 0.2 # seconds of recording robot data after going to REST mode 
 
 object_mass: 0.4 # used to calculate directional flux when recording
+
+gmt_offset : 2 # hours -> 1h winter time, 2h in summer 
