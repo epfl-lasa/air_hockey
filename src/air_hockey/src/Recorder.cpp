@@ -15,6 +15,10 @@ bool Recorder::init() {
 
   if (!nh_.getParam("desired_fluxes_filename",fluxFilename_)) { ROS_ERROR("Param automatic not found"); }
 
+  // grab gmt offset for correct timestamps
+  if (!nh_.getParam("gmt_offset", gmt_offset_)) { ROS_ERROR("Param gmt_offset not found"); }
+  gmt_offset_ *= 3600 ; // convert to seconds 
+
   // Get topics names
   if (!nh_.getParam("recorder_topic", FSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
 
@@ -428,7 +432,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
 
     // Write single value info in first row
     outFile << "DesiredFlux," << hittingFluxDes_[robot_name] << ","
-            << "HitTime," <<std::setprecision(std::numeric_limits<double>::max_digits10) << hittingTime_[robot_name].toSec() + 3600  << ","
+            << "HitTime," <<std::setprecision(std::numeric_limits<double>::max_digits10) << hittingTime_[robot_name].toSec() + gmt_offset_  << ","
             << "DesiredPos," << desiredPosition_[robot_name].transpose() << "\n";
 
     // Write CSV header
@@ -438,7 +442,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
     for (const auto& state : robotStatesVector_[robot_name]) {
         // Write CSV row
         outFile << state.robot_name << ","
-                << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec() + 3600 << "," // add precision and 1h for GMT
+                << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec() + gmt_offset_ << "," // add precision and 1h for GMT
                 << state.joint_pos.transpose() << ","
                 << state.joint_vel.transpose() << ","
                 << state.joint_effort.transpose() << ","
@@ -476,7 +480,7 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
     // Write each RobotState structure to the file
     for (const auto& state : objectStatesVector_) {
         // outFile << "Object Name: " << state.robot_name << "\n";
-        outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
+        outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+gmt_offset_ << "," // add precision and 1h for GMT
                 << state.position_for_base_1.transpose() << ","
                 << state.orientation_for_base_1.transpose() << ","
                 << state.position_for_base_2.transpose() << ","
@@ -492,7 +496,7 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
         // Write each RobotState structure to the file
     for (const auto& state : objectStatesVectorManual_) {
         // outFile << "Object Name: " << state.robot_name << "\n";
-        outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
+        outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+gmt_offset_ << "," // add precision and 1h for GMT
                 << state.position_for_base_1.transpose() << ","
                 << state.orientation_for_base_1.transpose() << ","
                 << state.position_for_base_2.transpose() << ","
@@ -562,7 +566,7 @@ void Recorder::setUpRecordingDir(){
 
   // Convert the current time to a string
   std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
-  currentTime += 3600; // add 1h for GMT correct time (due to docker not having correct timezone)
+  currentTime += gmt_offset_; // add 1h for GMT correct time (due to docker not having correct timezone)
   std::tm* timeinfo = std::localtime(&currentTime);
   std::stringstream ss;
   ss << std::put_time(timeinfo, "%Y-%m-%d_%H:%M:%S");

@@ -93,6 +93,8 @@ private:
   bool isAuto_;
   bool isFluxFixed_;
 
+  double gmt_offset_;
+
   FSMState fsmState_;
 
   std::string recordingFolderPath_;

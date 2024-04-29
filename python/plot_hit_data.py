@@ -350,7 +350,7 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
 
     for hit in hit_numbers:
         
-        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit}.csv"
+        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_{object_number}_hit_{hit}.csv"
         
         if os.path.exists(path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit}.csv"):
             path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit}.csv"
@@ -657,7 +657,7 @@ if __name__== "__main__" :
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
     # READ from file using index or enter manually
-    read_hit_info_from_file = True
+    read_hit_info_from_file = False
 
     ### Plots variables
     if read_hit_info_from_file:
@@ -670,10 +670,10 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-04-25_16:38:24"
-        hit_number =  8 #[2,3,4,5,6] #[16,17] #[x for x in range(1,20)]
-        iiwa_number = 7
-    
+        folder_name = "2024-04-29_12:02:08"
+        hit_number =  2 #[2,3,4,5,6] #[16,17] #[x for x in range(1,20)]
+        iiwa_number = 14
+        object_number = 1
 
     ### DATA TO PLOT 
     plot_this_data = ["Flux","Object","Torque","Inertia", "Vel", "Pos" ]#"Grad","Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
@@ -682,7 +682,7 @@ if __name__== "__main__" :
     # PLOT FOR SINGLE HIT 
     if isinstance(hit_number, int) :
         path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit_number}.csv"
-        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
+        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_{object_number}_hit_{hit_number}.csv"
 
         # Plot one hit info with hit time 
         plot_actual_vs_des(path_to_robot_hit, path_to_object_hit, data_to_plot=plot_this_data)
@@ -690,6 +690,6 @@ if __name__== "__main__" :
     
     # PLOT SEVERAL HITS (hit_number should be a list)
     elif isinstance(hit_number, list):
-        plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
+        plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, object_number, data_to_plot=plot_this_data)
 
     

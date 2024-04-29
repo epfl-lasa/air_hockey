@@ -538,6 +538,7 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
 AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
 
   float pos_threshold = 1*1e-2;
+  float pos_threshold_14 = 2.5*1e-2;
   float vel_threshold = 1*1e-3;
   
   // update return position, if not possible, do not change state 
@@ -554,14 +555,14 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
       next_hit_ = NONE;
       setReturnPositionToInitial();
     }
-    if(next_hit_ == IIWA_14 && norm_iiwa14 < pos_threshold && iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
+    if(next_hit_ == IIWA_14 && norm_iiwa14 < pos_threshold_14 && iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
       current_state.mode_iiwa14 = HIT;
       next_hit_ = NONE;
       setReturnPositionToInitial();
     }
   }
   if(isAuto_){ // Then set to HIT depending on norm of both robots
-    if(norm_iiwa7 < pos_threshold && norm_iiwa14 < pos_threshold && 
+    if(norm_iiwa7 < pos_threshold && norm_iiwa14 < pos_threshold_14 && 
             iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold && 
             iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
 
