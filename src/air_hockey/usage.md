@@ -28,7 +28,7 @@ Computer 2 --> connected to iiwa14 (= iiwa2 = iiwa right)
 
 To facilitate starting commands, we connect via ssh form Computer 1 to Computer 2 :
 ```bash
-ssh elise@128.178.96.118
+ssh elise@128.178.96.208
 ```
 
 You should have 4 terminals, 3 connected to the docker container on Computer 1 and one on the docker container on Computer 2. From now on, Computer 2 will refer to that last terminal (connected via ssh)

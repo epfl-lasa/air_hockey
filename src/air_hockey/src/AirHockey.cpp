@@ -135,11 +135,15 @@ bool AirHockey::init() {
   // Get hitting parameters
   std::vector<double> dquat1;
   std::vector<double> dquat2;
-  if (!nh_.getParam("/iiwa1/target/iiwa1/quat", dquat1)) { ROS_ERROR("Param /iiwa1/target/iiwa1/quat not found"); }
+  if (!nh_.getParam("/iiwa1/target/iiwa1/quat", dquat1)){
+    if (!nh_.getParam("/iiwa2/target/iiwa1/quat", dquat1)){
+      ROS_ERROR("Param /iiwa1/target/iiwa1/quat and /iiwa2/target/iiwa1/quat not found"); }}
   for (size_t i = 0; i < refQuat_[IIWA_7].size(); i++)
     refQuat_[IIWA_7](i) = dquat1[i]; 
-  if (!nh_.getParam("/iiwa1/target/iiwa2/quat", dquat2)) { ROS_ERROR("Param /iiwa1/target/iiwa2/quat not found"); }
-    for (size_t i = 0; i < refQuat_[IIWA_14].size(); i++)
+  if (!nh_.getParam("/iiwa1/target/iiwa2/quat", dquat2)){ 
+    if (!nh_.getParam("/iiwa2/target/iiwa2/quat", dquat2)){ 
+      ROS_ERROR("Param /iiwa1/target/iiwa2/quat and /iiwa2/target/iiwa2/quat not found"); }}
+  for (size_t i = 0; i < refQuat_[IIWA_14].size(); i++)
     refQuat_[IIWA_14](i) = dquat2[i]; 
 
   if (!nh_.getParam("iiwa7/return_position/x", returnPosInitial_[IIWA_7][0])) { ROS_ERROR("Param ref_quat/x not found"); }
