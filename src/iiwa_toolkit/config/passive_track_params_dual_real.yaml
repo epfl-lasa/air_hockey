@@ -2,7 +2,7 @@ use_rqt: False # set to True to use rqt reconfigure
 
 control:
     iiwa1:
-      dsGainPos: 2.0 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
+      dsGainPos: 1.8 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
       lambda0Pos: 120 # 100 # config 1: 120 #     #70.0 #80.0
       lambda1Pos: 80 # config 1: 80 #   ##35.0 40.0
       alphaPos: 50 #150.0  # gain on desired vel during hit (too high from lam0 makes it deviate)

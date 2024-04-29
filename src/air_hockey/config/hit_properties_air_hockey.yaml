@@ -11,12 +11,12 @@ desired_fluxes_filename: "high_fluxes.txt" # This file MUSt be in 'desired_hitti
 
 iiwa7:
   
-  hitting_flux : 1.2
+  hitting_flux : 0.4
 
   return_position:
     x: 0.55
     y: -0.05
-    z: 0.25 # config 1 :0.22
+    z: 0.22 # config 1 :0.22
 
   hit_direction:
     x: 0
@@ -26,7 +26,7 @@ iiwa7:
   object_offset:
     x : 0.0 #0.02 0.04
     y : -0.11 #-0.15
-    z : -0.12 # config 1: -0.06 # -0.05 #-0.12 #-0.05
+    z : -0.06 # config 1: -0.06 # -0.05 #-0.12 #-0.05
   
   # position to go to before hiting, relative to object center + object_offset
   placement_offset:  
@@ -37,7 +37,7 @@ iiwa7:
 
 iiwa14:
 
-  hitting_flux : 1.2
+  hitting_flux : 0.4
   
   return_position:
     x: 0.55 
