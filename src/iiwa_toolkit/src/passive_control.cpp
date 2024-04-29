@@ -696,22 +696,17 @@ void PassiveControl::computeTorqueCmd(){
         // er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
 
         // compute null torque
-        // if (er_null.norm()>2e-1){
-        //     std::cout << "CLAMPING ER NULL" << er_null.norm() << std::endl;
-        //     er_null = 0.2*er_null.normalized();
-        // }
         for (int i =0; i<7; i++){ 
             tmp_null_trq[i] = -null_stiffness[i] * er_null[i];
             tmp_null_trq[i] += -null_damping[i] * _robot.jnt_velocity[i];
-
         }
-        tmp_null_trq = null_space_projector* tmp_null_trq; //10 *
+        tmp_null_trq = null_space_projector*tmp_null_trq; //10  
 
         // std::cout << "null damping " << null_damping << std::endl;
         // std::cout << "null torque" << tmp_null_trq << std::endl;
 
         // Add up null space torques
-        _trq_cmd =  tmp_jnt_trq + tmp_null_trq; //  //+ ;
+        _trq_cmd = tmp_jnt_trq + tmp_null_trq; //  //+ ;
     }
    
     // Gravity Compensationn
