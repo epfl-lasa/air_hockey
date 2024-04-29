@@ -130,11 +130,11 @@ PassiveControl::PassiveControl(const std::string& urdf_string,const std::string&
     // parameters.emplace_back(make_shared_parameter("damping", d));
     // twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::VELOCITY_IMPEDANCE, parameters); 
 
-    parameters.emplace_back(make_shared_parameter("linear_principle_damping", 150.0));
-    parameters.emplace_back(make_shared_parameter("linear_orthogonal_damping",100.0));
-    parameters.emplace_back(make_shared_parameter("angular_stiffness", 0.0));
-    parameters.emplace_back(make_shared_parameter("angular_damping", 0.0));
-    twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::COMPLIANT_TWIST, parameters); //, *model_
+    // parameters.emplace_back(make_shared_parameter("linear_principle_damping", 150.0));
+    // parameters.emplace_back(make_shared_parameter("linear_orthogonal_damping",100.0));
+    // parameters.emplace_back(make_shared_parameter("angular_stiffness", 0.0));
+    // parameters.emplace_back(make_shared_parameter("angular_damping", 0.0));
+    // twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::COMPLIANT_TWIST, parameters); //, *model_
 
     // ORIENTATION CONTROL - AICA
     // Eigen::VectorXd ds_target_pos = Eigen::Vector3d(0.0, 0.0, 0.0);
