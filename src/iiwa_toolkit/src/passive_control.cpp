@@ -136,6 +136,23 @@ PassiveControl::PassiveControl(const std::string& urdf_string,const std::string&
     // parameters.emplace_back(make_shared_parameter("angular_damping", 0.0));
     // twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::COMPLIANT_TWIST, parameters); //, *model_
 
+    // ORIENTATION CONTROL - AICA
+    // Eigen::VectorXd ds_target_pos = Eigen::Vector3d(0.0, 0.0, 0.0);
+    // Eigen::Quaterniond ds_target_q = Eigen::Quaterniond(0.0, -0.707, 0.707, 0.0);
+    // ds_target.set_position(ds_target_pos);
+    // ds_target.set_orientation(ds_target_q);
+    // // NOT WORKING, do i need to set reference frame ???
+
+    // parameters_ds.emplace_back(make_shared_parameter("attractor", ds_target));
+    // parameters_ds.emplace_back(make_shared_parameter("gain", 1.0));
+    // orientation_ds = CartesianDynamicalSystemFactory::create_dynamical_system(DYNAMICAL_SYSTEM_TYPE::POINT_ATTRACTOR, parameters_ds);
+
+    // parameters.emplace_back(make_shared_parameter("linear_principle_damping", 0.0));
+    // parameters.emplace_back(make_shared_parameter("linear_orthogonal_damping",0.0));
+    // parameters.emplace_back(make_shared_parameter("angular_stiffness", 1.0));
+    // parameters.emplace_back(make_shared_parameter("angular_damping", 1.0));
+    // orient_twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::COMPLIANT_TWIST, parameters);
+
     // _robot.nulljnt_position << 0.0, 0.0, 0.0, -.75, 0., 0.0, 0.0;
     // _robot.nulljnt_position << -1.09, 1.59, 1.45, -1.6, -2.81, 0.0, 0.0; // inertia
     // _robot.nulljnt_position << 0.00, -0.6, 0.50, -1.7, 0.00, 0.00, 0.0; // manipulability  0.00, -0.6, 0.00, -1.7, 0.00, 0.00, 0.0;
@@ -204,9 +221,6 @@ Eigen::Vector3d PassiveControl::getEEVel(){
 }
 Eigen::Vector3d PassiveControl::getEEAngVel(){
     return _robot.ee_angVel;
-}
-Eigen::Vector3d PassiveControl::getEEDesVel(){
-    return dsContPos->get_output();
 }
 
 Eigen::MatrixXd PassiveControl::jointToTaskInertia(const Eigen::MatrixXd& Jac, const Eigen::MatrixXd& joint_inertia){
@@ -284,6 +298,9 @@ void PassiveControl::set_desired_pose(const Eigen::Vector3d& pos, const Eigen::V
     _robot.ee_des_pos = pos;
     _robot.ee_des_quat = quat;
     is_just_velocity = false;
+
+    // ds_target.set_orientation(quat);
+    // orientation_ds.set_attractor(ds_target); -> create as a point attractor ds for this to wrok ??
     // pos_ramp_up = true;
     // ramp_up_vel = true;
     // get_initial_ee_des_vel = true;
@@ -314,7 +331,6 @@ void PassiveControl::set_desired_velocity(const Eigen::Vector3d& vel){
         reset_lambda_1 = false;
         reset_lambda_2 = true;
     }
-    
 }
 
 void PassiveControl::set_load(const double& mass ){
@@ -575,6 +591,24 @@ void PassiveControl::computeTorqueCmd(){
             dsContOri->update(_robot.ee_angVel,_robot.ee_des_angVel, false);
             Eigen::Vector3d wrenchAng = dsContOri->get_output();
             tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
+
+            // USIGN AICA ORIENTATION
+            // DS
+            // feedback_state.set_orientation(_robot.ee_quat);
+            // auto desired_twist = orientation_ds->evaluate(feedback_state); 
+            // feedback_state.set_twist(desired_twist.get_twist());
+            // // CTRL
+            // Eigen::VectorXd actual_twist = Eigen::VectorXd::Zero(6);
+            // actual_twist.tail(3) = _robot.ee_angVel;
+            // command_state.set_twist(actual_twist);
+            // auto command_output = orient_twist_ctrl->compute_command(command_state, feedback_state);
+            // Eigen::VectorXd wrench = command_output.get_wrench();
+            // Eigen::Vector3d wrenchAng = wrench.tail(3);
+            // tmp_jnt_trq_ang = _robot.jacobAng.transpose() * wrenchAng;
+
+            // std::cout << "ds twist is: " << desired_twist.get_twist() << std::endl;
+            // std::cout << "wrench is: " << wrench << std::endl;
+
         }
         else{
             // Impedance control for orientation torque

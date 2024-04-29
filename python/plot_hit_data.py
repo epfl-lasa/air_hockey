@@ -657,12 +657,12 @@ if __name__== "__main__" :
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
     # READ from file using index or enter manually
-    read_hit_info_from_file = False
+    read_hit_info_from_file = True
 
     ### Plots variables
     if read_hit_info_from_file:
-        index_to_plot = 789 ## FILL THIS IF ABOVE IS TRUE
-        file_to_read = "all_data_march_clean.csv"
+        index_to_plot = 79 ## FILL THIS IF ABOVE IS TRUE
+        file_to_read = "data_consistent_march.csv"
 
         processed_df = pd.read_csv(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/"+file_to_read, index_col="Index")
         folder_name = processed_df['RecSession'].loc[index_to_plot] # "2024-03-05_14:04:43"

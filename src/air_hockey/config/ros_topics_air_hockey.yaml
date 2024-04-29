@@ -14,7 +14,6 @@ iiwa: {
   info_7 : {
     pose: "/iiwa1/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
     vel: "/iiwa1/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
-    des_vel: "/iiwa1/ee_info/DesVel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
     joint_state : "/iiwa1/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
     trq_cmd : "/iiwa1/TorqueController/command", # Subscriber - iiwa commanded torque -  std_msgs::Float64MultiArray (REAL)
   },
@@ -22,7 +21,6 @@ iiwa: {
   info_14 : {
     pose: "/iiwa2/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
     vel: "/iiwa2/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
-    des_vel: "/iiwa2/ee_info/DesVel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
     joint_state : "/iiwa2/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
     trq_cmd : "/iiwa2/TorqueController/command", # Subscriber - iiwa commanded torque -  std_msgs::Float64MultiArray (REAL)
   },

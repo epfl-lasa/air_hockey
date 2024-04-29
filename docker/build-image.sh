@@ -2,7 +2,7 @@
 BASE_IMAGE_TAG=noetic
 IMAGE_NAME=air_hockey
 
-ROS_IP=$(hostname --ip-address | awk '{print $1}') #"128.178.96.208" #
+ROS_IP="128.178.96.208" #$(hostname --ip-address | awk '{print $1}') #
 
 # Setup ROS MASTER communication here -> Use ROS_IP for single PC setup
 ROS_MASTER_IP="128.178.145.165"

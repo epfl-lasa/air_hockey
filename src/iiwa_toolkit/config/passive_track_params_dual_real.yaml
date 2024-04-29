@@ -1,11 +1,11 @@
-use_rqt: false # set to True to use rqt reconfigure 
+use_rqt: False # set to True to use rqt reconfigure 
 
 control:
     iiwa1:
       dsGainPos: 2.0 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
-      lambda0Pos: 100 # config 1: 120 #     #70.0 #80.0
+      lambda0Pos: 100 # 100 # config 1: 120 #     #70.0 #80.0
       lambda1Pos: 70 # config 1: 80 #   ##35.0 40.0
-      alphaPos: 50 #150.0  # gain on desired vel during hit 
+      alphaPos: 50 #150.0  # gain on desired vel during hit (too high makes it deviate)
       lambda0PosHit: 40 # lambda 0 used during hit
       dsGainOri: 1.0 #2.5 #3.0
       lambda0Ori: 10.0 # 6.0 #5.0
@@ -33,8 +33,8 @@ control:
 target:
     iiwa1:
       pos: [0.55, -0.05, 0.22] 
-      quat: [0.0, -0.707, 0.707, 0.0] # config 1 [0.707, -0.707, 0.0, 0.0] #
-      null_pos : [-0.185, 0.678, 0.138, -1.581, -0.126, 0.920, -1.546] #config 1[-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
+      quat: [0.707, -0.707, 0.0, 0.0] 
+      null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81] #config 1[-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
     iiwa2:
       pos: [0.55, 0.05, 0.22]
       quat: [0.707, 0.707, 0.0, 0.0]  #[-0.707, -0.707, 0.0, 0.0]
@@ -48,9 +48,9 @@ inertia:
       desired : 5.0
       direction : [0.0, 1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
     iiwa2:
-      null_stiffness: [100.0, 80.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
-      null_damping: [10.0, 8.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
-      gain: 0.001 #1.0 #0.5 #0.001100.0
+      null_stiff: [100.0, 120.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
+      null_damp: [10.0, 12.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
+      gain: 1.0 #0.001 #1.0 #0.5 #0.001100.0
       desired : 10.0
       direction :  [0.0, -1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
 
