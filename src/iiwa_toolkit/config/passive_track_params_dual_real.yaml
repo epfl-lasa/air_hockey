@@ -16,10 +16,11 @@ control:
       ImpedancePosStiffness: [1800.0, 1800.0, 2000.0]
       ImpedancePosDamping: [43.3, 31.68, 37.19]
     iiwa2:
-      dsGainPos: 1.1 #1.3 #1.5 # 2.5
-      lambda0Pos: 100 #120 # 90 #100.0
+      dsGainPos: 2.0 #1.3 #1.5 # 2.5
+      lambda0Pos: 120 #120 # 90 #100.0
       lambda1Pos: 80 #60 # 30 #50.0 (lower than 30 to avoid oscillations when hitting)
       alphaPos: 50 #150.0
+      lambda0PosHit: 40 # lambda 0 used during hit
       dsGainOri: 1.0
       lambda0Ori: 8.0 #10.0
       lambda1Ori: 4.0 # 5.0
@@ -47,8 +48,8 @@ inertia:
       desired : 5.0
       direction : [0.0, 1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
     iiwa2:
-      null_stiff: [100.0, 80.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
-      null_damp: [10.0, 8.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
+      null_stiffness: [100.0, 80.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
+      null_damping: [10.0, 8.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
       gain: 0.001 #1.0 #0.5 #0.001100.0
       desired : 10.0
       direction :  [0.0, -1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey

@@ -130,11 +130,11 @@ PassiveControl::PassiveControl(const std::string& urdf_string,const std::string&
     // parameters.emplace_back(make_shared_parameter("damping", d));
     // twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::VELOCITY_IMPEDANCE, parameters); 
 
-    parameters.emplace_back(make_shared_parameter("linear_principle_damping", 150.0));
-    parameters.emplace_back(make_shared_parameter("linear_orthogonal_damping",100.0));
-    parameters.emplace_back(make_shared_parameter("angular_stiffness", 0.0));
-    parameters.emplace_back(make_shared_parameter("angular_damping", 0.0));
-    twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::COMPLIANT_TWIST, parameters); //, *model_
+    // parameters.emplace_back(make_shared_parameter("linear_principle_damping", 150.0));
+    // parameters.emplace_back(make_shared_parameter("linear_orthogonal_damping",100.0));
+    // parameters.emplace_back(make_shared_parameter("angular_stiffness", 0.0));
+    // parameters.emplace_back(make_shared_parameter("angular_damping", 0.0));
+    // twist_ctrl = CartesianControllerFactory::create_controller(CONTROLLER_TYPE::COMPLIANT_TWIST, parameters); //, *model_
 
     // _robot.nulljnt_position << 0.0, 0.0, 0.0, -.75, 0., 0.0, 0.0;
     // _robot.nulljnt_position << -1.09, 1.59, 1.45, -1.6, -2.81, 0.0, 0.0; // inertia
