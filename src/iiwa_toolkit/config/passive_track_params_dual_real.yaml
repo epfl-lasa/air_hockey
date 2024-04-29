@@ -3,9 +3,9 @@ use_rqt: False # set to True to use rqt reconfigure
 control:
     iiwa1:
       dsGainPos: 2.0 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
-      lambda0Pos: 100 # 100 # config 1: 120 #     #70.0 #80.0
-      lambda1Pos: 70 # config 1: 80 #   ##35.0 40.0
-      alphaPos: 50 #150.0  # gain on desired vel during hit (too high makes it deviate)
+      lambda0Pos: 120 # 100 # config 1: 120 #     #70.0 #80.0
+      lambda1Pos: 80 # config 1: 80 #   ##35.0 40.0
+      alphaPos: 50 #150.0  # gain on desired vel during hit (too high from lam0 makes it deviate)
       lambda0PosHit: 40 # lambda 0 used during hit
       dsGainOri: 1.0 #2.5 #3.0
       lambda0Ori: 10.0 # 6.0 #5.0
@@ -16,7 +16,7 @@ control:
       ImpedancePosStiffness: [1800.0, 1800.0, 2000.0]
       ImpedancePosDamping: [43.3, 31.68, 37.19]
     iiwa2:
-      dsGainPos: 2.0 #1.3 #1.5 # 2.5
+      dsGainPos: 1.8 #1.3 #1.5 # 2.5
       lambda0Pos: 120 #120 # 90 #100.0
       lambda1Pos: 80 #60 # 30 #50.0 (lower than 30 to avoid oscillations when hitting)
       alphaPos: 50 #150.0
@@ -38,7 +38,7 @@ target:
     iiwa2:
       pos: [0.55, 0.05, 0.22]
       quat: [0.707, 0.707, 0.0, 0.0]  #[-0.707, -0.707, 0.0, 0.0]
-      null_pos : [0.553, 1.128, -0.135, -1.358, -1.092, 1.783, -2.189] # config 2 : [0.524, 0.753, 0-0.199, -1.464, 0.136, 0.999, 1.849]
+      null_pos : [0.561, 1.193, -0.148, -1.296, -1.075, 1.836, -2.209] # config 2 : [0.524, 0.753, 0-0.199, -1.464, 0.136, 0.999, 1.849]
 
 inertia:
     iiwa1:
@@ -48,10 +48,10 @@ inertia:
       desired : 5.0
       direction : [0.0, 1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
     iiwa2:
-      null_stiff: [100.0, 120.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
-      null_damp: [10.0, 12.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
-      gain: 1.0 #0.001 #1.0 #0.5 #0.001100.0
-      desired : 10.0
+      null_stiffness: [100.0, 120.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
+      null_damping: [10.0, 12.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
+      gain: 1.0 #0.5 #0.001100.0
+      desired : 5.0
       direction :  [0.0, -1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
 
 start: # PD gains for starting phase 
@@ -59,5 +59,5 @@ start: # PD gains for starting phase
       stiffness: [110., 60.5, 60.5, 33., 20.625, 10.7375, 6.75] # 4.7375, 2.75
       damping: [18.75, 22.5, 18.75, 22.5 , 6., 1.0, 0.6 ] #0.6, 0.3 ]
     iiwa2:
-      stiffness: [200.0, 110.0, 110.0, 50.0, 20.5, 6.25, 4.5]
-      damping: [25.0, 30.0, 25.0, 15.0, 5.0, 1.1 , 0.8]
+      stiffness: [150.0, 90.0, 80.0, 50.0, 20.5, 6.25, 4.5]
+      damping: [22.0, 20.0, 15.0, 12.0, 5.0, 1.1 , 0.8]
