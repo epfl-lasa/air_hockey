@@ -14,6 +14,11 @@ bool AirHockey::init() {
   if (!nh_.getParam("time_to_wait",timeToWait_)) { ROS_ERROR("Param time to wait not found"); }
   waitDuration_= ros::Duration(timeToWait_);
 
+  // Set object mass for hitting DS 
+  if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
+  generateHitting7_->set_mass(objectMass_);
+  generateHitting14_->set_mass(objectMass_);
+
   // Get topics names
   if (!nh_.getParam("recorder_topic", pubFSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
 
@@ -160,7 +165,6 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/hit_direction/z", hitDirection_[IIWA_14][2])) {ROS_ERROR("Param hit_direction/z not found");}
   if (!nh_.getParam("iiwa7/hitting_flux", hittingFlux_[IIWA_7])) {ROS_ERROR("Param iiwa7/hitting_flux not found");}
   if (!nh_.getParam("iiwa14/hitting_flux", hittingFlux_[IIWA_14])) {ROS_ERROR("Param iiwa14/hitting_flux not found");}
-  if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
 
   if (!nh_.getParam("iiwa7/placement_offset/x", placementOffset_[IIWA_7][0])) { ROS_ERROR("Topic iiwa7/placement_offset/x not found"); }
   if (!nh_.getParam("iiwa7/placement_offset/y", placementOffset_[IIWA_7][1])) { ROS_ERROR("Topic iiwa7/placement_offset/y not found"); }
@@ -332,22 +336,24 @@ bool AirHockey::updateReturnPosition(){
 
   if(next_hit_ == IIWA_7){
     auto temp_pos = generateHitting7_->get_DS_attractor() + placementOffset_[IIWA_7];
-    if(temp_pos.norm() < objectSafetyDistance_){
+
+    // HARD CODED LIMITS to avoid oscillations in edge cases
+    if((temp_pos[0] < 0.65 || temp_pos[1] > 0.0) && temp_pos.norm() < objectSafetyDistance_){
       returnPos_[IIWA_7] = temp_pos;
       return true;
     }
-    else if(temp_pos.norm() >= objectSafetyDistance_){
+    else{ // if(temp_pos[0] >= 0.65 && temp_pos[1] <= 0.0){
       ROS_WARN("Object too far for pre-hit placement, REPLACE OBJECT!");
       return false;
     } 
   }
   else if(next_hit_ == IIWA_14){
     auto temp_pos = generateHitting14_->get_DS_attractor() + placementOffset_[IIWA_14];
-    if(temp_pos.norm() < objectSafetyDistance_){
+    if(temp_pos[0] < 0.65 || temp_pos[1] < 0.0 && temp_pos.norm() < objectSafetyDistance_){
       returnPos_[IIWA_14] = temp_pos;
       return true;
     }
-    else if(temp_pos.norm() >= objectSafetyDistance_){
+    else{ //} if(temp_pos[0] >= 0.65 && temp_pos[1] >= 0.0 ){
       ROS_WARN("Object too far for pre-hit placement, REPLACE OBJECT!");
       return false;
     } 
@@ -452,19 +458,20 @@ AirHockey::FSMState AirHockey::updateKeyboardControl(FSMState current_state ) {
       case 'q': {
         next_hit_ = IIWA_7;
         // current_state.mode_iiwa7 = HIT;
-        std::cout << "q is pressed " << std::endl;
+        std::cout << "q is pressed \n " << std::endl;
         
       } break;
       case 'p': {
         next_hit_ = IIWA_14;
         // current_state.mode_iiwa14 = HIT;
-        std::cout << "p is pressed " << std::endl;
+        std::cout << "p is pressed \n" << std::endl;
       } break;
       case 'r': {
         current_state.mode_iiwa7 = REST;
         current_state.mode_iiwa14 = REST;
         next_hit_ = NONE;
         setReturnPositionToInitial();
+        std::cout << "r is pressed \n" << std::endl;
       } break;
       case 'h': { // toggle isHit 
         if(current_state.isHit){ current_state.isHit = 0;}
@@ -670,11 +677,12 @@ void AirHockey::run() {
     // UPDATE robot state
     if(fsm_state.mode_iiwa7 == HIT){
       refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
       refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
-      update_flux_once = 1; // only update after 1 hit from each robot
+      // update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa7 == REST || fsm_state.isHit == 1){

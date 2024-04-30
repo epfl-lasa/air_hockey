@@ -96,6 +96,7 @@ The orientation quaternion has the format W-xyz.
 
 #### Configuration 1 
 
+Elbow up 
 ADD photo 
 
 target:
@@ -110,13 +111,14 @@ target:
 
 #### Configuration 2
 
+Elbow sideways
 ADD photo 
 
 target:
     iiwa1:
       pos: [0.55, -0.05, 0.22] 
       quat: [0.0, -0.707, 0.707, 0.0] # config 1 [0.707, -0.707, 0.0, 0.0] #
-      null_pos : [-0.185, 0.678, 0.138, -1.581, -0.126, 0.920, -1.546]
+      null_pos : [-1.125, 1.530, 1.193, -1.399, -2.819, -1.306, -0.355]
     iiwa2:
       pos: [0.55, 0.15, 0.22]
       quat: [-0.707, -0.707, 0.0, 0.0] 

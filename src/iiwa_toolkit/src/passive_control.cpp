@@ -310,7 +310,7 @@ void PassiveControl::set_desired_position(const Eigen::Vector3d& pos){
     is_just_velocity = false;
     if(reset_lambda_2){
         dsContPos->set_damping_eigval(lam0_return,lam1,alpha);
-        reset_lambda_1 = false;
+        reset_lambda_2 = false;
         reset_lambda_1 = true;
     }
 
@@ -501,6 +501,7 @@ void PassiveControl::computeTorqueCmd(){
 
             if(!is_just_velocity){
                 ee_des_vel   = zgain * dsGain_pos*(Eigen::Matrix3d::Identity()+xgain*std::exp(theta_g)) *deltaX;
+                // ee_des_vel   = dsGain_pos*(Eigen::Matrix3d::Identity()*std::exp(theta_g)) *deltaX;
             }
 
             // -----------------------get desired force in task space

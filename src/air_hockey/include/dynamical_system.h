@@ -30,7 +30,7 @@ class hitting_DS {
 private:
   float des_speed_ = 2.0;
   float m_obj_ = 0.4;
-  float sigma_ = 0.15; //0.2;// for the flux DS
+  float sigma_ = 0.2; //0.2;// for the flux DS
 
   Eigen::Vector3f current_position_;
   Eigen::Vector3f des_direction_ = Eigen::Vector3f::Zero(3);// to be updated in the main code of hitting
@@ -61,4 +61,5 @@ public:
   void set_current_position(Eigen::Vector3f current_position);
   void set_DS_attractor(Eigen::Vector3f DS_attractor);
   void set_gain(Eigen::Matrix3f gain);
+  void set_mass(float m_obj);
 };

@@ -4,8 +4,8 @@ control:
     iiwa1:
       dsGainPos: 1.8 #4.5 #8.0  # Used on desidred vel ONLY when receiving a desired Pose 
       lambda0Pos: 120 # 100 # config 1: 120 #     #70.0 #80.0
-      lambda1Pos: 80 # config 1: 80 #   ##35.0 40.0
-      alphaPos: 50 #150.0  # gain on desired vel during hit (too high from lam0 makes it deviate)
+      lambda1Pos: 70 # config 1: 80 #   ##35.0 40.0
+      alphaPos: 50 # 50 ##150.0  # gain on desired vel during hit (too high from lam0 makes it deviate)
       lambda0PosHit: 40 # lambda 0 used during hit
       dsGainOri: 1.0 #2.5 #3.0
       lambda0Ori: 10.0 # 6.0 #5.0
@@ -34,7 +34,7 @@ target:
     iiwa1:
       pos: [0.55, -0.05, 0.22] 
       quat: [0.707, -0.707, 0.0, 0.0] 
-      null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81] #config 1[-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
+      null_pos: [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81] # config 1: [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81] ## config 2 : [-1.125, 1.530, 1.193, -1.399, -2.819, -1.306, -0.355]
     iiwa2:
       pos: [0.55, 0.05, 0.22]
       quat: [0.707, 0.707, 0.0, 0.0]  #[-0.707, -0.707, 0.0, 0.0]
@@ -42,15 +42,15 @@ target:
 
 inertia:
     iiwa1:
-      null_stiffness: [100.0, 120.0, 50.0, 50.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
-      null_damping: [10.0, 12.0, 5.0, 5.0, 2.0, 1.0 ,1.0] 
+      null_stiffness: [50.0, 120.0, 40.0, 50.0, 15.0, 10.0, 10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
+      null_damping: [5.0, 12.0, 5.0, 5.0, 2.0, 3.0 ,1.0] 
       gain: 1.0 #1.0 #0.001
       desired : 5.0
       direction : [0.0, 1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
     iiwa2:
-      null_stiffness: [100.0, 150.0, 50.0, 30.0, 20.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
-      null_damping: [10.0, 15.0, 5.0, 3.0, 2.0, 1.0 ,1.0] 
-      gain: 0.5 #0.001 #1.0 #0.5 #0.001100.0
+      null_stiffness: [50.0, 150.0, 40.0, 50.0, 15.0, 10.0 ,10.0] # [5.0, 80.0, 10.0, 30.0, 5.0, 2.0 ,1.0] # # 
+      null_damping: [5.0, 15.0, 5.0, 5.0, 2.0, 3.0 ,1.0] 
+      gain: 1.0 #0.001 #1.0 #0.5 #0.001100.0
       desired : 5.0
       direction :  [0.0, -1.0, 0.0] # must be the same as the direction of hit_direction of AirHockey
 

@@ -70,3 +70,4 @@ void hitting_DS::set_des_direction(Eigen::Vector3f desired_direction) { des_dire
 void hitting_DS::set_current_position(Eigen::Vector3f current_position) { current_position_ = current_position; }
 void hitting_DS::set_DS_attractor(Eigen::Vector3f DS_attractor) { DS_attractor_ = DS_attractor; }
 void hitting_DS::set_gain(Eigen::Matrix3f gain) { gain_ = gain; }
+void hitting_DS::set_mass(float m_obj){ m_obj_ = m_obj;}

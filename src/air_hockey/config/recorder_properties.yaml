@@ -1,12 +1,10 @@
 
-autonomous_recording: True # If True, record hit automatically. If False record with keyboard keys 'R' and 'S'
+autonomous_recording: True # If True, record hit automatically. If False record with keyboard keys 'Z', 'M' and 'G'
 
 recorder_folder: "/home/ros/ros_ws/data/airhockey/"
 
-time_object_record: 1.2 # seconds of recording object position after hitting (must be lower than time between hits)
+time_object_record: 1.3 # seconds of recording object position after hitting (must be lower than time between hits)
 
 post_hit_record: 0.2 # seconds of recording robot data after going to REST mode 
-
-object_mass: 0.4 # used to calculate directional flux when recording
 
 gmt_offset : 2 # hours -> 1h winter time, 2h in summer 

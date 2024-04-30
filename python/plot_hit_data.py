@@ -9,6 +9,14 @@ from process_data import parse_list, parse_value, get_impact_time_from_object, g
 import pybullet
 from analyse_data import wrap_angle
 import math 
+
+
+def get_latest_folder(path_to_data_airhockey, folder_name): 
+    directories = os.listdir(path_to_data_airhockey)
+    sorted_directories = sorted(directories, key=lambda x: x, reverse=True)
+    folder_name = sorted_directories[0]    
+    return folder_name
+
 ## PLOT FUNCTIONS
 def plot_robot_data(csv_file, show_plot=True):
 
@@ -670,14 +678,17 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-04-29_12:02:08"
-        hit_number =  2 #[2,3,4,5,6] #[16,17] #[x for x in range(1,20)]
-        iiwa_number = 14
-        object_number = 1
+        folder_name ="latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
+        hit_number = [x for x in range(1,15)]  # ##[2,3,4,5,6] #[16,17] #
+        iiwa_number = 7
+        object_number = 2
 
     ### DATA TO PLOT 
-    plot_this_data = ["Flux","Object","Torque","Inertia", "Vel", "Pos" ]#"Grad","Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
-
+    plot_this_data = ["Flux","Inertia", "Vel" ,"Object"]#,"Torque", "Pos","Grad","Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+       
+    # Get the latest folder
+    if(folder_name == "latest"):
+        folder_name = get_latest_folder(path_to_data_airhockey, folder_name)
 
     # PLOT FOR SINGLE HIT 
     if isinstance(hit_number, int) :
