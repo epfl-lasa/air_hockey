@@ -5,8 +5,13 @@ This package contains the high-level control for the Air Hockey framework. It co
 - a recorder node handling the recording of data when hitting. It records both the object and robot state.
 - an optitrack node to transform the raw optitrack data to the base of each robot for cleaner data collection
 
+## AirHockey Finite State Machine
+![AirHockey FSM](../../media/AirHockey_FSM.png)
 
-TODO : add airhockey logic digram 
+## Recorder Internal Logic
+![Recorder Logic](../../media/Recorder_logic.png)
+
+TODO : update diagram with correct notation !!
 
 ## Requirements
 

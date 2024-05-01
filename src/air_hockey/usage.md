@@ -3,8 +3,6 @@
 The Air_hockey package consists of two nodes: one for high level control of both robots and one to record the data of each hit, respectively called AirHockey and Recorder.
 The provided launch files starts both nodes automatically.
 
-![AirHockey FSM](../../media/AirHockey_FSM.png)
-
 ## Recorder
 
 The recorder can either record hits automatically or with the keyboard using:
@@ -47,7 +45,7 @@ Computer 2 --> connected to iiwa14 (= iiwa2 = iiwa right)
 
 #### Terminal setup 
 
-To facilitate starting commands, we connect via ssh form Computer 1 to Computer 2 :
+To facilitate starting commands, we connect via ssh from Computer 1 to Computer 2 :
 ```bash
 ssh elise@128.178.96.208
 ```
