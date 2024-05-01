@@ -1,5 +1,23 @@
 # Air_hockey - Usage
 
+The Air_hockey package consists of two nodes: one for high level control of both robots and one to record the data of each hit, respectively called AirHockey and Recorder.
+The provided lalunch files stats both nodes automatically.
+
+## Recorder
+
+The recorder can either record hits automatically or with the keyboard using:
+'Z' to start recording IIWA7
+'M' to start recording IIWA14
+'G' to stop recording
+Note: You can only record one robot at a time 
+
+The recorded data for each robot is :
+RobotName, RosTime, JointPosition, JointVelocity, JointEffort, TorqueCmd, EEF_Position, EEF_Orientation, EEF_Velocity, EEF_DesiredVelocity, Inertia, DirGrad, HittingFlux
+
+The recorded data for the object is :
+RosTime, PositionForIiwa7, OrientationForIiwa7, PositionForIiwa14, OrientationForIiwa14
+
+
 ## Simulation
 
 Run the docker container, then in one terminal, launch the gazebo simulation:
