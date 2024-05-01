@@ -545,7 +545,7 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
 AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
 
   float pos_threshold_7 = 2*1e-2;
-  float pos_threshold_14 = 2.5*1e-2;
+  float pos_threshold_14 = 4*1e-2;
   float vel_threshold = 1*1e-3;
   
   // update return position, if not possible, do not change state 
@@ -677,12 +677,12 @@ void AirHockey::run() {
     // UPDATE robot state
     if(fsm_state.mode_iiwa7 == HIT){
       refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
-      update_flux_once = 1; // only update after 1 hit from each robot
+      // update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
       refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
-      // update_flux_once = 1; // only update after 1 hit from each robot
+      update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa7 == REST || fsm_state.isHit == 1){
