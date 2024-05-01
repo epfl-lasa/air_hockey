@@ -8,7 +8,8 @@ This repository contains the complete code for the data collection framework dub
 
 TODO : 
 - cite Harhsit's paper
-
+- update diagram with correct notation !!
+- make diagrams transparent
 
 ## Setup 
 
