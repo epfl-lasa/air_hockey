@@ -392,7 +392,7 @@ void Recorder::recordObjectMovedByHand(int hit_count){
 
   bool manual = true;
   float stopped_threshold = 2*1e-4;
-  float moving_threshold = 1e-2;
+  float moving_threshold = 5e-3;
   float norm = (previousObjectPosition_-objectPositionForIiwa_[IIWA_7]).norm();
   if(norm == 0){return;} // object callback has not yet been updated
   // Need to update prevPosition -> we consider object cannot manually be moved more than 10cm in 5ms

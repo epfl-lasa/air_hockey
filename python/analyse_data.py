@@ -424,9 +424,9 @@ def flux_hashtable(df, use_mplcursors=True):
 
 def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
 
-    # fig, axes = plt.subplots(2, 1, figsize=(12, 8))# , sharex=True
-    fig_iiwa7 ,ax_iiwa7 = plt.subplots()
-    fig_iiwa14, ax_iiwa14 = plt.subplots()
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8))# , sharex=True
+    # fig_iiwa7 ,ax_iiwa7 = plt.subplots()
+    # fig_iiwa14, ax_iiwa14 = plt.subplots()
 
     # Random selection
     if selection == "all":
@@ -469,25 +469,25 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
             rec_sess = row["RecSession"].replace(":","_")
         else : rec_sess = row["RecSession"]
         
-        obj_fn = data_folder + rec_sess + f"/object_hit_{row['HitNumber']}.csv"
+        obj_fn = data_folder + rec_sess + f"/object_2_hit_{row['HitNumber']}.csv"
         
-        # df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
-        df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list})
+        df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+        # df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list})
 
         if row['IiwaNumber']==7 :
             
-            # axes[0].plot(df_obj['PositionForIiwa7'].apply(lambda x: x[1]), df_obj['PositionForIiwa7'].apply(lambda x: x[0]), alpha=0.8)
-            # axes[0].scatter(df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0], label=f"idx:{index}")
-            # start_pos0.append([df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0]])
-            ax_iiwa7.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
-            scatter_iiwa7 = ax_iiwa7.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
-            start_pos0.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
+            axes[0].plot(df_obj['PositionForIiwa7'].apply(lambda x: x[1]), df_obj['PositionForIiwa7'].apply(lambda x: x[0]), alpha=0.8)
+            scatter_iiwa7 = axes[0].scatter(df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0], label=f"idx:{index}")
+            start_pos0.append([df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0]])
+            # ax_iiwa7.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
+            # scatter_iiwa7 = ax_iiwa7.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
+            # start_pos0.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
             
-            ax_iiwa7.set_xlabel('Y Axis [m]')
-            ax_iiwa7.set_ylabel('X Axis [m]')
-            ax_iiwa7.grid(True)
-            ax_iiwa7.set_aspect('equal')
-            ax_iiwa7.set_title("Object trajectories for IIWA 7")
+            # ax_iiwa7.set_xlabel('Y Axis [m]')
+            # ax_iiwa7.set_ylabel('X Axis [m]')
+            # ax_iiwa7.grid(True)
+            # ax_iiwa7.set_aspect('equal')
+            # ax_iiwa7.set_title("Object trajectories for IIWA 7")
             
             # Adding info when clicking cursor
             if use_mplcursors:
@@ -496,47 +496,47 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
         if row['IiwaNumber']==14 :
             
             # inverted to adpat to optitrack reference frame
-            # axes[1].plot(df_obj['PositionForIiwa14'].apply(lambda x: x[1]), df_obj['PositionForIiwa14'].apply(lambda x: x[0]))
-            # axes[1].scatter(df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0], label=f"idx:{index}")
-            # start_pos1.append([df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0]])
-            ax_iiwa14.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
-            scatter_iiwa14 = ax_iiwa14.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
-            start_pos1.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
+            axes[1].plot(df_obj['PositionForIiwa14'].apply(lambda x: x[1]), df_obj['PositionForIiwa14'].apply(lambda x: x[0]))
+            scatter_iiwa14 = axes[1].scatter(df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0], label=f"idx:{index}")
+            start_pos1.append([df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0]])
+            # ax_iiwa14.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
+            # scatter_iiwa14 = ax_iiwa14.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
+            # start_pos1.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
 
             
-            ax_iiwa14.set_xlabel('Y Axis [m]')
-            ax_iiwa14.set_ylabel('X Axis [m]')
-            ax_iiwa14.grid(True)
-            ax_iiwa14.set_aspect('equal')
-            ax_iiwa14.set_title("Object trajectories for IIWA 14")
+            # ax_iiwa14.set_xlabel('Y Axis [m]')
+            # ax_iiwa14.set_ylabel('X Axis [m]')
+            # ax_iiwa14.grid(True)
+            # ax_iiwa14.set_aspect('equal')
+            # ax_iiwa14.set_title("Object trajectories for IIWA 14")
             
             # Adding info when clicking cursor
             if use_mplcursors:
                 mplcursors.cursor(scatter_iiwa14, hover=False).connect('add', lambda sel: sel.annotation.set_text(sel.artist.get_label()))   
 
-    df_iiwa7 = df[df['IiwaNumber']==7].copy()
-    df_iiwa14 = df[df['IiwaNumber']==14].copy()
-    scatter_iiwa7 = ax_iiwa7.scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    scatter_iiwa14 = ax_iiwa14.scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    cbar = plt.colorbar(scatter_iiwa7)
-    cbar.set_label('Orientation Error in Z-axis [deg]')
-    
-    cbar2 = plt.colorbar(scatter_iiwa14)
-    cbar2.set_label('Orientation Error in Z-axis [deg]')
-    
-    # add colors
     # df_iiwa7 = df[df['IiwaNumber']==7].copy()
     # df_iiwa14 = df[df['IiwaNumber']==14].copy()
-    # axes[0].scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    # scatter = axes[1].scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    # cbar = plt.colorbar(scatter, ax=axes.ravel().tolist())
+    # scatter_iiwa7 = ax_iiwa7.scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
+    # # scatter_iiwa14 = ax_iiwa14.scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
+    # cbar = plt.colorbar(scatter_iiwa7)
     # cbar.set_label('Orientation Error in Z-axis [deg]')
+    
+    # # cbar2 = plt.colorbar(scatter_iiwa14)
+    # # cbar2.set_label('Orientation Error in Z-axis [deg]')
+    
+    # add colors
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+    scatter = axes[0].scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
+    # axes[1].scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
+    cbar = plt.colorbar(scatter, ax=axes.ravel().tolist())
+    cbar.set_label('Orientation Error in Z-axis [deg]')
 
-    # for ax in axes:
-    #     ax.set_xlabel('Y Axis [m]')
-    #     ax.set_ylabel('X-axis [m]')
-    #     ax.grid(True)
-    #     ax.set_aspect('equal')
+    for ax in axes:
+        ax.set_xlabel('Y Axis [m]')
+        ax.set_ylabel('X-axis [m]')
+        ax.grid(True)
+        ax.set_aspect('equal')
         
     # move bottom ax for pretty -> DOESN'T WORK
     # ax_pos = axes[1].get_position()
@@ -667,13 +667,13 @@ if __name__== "__main__" :
     processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
     
     ### Datafile to use
-    csv_fn ="data_consistent_march" #"data_test_april"#  #"data_consistent_march"
+    csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
     df = pd.read_csv(processed_data_folder+csv_fn+".csv", index_col="Index", converters={
         'ObjectPos' : parse_strip_list_with_commas, 'HittingPos': parse_strip_list_with_commas, 
-        'ObjectOrientation' : parse_strip_list, 'HittingOrientation': parse_strip_list})#_with_commas
+        'ObjectOrientation' : parse_strip_list, 'HittingOrientation': parse_strip_list_with_commas})#
     
     clean_df = clean_data(df)
     # Saving clean df
@@ -684,8 +684,9 @@ if __name__== "__main__" :
     plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")
-    # flux_hashtable(clean_df)
+    flux_hashtable(clean_df)
     # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
+    # plot_object_trajectory(clean_df, use_mplcursors=True, selection="all")
 
 
     # test_gmm_torch(clean_df)

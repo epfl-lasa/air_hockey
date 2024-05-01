@@ -349,11 +349,12 @@ bool AirHockey::updateReturnPosition(){
   }
   else if(next_hit_ == IIWA_14){
     auto temp_pos = generateHitting14_->get_DS_attractor() + placementOffset_[IIWA_14];
-    if(temp_pos[0] < 0.65 || temp_pos[1] < 0.0 && temp_pos.norm() < objectSafetyDistance_){
+    if(0.2 <= temp_pos[0] && temp_pos[0] <= 0.65 && -0.05 <= temp_pos[1] && temp_pos[1] <= 0.15 && temp_pos.norm() < objectSafetyDistance_){
       returnPos_[IIWA_14] = temp_pos;
       return true;
     }
     else{ //} if(temp_pos[0] >= 0.65 && temp_pos[1] >= 0.0 ){
+      std::cout << "desired EE position : " << temp_pos << std::endl;
       ROS_WARN("Object too far for pre-hit placement, REPLACE OBJECT!");
       return false;
     } 
@@ -677,12 +678,12 @@ void AirHockey::run() {
     // UPDATE robot state
     if(fsm_state.mode_iiwa7 == HIT){
       refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
-      // update_flux_once = 1; // only update after 1 hit from each robot
+      update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
       refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
-      update_flux_once = 1; // only update after 1 hit from each robot
+      // update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa7 == REST || fsm_state.isHit == 1){

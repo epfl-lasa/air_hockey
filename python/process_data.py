@@ -243,9 +243,9 @@ def get_info_at_hit_time(robot_csv, object_csv):
     # Should be ordered in the same way as output file columns
     return [recording_session, hit_number, iiwa_number, des_flux, hitting_flux,  distance_travelled,  hitting_dir_inertia, des_pos, hitting_pos, object_orient, hitting_orientation ]
 
-def process_data_to_one_file(recording_sessions, output_filename="test.csv"):
+def process_data_to_one_file(data_folder, recording_sessions, output_filename="test.csv"):
     
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
+    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/"+ data_folder +"/"
     output_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/" + output_filename
 
     output_df = pd.DataFrame(columns=["RecSession","HitNumber","IiwaNumber","DesiredFlux","HittingFlux","DistanceTraveled","HittingInertia","ObjectPos", "HittingPos", "ObjectOrientation", "HittingOrientation"])
@@ -260,7 +260,7 @@ def process_data_to_one_file(recording_sessions, output_filename="test.csv"):
         hit_files = {}
         for filename in os.listdir(folder_name):
             # Check if the file matches the pattern
-            match = re.match(r'(?:IIWA_\d+_hit_|object_hit_)(\d+)\.csv', filename)
+            match = re.match(r'(?:IIWA_\d+_hit_|object_\d+_hit_)(\d+)\.csv', filename)
             if match:
                 hit_number = int(match.group(1))
                 # Append the file to the corresponding hit_number key in the dictionary
@@ -358,11 +358,10 @@ def process_one_file_to_truncate_object_data(object_csv, output_folder):
     # write to file with same name
     formatted_df.to_csv(os.path.join(output_folder,filename), index=False)
 
-
 def process_all_data_for_ekf(recording_sessions):
     
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_consistency/"# "/data/airhockey_ekf/"
+    path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/" #"/data/airhockey_consistency/"
     
     start_time= time.time()
     count_removed = 0 
@@ -406,8 +405,8 @@ def process_all_data_for_ekf(recording_sessions):
                 if hitting_flux == 0 : 
                     count_removed +=1
                 else :                
-                    # process_one_file_for_ekf(robot_csv, object_csv, new_folder)
-                    process_one_file_to_truncate_object_data(object_csv, new_folder)
+                    process_one_file_for_ekf(robot_csv, object_csv, new_folder)
+                    # process_one_file_to_truncate_object_data(object_csv, new_folder)
                    
             else :
                 print(f"ERROR : Wrong number of files, discarding the following : \n {files}")
@@ -426,16 +425,16 @@ if __name__== "__main__" :
    
     ### Processing variables 
     ### UBUNTU
-    folders_to_process = ["2024-04-30_11:26:14", "2024-04-30_13:16:40" ] #["2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
+    folders_to_process = ["2024-05-01_14:09:10"] #"2024-04-30_11:26:14", "2024-04-30_13:16:40" ] #["2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
                             # "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42"] 
 
     ### WINDOWS
     # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
-
-    # process_data_to_one_file(folders_to_process, output_filename="data_test_april.csv")
-    process_all_data_for_ekf(folders_to_process)
+    data_folder = "airhockey"
+    process_data_to_one_file(data_folder, folders_to_process, output_filename="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia.csv")
+    # process_all_data_for_ekf(folders_to_process)
     
 
     # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"

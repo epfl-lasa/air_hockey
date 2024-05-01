@@ -686,14 +686,15 @@ void PassiveControl::computeTorqueCmd(){
         // NULL SPACE CONTROL
         null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
         
-        // Use different nullspace depending on whether we are going to a position or tracking a velocity
-        if(!is_just_velocity){
-            er_null = _robot.jnt_position -_robot.nulljnt_position;
-        }
-        else{// Using inertia for hitting
-            er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
-        }
+        // Use different nullspace depending on whether we are going to a position or tracking a velocity -> NOPE
+        // if(!is_just_velocity){
+        //     er_null = _robot.jnt_position -_robot.nulljnt_position;
+        // }
+        // else{// Using inertia for hitting
+        //     er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
+        // }
 
+        er_null = _robot.jnt_position -_robot.nulljnt_position;
         // er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
 
         // compute null torque
