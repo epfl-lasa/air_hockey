@@ -679,12 +679,12 @@ if __name__== "__main__" :
     
     else : ## OTHERWISE FILL THIS 
         folder_name ="latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = [x for x in range(1,15)]  # ##[2,3,4,5,6] #[16,17] #
-        iiwa_number = 7
+        hit_number = 5  # ##[2,3,4,5,6] #[16,17] #[x for x in range(1,15)]
+        iiwa_number = 14
         object_number = 2
 
     ### DATA TO PLOT 
-    plot_this_data = ["Flux","Inertia", "Vel" ,"Object"]#,"Torque", "Pos","Grad","Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Flux","Inertia", "Vel" ,"Object","Torque"]#, "Pos","Grad","Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
        
     # Get the latest folder
     if(folder_name == "latest"):
