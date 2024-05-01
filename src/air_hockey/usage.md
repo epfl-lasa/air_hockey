@@ -1,7 +1,9 @@
 # Air_hockey - Usage
 
 The Air_hockey package consists of two nodes: one for high level control of both robots and one to record the data of each hit, respectively called AirHockey and Recorder.
-The provided lalunch files stats both nodes automatically.
+The provided launch files starts both nodes automatically.
+
+![AirHockey FSM](../../media/AirHockey_FSM.png)
 
 ## Recorder
 
@@ -17,8 +19,9 @@ RobotName, RosTime, JointPosition, JointVelocity, JointEffort, TorqueCmd, EEF_Po
 The recorded data for the object is :
 RosTime, PositionForIiwa7, OrientationForIiwa7, PositionForIiwa14, OrientationForIiwa14
 
+## AirHockey
 
-## Simulation
+### Simulation
 
 Run the docker container, then in one terminal, launch the gazebo simulation:
 ``` bash
@@ -27,9 +30,9 @@ bash docker/start-docker.sh
 roslaunch air_hockey air_hockey_sim.launch
 ```
 
-## Real-life framework
+### Real-life framework
 
-### ROS Communication setup 
+#### ROS Communication setup 
 
 We use 2 computers, one connected to each robot. Both need the air_hockey docker image to run this framework.
 
@@ -42,7 +45,7 @@ Computer 2 --> connected to iiwa14 (= iiwa2 = iiwa right)
 * ROS_MASTER_URI: 128.178.145.165 
 * ROS_IP: 128.178.96.208 
 
-### Terminal setup 
+#### Terminal setup 
 
 To facilitate starting commands, we connect via ssh form Computer 1 to Computer 2 :
 ```bash
@@ -63,7 +66,7 @@ Then connect to the container on Computer 1 with the two remaining terminals :
 bash docker/start-docker.sh -m connect
 ```
 
-### ROS launch commands
+#### ROS launch commands
 
 Launch the following commands in this order
 
@@ -88,7 +91,7 @@ Sequence for iiwa trackpad :
 iiwa7 : FRIOverlayGripper -> Torque, 0, 0
 iiwa14 : FRIOverlayGripper -> Torque, 0, 0
 
-### Remarks and troubleshooting
+#### Remarks and troubleshooting
 
 Both computers must have the IP adress 190.170.10.1 for the connection to the iiwa as FRIOverlay communicates only with this adress.
 Can modify the IP adress of the robot in iiwa_driver/config/iiwa.yaml
@@ -102,7 +105,7 @@ Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 **Developper Note** : In the start-docker.sh script, volumes are mounted on the folders src/air\_hockey, src/iiwa\_toolkit, python, data. Everything else inside the container and not in these folders will not be mofified on the host machine!
 
 
-### Configurations
+#### Configurations
 
 We have tested two different robot configurations for this framework. These configurations include a joint position and a EE Pose
 
@@ -112,7 +115,7 @@ In air_hockey/config/hit_properties_air_hockey.yaml, the following parameter mus
 The orientation shoud be the same, the position can change slightly. The joint position is used as the null_space desired position.
 The orientation quaternion has the format W-xyz.
 
-#### Configuration 1 
+##### Configuration 1 
 
 Elbow up 
 ADD photo 
@@ -127,7 +130,7 @@ target:
       quat: [-0.707, -0.707, 0.0, 0.0]  
       null_pos : [0.553, 1.128, -0.135, -1.358, -1.092, 1.783, -2.189]
 
-#### Configuration 2
+##### Configuration 2
 
 Elbow sideways
 ADD photo 
