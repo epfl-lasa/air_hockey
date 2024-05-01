@@ -9,7 +9,7 @@ The Air Hockey Framework requires several packages to be installed in order to w
 
 It is highly recommended to install everything using [docker](#docker).
 
-## Docker {#docker}
+## Docker (#docker)
 
 A docker image containing iiwa_ros library is needed to build the air_hockey docker image. 
 
