@@ -679,8 +679,8 @@ if __name__== "__main__" :
     
     else : ## OTHERWISE FILL THIS 
         folder_name ="latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = 1 #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
-        iiwa_number = 7
+        hit_number = [15,16,17] #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
+        iiwa_number = 14
         object_number = 1
 
     ### DATA TO PLOT 

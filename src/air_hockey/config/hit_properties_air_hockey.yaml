@@ -5,7 +5,7 @@ time_to_wait : 3.0 # time to stay in REST mode (where both robots are in REST, i
 
 safety_distance: 1.15 # object distance for which to PAUSE the robots when running autonomously
 
-fixed_flux: False # Whether to use a fixed flux for each hit (otherwise uses file below in a loop)
+fixed_flux: True # Whether to use a fixed flux for each hit (otherwise uses file below in a loop)
 desired_fluxes_filename: "random_fluxes_uni_sorted.txt" #"random_fluxes_uni.txt" # This file MUSt be in 'desired_hitting_fluxes' folder
 
 object_mass: 0.4 #1.915 # # used to calculate directional flux DS
@@ -43,7 +43,7 @@ iiwa14:
   return_position:
     x: 0.55 
     y: 0.05
-    z: 0.22
+    z: 0.20
 
   hit_direction:
     x: 0
@@ -51,9 +51,9 @@ iiwa14:
     z: 0
     
   object_offset:
-    x : 0.00 # 0.05 0.04
+    x : 0.04 # 0.05 0.04
     y : 0.11 # object 1 :0.10  ## object 2 : 0.11
-    z : -0.10 # object 1: -0.06 ## object 2 : -0.10
+    z : -0.08 # object 1: -0.06 ## object 2 : -0.10
 
   placement_offset: 
     x : 0.00
