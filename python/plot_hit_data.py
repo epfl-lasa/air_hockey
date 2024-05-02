@@ -662,7 +662,7 @@ def process_timestamped_folders(root_folder):
 
 if __name__== "__main__" :
 
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
+    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/datasets/airhockey_consistency_with_NS_inertia_shaping/"
     
     # READ from file using index or enter manually
     read_hit_info_from_file = False
@@ -678,13 +678,13 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name ="latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = [15,16,17] #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
-        iiwa_number = 14
+        folder_name = "50_hits-config_1-object_1" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
+        hit_number = 10 #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
+        iiwa_number = 7
         object_number = 1
 
     ### DATA TO PLOT 
-    plot_this_data = ["Flux","Inertia", "Vel" ,"Object","Torque", "Grad"]#, "Pos","Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Pos","Flux","Inertia", "Vel" ,"Object","Torque", "Grad"]#, "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
        
     # Get the latest folder
     if(folder_name == "latest"):

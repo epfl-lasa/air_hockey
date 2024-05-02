@@ -160,6 +160,8 @@ def get_distance_travelled(csv_file, return_distance_in_y=False, show_print=Fals
 
     idx_before_impact, idx_start_moving, idx_stop_moving = get_impact_time_from_object(csv_file, return_indexes=True)
 
+    # print( df['PositionForIiwa7'].iloc[idx_stop_moving][1],  df['RosTime'].iloc[idx_stop_moving])
+    
     ### Get distance in X = axis of hit in optitrack frame
     distance_in_y = df['PositionForIiwa7'].iloc[idx_before_impact][1]- df['PositionForIiwa7'].iloc[idx_stop_moving][1]
     #### Get distance in norm 
