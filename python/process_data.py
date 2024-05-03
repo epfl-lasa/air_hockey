@@ -8,6 +8,8 @@ import yaml
 from scipy.spatial.transform import Rotation
 
 
+PATH_TO_DATA_FOLDER = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/"
+
 # PARSING FUNCTIONS
 def parse_list(cell):
     # Split the space-separated values and parse them as a list of floats
@@ -117,7 +119,8 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
     # Use derivative to find changes in speed 
-    derivative_threshold = 0.3 #0.15 #0.05
+    derivative_threshold_start = 0.3 #0.15 #0.05 ## high to avoid noise at start
+    derivative_threshold_stop = 0.01 #0.15 #0.05 ## low to avoid noise during motion
 
     # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN X AXIS
     x_values =  df[pos_name_str].apply(lambda x: x[1])
@@ -127,21 +130,24 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
     
     # remove zeros
     filtered_df = df[df['derivative'] != 0.0].copy()
+    
 
     # get start and end index
-    idx_start_moving =  (filtered_df['derivative'].abs() > derivative_threshold).idxmax() # detect 1st time derivative is non-zero
-    idx_stop_moving = (filtered_df['derivative'].loc[idx_start_moving:].abs() < derivative_threshold).idxmax() # detect 1st time derivative comes back to zero
-    idx_before_impact = idx_start_moving-1 # time just before impact - 10ms error due to Motive streaming at 120Hz 
+    idx_start_moving =  (filtered_df['derivative'].abs() > derivative_threshold_start).idxmax() # detect 1st time derivative is non-zero
+    idx_stop_moving = (filtered_df['derivative'].loc[idx_start_moving:].abs() < derivative_threshold_stop).idxmax() # detect 1st time derivative comes back to zero
+    idx_before_impact = idx_start_moving-1 # time just before impact - 5ms error due to Recorder at 200Hz 
 
     hit_time = df['RosTime'].iloc[idx_before_impact] # HIT TIME as float 
+    stop_time = df['RosTime'].iloc[idx_stop_moving] # HIT TIME as float 
 
     if show_print: 
         df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
+        print(idx_stop_moving, filtered_df['derivative'].loc[idx_start_moving:idx_stop_moving].abs())
         print(f"Start moving from {df[pos_name_str].iloc[idx_before_impact]} at {df['RosTime'].iloc[idx_before_impact]}")
         print(f"Stop moving from {df[pos_name_str].iloc[idx_stop_moving]} at {df['RosTime'].iloc[idx_stop_moving]}")
 
     if not return_indexes: 
-        return hit_time
+        return hit_time, stop_time
     elif return_indexes:
         if show_print : print("Return object movement indexes")
         return idx_before_impact, idx_start_moving, idx_stop_moving
@@ -219,7 +225,7 @@ def get_object_orientation_at_hit(object_csv, hit_time, iiwa_number):
 def get_info_at_hit_time(robot_csv, object_csv):
 
     # get hit time 
-    hit_time = get_impact_time_from_object(object_csv)
+    hit_time, stop_time = get_impact_time_from_object(object_csv)
 
     # get flux, inertia on hit, EEF Pose
     hitting_flux, hitting_dir_inertia, hitting_pos, hitting_orientation = get_robot_data_at_hit(robot_csv, hit_time)
@@ -247,8 +253,8 @@ def get_info_at_hit_time(robot_csv, object_csv):
 
 def process_data_to_one_file(data_folder, recording_sessions, output_filename="test.csv"):
     
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/"+ data_folder +"/"
-    output_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/" + output_filename
+    path_to_data_airhockey = PATH_TO_DATA_FOLDER + data_folder +"/"
+    output_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/raw/" + output_filename
 
     output_df = pd.DataFrame(columns=["RecSession","HitNumber","IiwaNumber","DesiredFlux","HittingFlux","DistanceTraveled","HittingInertia","ObjectPos", "HittingPos", "ObjectOrientation", "HittingOrientation"])
 
@@ -401,7 +407,7 @@ def process_all_data_for_ekf(recording_sessions):
                 object_csv = files[1]
                      
                 # check if hitting flux is 0 at hit time -> badly recorded
-                hit_time = get_impact_time_from_object(object_csv)
+                hit_time, stop_time = get_impact_time_from_object(object_csv)
                 hitting_flux, hitting_dir_inertia, hitting_pos, hitting_orientation = get_robot_data_at_hit(robot_csv, hit_time)
                 
                 if hitting_flux == 0 : 
@@ -427,15 +433,19 @@ if __name__== "__main__" :
    
     ### Processing variables 
     ### UBUNTU
-    folders_to_process = ["2024-05-01_14:09:10"] #"2024-04-30_11:26:14", "2024-04-30_13:16:40" ] #["2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
+    # folders_to_process = ["2024-05-02_11-11-26"] #"2024-04-30_11:26:14", "2024-04-30_13:16:40" ] #["2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
                             # "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42"] 
 
     ### WINDOWS
     # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
-    data_folder = "airhockey"
-    process_data_to_one_file(data_folder, folders_to_process, output_filename="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia.csv")
+    data_folder = "varying_flux_datasets/airhockey_flat_side-obj_2-cfg_1-inertia_shaping-IIWA_7"
+
+    # PRocess al folders in the desired data_folder
+    folders_to_process = os.listdir(PATH_TO_DATA_FOLDER + data_folder)
+
+    process_data_to_one_file(data_folder, folders_to_process, output_filename="D2-Inertia.csv")
     # process_all_data_for_ekf(folders_to_process)
     
 

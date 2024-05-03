@@ -153,8 +153,9 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
     # title_str = f"Robot data for iiwa {parts[1]}, hit #{parts[3]}" #filename_without_extension.replace('_', ' ')
 
     # Get actual hit time 
-    hit_time = get_impact_time_from_object(object_csv, show_print=True)
+    hit_time, stop_time = get_impact_time_from_object(object_csv, show_print=True)
     datetime_hit_time= pd.to_datetime(hit_time, unit='s')
+    datetime_stop_time= pd.to_datetime(stop_time, unit='s')
 
     # Get the 'Time' column as datetime
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
@@ -269,6 +270,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
             ax.plot(df_obj['RosTime'], obj_pos.apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
         ax.axvline(datetime_hit_time, color = 'r')
+        ax.axvline(datetime_stop_time, color = 'b')
         # ax.axvline(recorded_hit_time, color = 'g')
         fig.suptitle(f"Object Position: iiwa {parts[1]}, hit #{parts[3]} ")
         ax.set_xlabel('Time [s]')
@@ -332,7 +334,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
 
     
-    hit_time = get_impact_time_from_object(path_to_object_hit)
+    # hit_time = get_impact_time_from_object(path_to_object_hit)
     flux_at_hit, inertia_at_hit, pos, orient = get_robot_data_at_hit(path_to_robot_hit, hit_time, show_print=False)
     norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
     
@@ -507,7 +509,7 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                 fig_obj.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
             
             # Print info
-            hit_time = get_impact_time_from_object(path_to_object_hit)
+            hit_time, stop_time = get_impact_time_from_object(path_to_object_hit)
             flux_at_hit, inertia_at_hit, pos, orient = get_robot_data_at_hit(path_to_robot_hit, hit_time, show_print=False)
             norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
             
@@ -662,8 +664,9 @@ def process_timestamped_folders(root_folder):
 
 if __name__== "__main__" :
 
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/datasets/airhockey_consistency_with_NS_inertia_shaping/"
-    
+    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/airhockey-flat_side-obj_1-cfg_1/"
+    # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/datasets/airhockey_consistency_with_NS_inertia_shaping/"
+ 
     # READ from file using index or enter manually
     read_hit_info_from_file = False
 
@@ -678,13 +681,13 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "50_hits-config_1-object_1" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = 10 #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
+        folder_name = "2024-05-02_11-11-26" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
+        hit_number = 367 #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
         iiwa_number = 7
         object_number = 1
 
     ### DATA TO PLOT 
-    plot_this_data = ["Pos","Flux","Inertia", "Vel" ,"Object","Torque", "Grad"]#, "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Object"]#"Pos","Flux","Inertia", "Vel" ,"Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
        
     # Get the latest folder
     if(folder_name == "latest"):
