@@ -664,30 +664,30 @@ def process_timestamped_folders(root_folder):
 
 if __name__== "__main__" :
 
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/airhockey-flat_side-obj_1-cfg_1/"
+    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/datasets/airhockey_consistency_with_NS_inertia_shaping/"
  
     # READ from file using index or enter manually
     read_hit_info_from_file = False
-
     ### Plots variables
     if read_hit_info_from_file:
-        index_to_plot = 79 ## FILL THIS IF ABOVE IS TRUE
-        file_to_read = "data_consistent_march.csv"
+        index_to_plot = 897 ## FILL THIS IF ABOVE IS TRUE
+        file_to_read = "D1_clean.csv"
+        object_number = 1
 
-        processed_df = pd.read_csv(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/"+file_to_read, index_col="Index")
+        processed_df = pd.read_csv(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/raw/"+file_to_read, index_col="Index")
         folder_name = processed_df['RecSession'].loc[index_to_plot] # "2024-03-05_14:04:43"
         hit_number = int(processed_df['HitNumber'].loc[index_to_plot]) #82 #[16,17]
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-05-02_11-11-26" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = 367 #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
+        folder_name = "2024-05-06_17:14:44" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
+        hit_number = 1 #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
         iiwa_number = 7
         object_number = 1
 
     ### DATA TO PLOT 
-    plot_this_data = ["Object"]#"Pos","Flux","Inertia", "Vel" ,"Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Object","Vel" ,"Flux"]#"Pos","Inertia", "Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
        
     # Get the latest folder
     if(folder_name == "latest"):
