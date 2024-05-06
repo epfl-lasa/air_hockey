@@ -59,6 +59,9 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.35, save_clean_df=F
    # Saving clean df
     if save_clean_df :
         processed_clean_folder = PATH_TO_DATA_FOLDER+"/airhockey_processed/clean/"
+        if not os.path.exists(processed_clean_folder):
+            os.makedirs(processed_clean_folder)
+            
         clean_df.to_csv(processed_clean_folder+csv_fn+"_clean.csv",index_label="Index")
  
     return clean_df
@@ -675,7 +678,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn ="D2" #"data_test_april"#  #"data_consistent_march"
+    csv_fn ="D2_clean" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 

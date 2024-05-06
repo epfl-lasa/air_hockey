@@ -56,7 +56,7 @@ if __name__ == "__main__":
     complete_path_sorted = os.path.join(folder,filename+"_sorted.txt")
     
     # generate_gaussian_values_file(complete_path, num_values, mean, stddev)
-    # generate_random_values_file(complete_path, num_values)
-    # sort_file(complete_path, complete_path_sorted, remove_input=True)
+    generate_random_values_file(complete_path, num_values)
+    sort_file(complete_path, complete_path_sorted, remove_input=True)
     plot_values(complete_path_sorted)
     
