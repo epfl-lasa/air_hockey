@@ -166,7 +166,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
     ## use colors input to dtermine color of datapoints
 
     # Plot Flux
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    fig, ax = plt.subplots(1, 1, figsize=(15, 12), sharex=True)
 
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
@@ -407,7 +407,7 @@ def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True, show_plot = 
 
 def flux_hashtable(df, use_mplcursors=True, show_plot = False):
     # Plot Flux
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    fig, ax = plt.subplots(1, 1, figsize=(15, 12), sharex=True)
 
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
@@ -678,7 +678,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn ="D1_dirty" #"data_test_april"#  #"data_consistent_march"
+    csv_fn ="D1" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
