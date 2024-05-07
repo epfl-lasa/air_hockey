@@ -106,7 +106,7 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
         return max_flux, max_vel
 
     else: 
-        return flux_at_hit, dir_inertia_at_hit, pos_at_hit, orient_at_hit
+        return flux_at_hit, dir_inertia_at_hit, np.array(pos_at_hit), np.array(orient_at_hit)
     
 def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False):    
     # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
@@ -183,7 +183,7 @@ def get_distance_travelled(csv_file, return_distance_in_y=False, show_print=Fals
     else : 
         return norm_distance
 
-def get_object_orientation_at_hit(object_csv, hit_time, iiwa_number):
+def get_object_info_during_hit(object_csv, hit_time, stop_time, iiwa_number):
 
     # get hitting params file 
     # parameter_filepath = os.path.join(os.path.dirname(object_csv),"hitting_params.yaml")
@@ -193,34 +193,22 @@ def get_object_orientation_at_hit(object_csv, hit_time, iiwa_number):
     # iiwa_nb_str = f"iiwa{iiwa_number}"
     # object_offset = [hitting_data[iiwa_nb_str]["object_offset"]["x"],hitting_data[iiwa_nb_str]["object_offset"]["y"],hitting_data[iiwa_nb_str]["object_offset"]["z"]]
 
-    # get orientation
-    df = pd.read_csv(object_csv, converters={'RosTime' : parse_value, 'OrientationForIiwa7': parse_list, 'OrientationForIiwa14': parse_list})
+    # Get orientation
+    df = pd.read_csv(object_csv, converters={'RosTime' : parse_value, 'OrientationForIiwa7': parse_list, 'OrientationForIiwa14': parse_list,  
+                                             'PositionForIiwa7': parse_list,  'PositionForIiwa14': parse_list})
     
     if(iiwa_number == '7' ) :
         object_orient_at_hit =  df[(df['RosTime']-hit_time) >= 0].iloc[0]['OrientationForIiwa7']
+        object_pos_at_hit = df[(df['RosTime']-hit_time) >= 0].iloc[0]['PositionForIiwa7']
+        object_pos_final = df[(df['RosTime']-stop_time) >= 0].iloc[0]['PositionForIiwa7']
     elif(iiwa_number == '14'):
         object_orient_at_hit =  df[(df['RosTime']-hit_time) >= 0].iloc[0]['OrientationForIiwa14']
+        object_pos_at_hit = df[(df['RosTime']-hit_time) >= 0].iloc[0]['PositionForIiwa14']
+        object_pos_final = df[(df['RosTime']-stop_time) >= 0].iloc[0]['PositionForIiwa14']
 
     
-    ## This is all now done live
-    # Define the rotation matrix from camera frame to robot frame
-    # rotation_mat_optitrack_to_robot = np.array([[0.0, -1.0, 0.0],[1.0, 0.0, 0.0],[0.0, 0.0, 1.0]])
-
-    # # convert quaternion from W-xyz to xyz-W
-    # new_object_orient_at_hit = object_orient_at_hit[1:] + [object_orient_at_hit[0]]
-
-    # # Convert the quaternion to a rotation matrix
-    # r = Rotation.from_quat(new_object_orient_at_hit)
-    # rotation_mat_optitrack = r.as_matrix()
-
-    # # Multiply the rotation matrix representing the camera-to-robot transformation with the rotation matrix from the quaternion
-    # rotation_mat_robot = np.dot(rotation_mat_optitrack_to_robot, rotation_mat_optitrack)
-
-    # # Convert the resulting rotation matrix back to a quaternion
-    # r_robot = Rotation.from_matrix(rotation_mat_robot)
-    # q_robot_frame = r_robot.as_quat()
-
-    return np.array(object_orient_at_hit)
+   
+    return np.array(object_orient_at_hit), np.array(object_pos_at_hit), np.array(object_pos_final) 
 
 def get_info_at_hit_time(robot_csv, object_csv):
 
@@ -241,22 +229,22 @@ def get_info_at_hit_time(robot_csv, object_csv):
     iiwa_number = parts[1]
     hit_number = parts[3]
     
-    # get object orientation at hit
-    object_orient = get_object_orientation_at_hit(object_csv, hit_time , iiwa_number)
+    # get object info at hit
+    object_orient, object_pos_start, object_pos_end = get_object_info_during_hit(object_csv, hit_time, stop_time, iiwa_number)
 
     # get desired flux from top row 
     des_flux = pd.read_csv(robot_csv, nrows=1, header=None).iloc[0].to_list()[1]
-    des_pos = parse_list(pd.read_csv(robot_csv, nrows=1, header=None).iloc[0].to_list()[5])
+    des_pos = np.array(parse_list(pd.read_csv(robot_csv, nrows=1, header=None).iloc[0].to_list()[5]))
 
     # Should be ordered in the same way as output file columns
-    return [recording_session, hit_number, iiwa_number, des_flux, hitting_flux,  distance_travelled,  hitting_dir_inertia, des_pos, hitting_pos, object_orient, hitting_orientation ]
+    return [recording_session, hit_number, iiwa_number, des_flux, hitting_flux,  distance_travelled,  hitting_dir_inertia, des_pos, hitting_pos, object_orient, hitting_orientation, object_pos_start, object_pos_end]
 
 def process_data_to_one_file(data_folder, recording_sessions, output_filename="test.csv"):
     
     path_to_data_airhockey = PATH_TO_DATA_FOLDER + data_folder +"/"
     output_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/raw/" + output_filename
 
-    output_df = pd.DataFrame(columns=["RecSession","HitNumber","IiwaNumber","DesiredFlux","HittingFlux","DistanceTraveled","HittingInertia","ObjectPos", "HittingPos", "ObjectOrientation", "HittingOrientation"])
+    output_df = pd.DataFrame(columns=["RecSession","HitNumber","IiwaNumber","DesiredFlux","HittingFlux","DistanceTraveled","HittingInertia","AttractorPos", "HittingPos", "ObjectOrientation", "HittingOrientation","ObjectPosStart","ObjectPosEnd"])
 
     start_time= time.time()
     # process each rec_sess folder 
@@ -440,18 +428,19 @@ if __name__== "__main__" :
     # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
-    data_folder = "varying_flux_datasets/D2"
+    # data_folder = "varying_flux_datasets/D1"
+    data_folder = "fixed_flux_datasets/DA-Inertia_consistency"
 
     # PRocess al folders in the desired data_folder
     folders_to_process = os.listdir(PATH_TO_DATA_FOLDER + data_folder)
     
-    surface = "clean"
+    surface = "_"
     to_process = []
     for folder in folders_to_process :
         if surface in folder: 
             to_process.append(folder)
 
-    process_data_to_one_file(data_folder, to_process, output_filename="D2_clean.csv")
+    process_data_to_one_file(data_folder, to_process, output_filename="DA-Inertia_consistency.csv")
     # process_all_data_for_ekf(folders_to_process)
     
 
