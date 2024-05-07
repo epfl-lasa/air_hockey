@@ -189,7 +189,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
         lin_model = LinearRegression()
         lin_model.fit(df['HittingFlux'].values.reshape(-1,1), df['DistanceTraveled'].values)
 
-        flux_test = np.linspace(0.4,1.2,100).reshape(-1,1)
+        flux_test = np.linspace(0.5,1.2,100).reshape(-1,1)
         distance_pred = lin_model.predict(flux_test)
         ax.plot(flux_test,distance_pred,color='black', label='Linear Regression')
 
@@ -678,7 +678,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn ="D1_clean" #"data_test_april"#  #"data_consistent_march"
+    csv_fn ="D1_dirty" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 

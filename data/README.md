@@ -26,7 +26,8 @@ D1-edge - Object 1, config 1, edge side, Fixed box pos, random flux
 D1-fixed flux - Object 1, config 1, flat side, random pos, fix flux
 -> best robot interaction, film videos with this 
 
-
+D*_dirty -> paper surface attached underneath the object is dirty (dust mainly), whichs greatly increases friction
+D*_clean -> paper surface attached underneath the object is clean/new, whichs greatly reduces friction
 
 DA-Inertia-consistency- 50 hits for each obj and each config, Fixed box pos, fixed flux, NS Inertia shaping
 200 hits total

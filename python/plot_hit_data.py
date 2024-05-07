@@ -681,10 +681,10 @@ if __name__== "__main__" :
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
     
     else : ## OTHERWISE FILL THIS 
-        folder_name = "2024-05-06_17:14:44" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = 1 #[x for x in range(1,52)]  # ##[2,3,4,5,6] #[16,17] #
+        folder_name = "latest" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
+        hit_number = [x for x in range(1,10)]  # ##[2,3,4,5,6] #[16,17] #
         iiwa_number = 7
-        object_number = 1
+        object_number = 2
 
     ### DATA TO PLOT 
     plot_this_data = ["Object","Vel" ,"Flux"]#"Pos","Inertia", "Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
