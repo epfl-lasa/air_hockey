@@ -36,13 +36,15 @@ def wrap_angle(angle_rad):
     else: return angle_deg
 
 # CLEANING FUNCTION
-def clean_data(df, distance_threshold=0.05, flux_threshold=0.35, save_clean_df=False):
+def clean_data(df, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
     
     ### Remove low outliers -> due to way of recording and processing
     # Distance
     clean_df = df[df['DistanceTraveled']>distance_threshold]
     # Flux
     clean_df = clean_df[clean_df['HittingFlux']>flux_threshold]
+    # Desired Flux 
+    clean_df = clean_df[clean_df['DesiredFlux']>flux_threshold]
 
     # Reset index
     clean_df.reset_index(drop=True, inplace=True)       
@@ -661,18 +663,20 @@ def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative
     df_iiwa14 = df[df['IiwaNumber'] == 14]
     
     # SELECTION - taking only high fluxes
-    max_flux_7 = 0.90
-    max_flux_14 = 0.90
+    max_flux_7 = 0.80
+    max_flux_14 = 0.80
     high_flux_iiwa_7_df = df_iiwa7[(df['HittingFlux'] >= max_flux_7)]
     high_flux_iiwa_14_df = df_iiwa14[(df['HittingFlux'] >= max_flux_14)]
 
     high_flux_iiwa_7_df.reset_index(drop=True, inplace=True)
     high_flux_iiwa_14_df.reset_index(drop=True, inplace=True)
     
+    print(f"Plotting {len(high_flux_iiwa_7_df.index)} points for iiwa 7")
+    
     ## PLOT FOR IIWA 7
     plt.figure(figsize=(18, 10))
     
-    highest_angle = 0
+    highest_angle = -10
     lowest_angle = 0
     
     for index,row in high_flux_iiwa_7_df.iterrows():
@@ -697,15 +701,16 @@ def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative
         
         # Get highest and lowest traj fn - according to angle
         angle = np.degrees(np.arctan2(row['ObjectPosEnd'][0]-row['ObjectPosStart'][0], abs(row['ObjectPosEnd'][1]-row['ObjectPosStart'][1])))
-        if  angle > highest_angle : 
-            highest_x_fn = obj_fn
-            highest_angle = angle
-            idx_highest = index
-        if  angle < lowest_angle : 
+        print(angle)
+        if  angle <= lowest_angle : 
             lowest_x_fn = obj_fn
             lowest_angle = angle
             idx_lowest = index
-    
+        if  angle >= highest_angle : 
+            highest_x_fn = obj_fn
+            highest_angle = angle
+            idx_highest = index
+
     # Add trajectory for highest x value
     df_obj = pd.read_csv(highest_x_fn , converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
     start_time, end_time = get_impact_time_from_object(highest_x_fn)
@@ -777,14 +782,14 @@ def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative
             
         # Get highest and lowest traj fn - according to angle
         angle = np.degrees(np.arctan2(row['ObjectPosEnd'][0]-row['ObjectPosStart'][0], abs(row['ObjectPosEnd'][1]-row['ObjectPosStart'][1])))
-        if  angle > highest_angle : 
-            highest_x_fn = obj_fn
-            highest_angle = angle
-            idx_highest = index
         if  angle < lowest_angle : 
             lowest_x_fn = obj_fn
             lowest_angle = angle
             idx_lowest = index
+        if  angle > highest_angle : 
+            highest_x_fn = obj_fn
+            highest_angle = angle
+            idx_highest = index
     
     # Add trajectory for highest x value
     df_obj = pd.read_csv(highest_x_fn , converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
@@ -859,7 +864,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn ="D1_clean" #"data_test_april"#  #"data_consistent_march"
+    csv_fn ="D1-edge" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
@@ -871,8 +876,8 @@ if __name__== "__main__" :
 
     ### Plot functions
     plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    # flux_hashtable(clean_df)
-    plot_object_start_end(clean_df, relative=True)
+    flux_hashtable(clean_df)
+    plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D1-edge/", relative=True)
     
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")

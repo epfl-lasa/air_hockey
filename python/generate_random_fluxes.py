@@ -12,7 +12,7 @@ def generate_gaussian_values_file(filename, num_values, mean, stddev):
 def generate_random_values_file(filename, num_values):
     with open(filename, 'w') as file:
         for _ in range(num_values):
-            random_value = random.uniform(0.5, 1.2)
+            random_value = random.uniform(0.4, 0.9)
             file.write(f"{random_value:.3f}\n")
 
 def sort_file(input_file, output_file, remove_input=False, reverse=False):
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     ## SET FILE PARAMETERS 
     folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/src/air_hockey/desired_hitting_fluxes"
     
-    filename = "random_fluxes_uni_150_reverse"  
+    filename = "random_fluxes_uni_150_low"  
 
     # SET GENERATION PARAMETERS 
     num_values = 150  # Replace with the number of random values you want
