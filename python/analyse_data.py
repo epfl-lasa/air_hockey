@@ -11,6 +11,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.lines import Line2D
 import pybullet 
 import math
+from scipy.spatial.transform import Rotation
 
 import sys
 sys.path.append('/home/maxime/Workspace/air_hockey/python_data_processing/gmm_torch')
@@ -21,7 +22,7 @@ sys.path.append('/home/maxime/Workspace/air_hockey/python_data_processing/gmm_to
 from gmr.utils import check_random_state
 from gmr import MVN, GMM, plot_error_ellipses
 
-from process_data import parse_value, parse_list, parse_strip_list, get_impact_time_from_object, get_orientation_error_x_y_z, PATH_TO_DATA_FOLDER
+from process_data import parse_value, parse_list, parse_strip_list, get_impact_time_from_object, get_orientation_error_x_y_z, get_orientation_error_manually, get_orientation_error_in_correct_base, PATH_TO_DATA_FOLDER
 
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 20
@@ -835,6 +836,202 @@ def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative
         
     if show_plot : plt.show()
 
+def plot_orientation_vs_displacement(df, orientation ='error', sanity_check=False, show_plot = False):
+
+    ## calculate quaternion diff
+    # df["OrientationError2"] = df.apply(lambda row : get_orientation_error_x_y_z(row["ObjectOrientation"],row["HittingOrientation"]),axis=1).copy()
+    # df["OrientationError2"] = df.apply(lambda row : get_orientation_error_x_y_z(row["HittingOrientation"],row["ObjectOrientation"]),axis=1).copy()
+    # df["OrientationError2"] = df.apply(lambda row : get_orientation_error_in_correct_base(row["HittingOrientation"],row["ObjectOrientation"], row['IiwaNumber']),axis=1).copy()
+    df["OrientationError"] = df.apply(lambda row : get_orientation_error_manually(row["HittingOrientation"],row["ObjectOrientation"], row['IiwaNumber']),axis=1).copy()
+
+    # Remove outliers
+    df = df[df['OrientationError'].apply(lambda x: abs(x[2]) < 20 )]
+
+    df["ObjectDisplacement"] = df.apply(lambda row : [a-b for a,b in zip(row["ObjectPosEnd"],row["ObjectPosStart"])],axis=1).copy()
+    
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+
+    ## PLOT FOR IIWA 7
+    plt.figure(figsize=(18, 10))
+    # Add XY lines 
+    plt.axhline(y=0, color='black', linestyle='-', linewidth=1)  # Customize the line as needed
+    plt.axvline(x=0, color='black', linestyle='-', linewidth=1)  # Customize the line as needed
+
+    # Defien x vlaues depending on orientation parameter
+    if orientation == 'error':
+        x_values = df_iiwa7['OrientationError'].apply(lambda x : x[2])
+        plt.xlabel('Orientation Error in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+        plt.title(f"Object Displacement depending on Orientation Error at Hit Time for IIWA 7",fontsize=GLOBAL_FONTSIZE)
+    if orientation == 'object':
+        x_values = df_iiwa7['ObjectOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True)[2])
+        plt.xlabel('Object Orientation in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+        plt.title(f"Object Displacement depending on Object Orientation at Hit Time for IIWA 7",fontsize=GLOBAL_FONTSIZE)
+    if orientation == 'eef':
+        x_values = df_iiwa7['HittingOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True)[2]) 
+        plt.xlabel('EEF Orientation in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+        plt.title(f"Object Displacement depending on EEF Orientation at Hit Time for IIWA 7",fontsize=GLOBAL_FONTSIZE)
+    
+    # Orientation in z vs displacement in x 
+    plt.scatter(x_values,df_iiwa7['ObjectDisplacement'].apply(lambda x : x[0]))
+    # plt.scatter(df_iiwa7['OrientationError2'].apply(lambda x : x[2]),df_iiwa7['ObjectDisplacement'].apply(lambda x : x[0]))
+
+    # Sanity check
+    if sanity_check:
+        errors = df_iiwa7['OrientationError'].apply(lambda x : x)
+        objects = df_iiwa7['ObjectOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True))
+        eefs = df_iiwa7['HittingOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True)) 
+        
+        for i in range(len(df_iiwa7.index)):
+            print(f"Object: [{objects.iloc[i][0]:.2f},{objects.iloc[i][1]:.2f},{objects.iloc[i][2]:.2f}], " 
+                  f"EEF: [{eefs.iloc[i][0]:.2f},{eefs.iloc[i][1]:.2f},{eefs.iloc[i][2]:.2f}], "
+                  f"Error:[{errors.iloc[i][0]:.2f}, {errors.iloc[i][1]:.2f}, {errors.iloc[i][2]:.2f}]")
+        
+    # Centering around 0
+    max_limit_x = max(np.abs(x_values))
+    max_limit_y = max(np.abs(df_iiwa7['ObjectDisplacement'].apply(lambda x : x[0])))
+    plt.xlim(-max_limit_x-0.05*max_limit_x, max_limit_x+0.05*max_limit_x)
+    plt.ylim(-max_limit_y-0.05*max_limit_y, max_limit_y+0.05*max_limit_y)
+
+    # Set plot variables 
+    plt.ylabel('Displacement in X Axis [m]',fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+
+    # TODO :
+    # add flux as color to show no correlation
+    # plot only high or low fluxes
+
+    ## PLOT FOR IIWA 14
+    plt.figure(figsize=(18, 10))
+    # Add XY lines 
+    plt.axhline(y=0, color='black', linestyle='-', linewidth=1)  # Customize the line as needed
+    plt.axvline(x=0, color='black', linestyle='-', linewidth=1)  # Customize the line as needed
+
+    # Defien x vlaues depending on orientation parameter
+    if orientation == 'error':
+        x_values = df_iiwa14['OrientationError'].apply(lambda x : x[2])
+        plt.xlabel('Orientation Error in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+        plt.title(f"Object Displacement depending on Orientation Error at Hit Time for IIWA 14",fontsize=GLOBAL_FONTSIZE)
+    if orientation == 'object':
+        x_values = df_iiwa14['ObjectOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True)[2])
+        plt.xlabel('Object Orientation in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+        plt.title(f"Object Displacement depending on Object Orientation at Hit Time for IIWA 14",fontsize=GLOBAL_FONTSIZE)
+    if orientation == 'eef':
+        x_values = df_iiwa14['HittingOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True)[2]) 
+        plt.xlabel('EEF Orientation in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+        plt.title(f"Object Displacement depending on EEF Orientation at Hit Time for IIWA 14",fontsize=GLOBAL_FONTSIZE)
+    
+    # Orientation in z vs displacement in x 
+    plt.scatter(x_values,df_iiwa14['ObjectDisplacement'].apply(lambda x : x[0]))
+    # plt.scatter(df_iiwa14['OrientationError2'].apply(lambda x : x[2]),df_iiwa14['ObjectDisplacement'].apply(lambda x : x[0]))
+
+    # Sanity check
+    if sanity_check:
+        errors = df_iiwa14['OrientationError'].apply(lambda x : x)
+        objects = df_iiwa14['ObjectOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True))
+        eefs = df_iiwa14['HittingOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True)) 
+        
+        for i in range(len(df_iiwa14.index)):
+            print(f"Object: [{objects.iloc[i][0]:.2f},{objects.iloc[i][1]:.2f},{objects.iloc[i][2]:.2f}], " 
+                  f"EEF: [{eefs.iloc[i][0]:.2f},{eefs.iloc[i][1]:.2f},{eefs.iloc[i][2]:.2f}], "
+                  f"Error:[{errors.iloc[i][0]:.2f}, {errors.iloc[i][1]:.2f}, {errors.iloc[i][2]:.2f}]")
+        
+    # Centering around 0
+    max_limit_x = max(np.abs(x_values))
+    max_limit_y = max(np.abs(df_iiwa14['ObjectDisplacement'].apply(lambda x : x[0])))
+    plt.xlim(-max_limit_x-0.05*max_limit_x, max_limit_x+0.05*max_limit_x)
+    plt.ylim(-max_limit_y-0.05*max_limit_y, max_limit_y+0.05*max_limit_y)
+
+    # Set plot variables 
+    plt.ylabel('Displacement in X Axis [m]',fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+
+def plot_orientation_vs_flux(df, sanity_check=False, show_plot = False):
+
+    ## calculate quaternion diff
+    # df["OrientationError"] = df.apply(lambda row : get_orientation_error_x_y_z(row["HittingOrientation"],row["ObjectOrientation"]),axis=1).copy()
+    df["OrientationError"] = df.apply(lambda row : get_orientation_error_manually(row["HittingOrientation"],row["ObjectOrientation"], row['IiwaNumber']),axis=1).copy()
+
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+
+    # Sanity check
+    if sanity_check:
+        errors = df_iiwa14['OrientationError'].apply(lambda x : x)
+        objects = df_iiwa14['ObjectOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('xyz', degrees=True))
+        eefs = df_iiwa14['HittingOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('XYZ', degrees=True)) 
+        
+        for i in range(len(df_iiwa14.index)):
+            print(f"Object: [{objects.iloc[i][0]:.2f},{objects.iloc[i][1]:.2f},{objects.iloc[i][2]:.2f}], " 
+                    f"EEF: [{eefs.iloc[i][0]:.2f},{eefs.iloc[i][1]:.2f},{eefs.iloc[i][2]:.2f}], "
+                    f"Error:[{errors.iloc[i][0]:.2f}, {errors.iloc[i][1]:.2f}, {errors.iloc[i][2]:.2f}]")
+    
+
+    ## PLOT FOR IIWA 7
+    plt.figure(figsize=(18, 10))
+
+    # Orientation in z vs displacement in x 
+    plt.scatter(df_iiwa7['HittingFlux'], df_iiwa7['HittingOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('XYZ', degrees=True)[2])  )
+    plt.scatter(df_iiwa7['HittingFlux'], df_iiwa7['OrientationError'].apply(lambda x : x[2]))
+
+    # Set plot variables 
+    plt.xlabel('Hitting Flux [m/s]',fontsize=GLOBAL_FONTSIZE)
+    plt.ylabel('EEF Orientation in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+    plt.title(f"Hitting Flux vs EEF Orientation at Hit Time for IIWA 7",fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+
+    ## PLOT FOR IIWA 14
+    plt.figure(figsize=(18, 10))
+
+    # Orientation in z vs displacement in x 
+    plt.scatter(df_iiwa14['HittingFlux'], df_iiwa14['HittingOrientation'].apply(lambda x : Rotation.from_quat(x).as_euler('XYZ', degrees=True)[2]-90.0)  )
+    plt.scatter(df_iiwa14['HittingFlux'], df_iiwa14['OrientationError'].apply(lambda x : x[2]))
+
+    # Set plot variables 
+    plt.xlabel('Hitting Flux [m/s]',fontsize=GLOBAL_FONTSIZE)
+    plt.ylabel('EEF Orientation in Z Axis [deg]',fontsize=GLOBAL_FONTSIZE)
+    plt.title(f"Hitting Flux vs EEF Orientation at Hit Time for IIWA 14",fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+
+    if show_plot:
+        plt.show()
+
+def plot_displacement_vs_flux(df, show_plot = False):
+
+    ## calculate quaternion diff
+    df["ObjectDisplacement"] = df.apply(lambda row : [a-b for a,b in zip(row["ObjectPosEnd"],row["ObjectPosStart"])],axis=1).copy()
+    
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+
+    
+    ## PLOT FOR IIWA 7
+    plt.figure(figsize=(18, 10))
+
+    # Orientation in z vs displacement in x 
+    plt.scatter(df_iiwa7['HittingFlux'], df_iiwa7['ObjectDisplacement'].apply(lambda x : x[0]))
+
+    # Set plot variables 
+    plt.xlabel('Hitting Flux [m/s]',fontsize=GLOBAL_FONTSIZE)
+    plt.ylabel('Object Displacement in X Axis [m]',fontsize=GLOBAL_FONTSIZE)
+    plt.title(f"Hitting Flux vs Object Displacement at Hit Time for IIWA 7",fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+
+    ## PLOT FOR IIWA 14
+    plt.figure(figsize=(18, 10))
+
+    # Orientation in z vs displacement in x 
+    plt.scatter(df_iiwa14['HittingFlux'], df_iiwa14['ObjectDisplacement'].apply(lambda x : x[0]))
+
+    # Set plot variables 
+    plt.xlabel('Hitting Flux [m/s]',fontsize=GLOBAL_FONTSIZE)
+    plt.ylabel('Object Displacement in X Axis [m]',fontsize=GLOBAL_FONTSIZE)
+    plt.title(f"Hitting Flux vs Object Displacement at Hit Time for IIWA 14",fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+
+    if show_plot:
+        plt.show()
+
 
 
 def save_all_figures(dataset): 
@@ -864,7 +1061,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn ="D1-edge" #"data_test_april"#  #"data_consistent_march"
+    csv_fn ="D1_clean" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
@@ -875,18 +1072,21 @@ if __name__== "__main__" :
     clean_df = clean_data(df, save_clean_df=True)
 
     ### Plot functions
-    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    flux_hashtable(clean_df)
-    plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D1-edge/", relative=True)
-    
+    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    # flux_hashtable(clean_df)
+    # plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D1-edge/", relative=True)
+    # plot_orientation_vs_displacement(clean_df, orientation='error',sanity_check=False)
+    plot_orientation_vs_flux(clean_df)
+    plot_displacement_vs_flux(clean_df) 
+
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")
     # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
     # plot_object_trajectory(clean_df, use_mplcursors=True, selection="all")
     
 
-    save_all_figures(dataset=csv_fn)
-    # plt.show()
+    # save_all_figures(dataset=csv_fn)
+    plt.show()
 
 
     # test_gmm_torch(clean_df)

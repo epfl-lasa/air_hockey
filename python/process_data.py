@@ -28,14 +28,57 @@ def parse_strip_list(cell):
     return [float(value) for value in cell.strip("[]").split()]
 
 def get_orientation_error_x_y_z(q_a, q_b):
-    ### Get 2 quaternions and return orientation error
-    
+    ### Get 2 quaternions and return euler angles from q_a to q_b
+    ## This works for 7 for some reason (but not 14)
+     
     r_a = Rotation.from_quat(q_a).as_matrix()
     r_b = Rotation.from_quat(q_b).as_matrix()
     
     r_ab = r_a.T @ r_b
     
-    euler_angles = Rotation.from_matrix(r_ab).as_euler('xyz', degrees=True)
+    euler_angles = Rotation.from_matrix(r_ab).as_euler('XYZ', degrees=True)
+
+    # euler_angles_a = r_a @ euler_angles
+    # print(r_a)
+    
+    return euler_angles
+
+def get_orientation_error_manually(q_robot, q_object, iiwa_number):
+    # compute error from robot EEF to Object in euler angles
+
+    e_o = Rotation.from_quat(q_object).as_euler('xyz', degrees=True)
+    e_r = Rotation.from_quat(q_robot).as_euler('XYZ', degrees=True)
+
+    if iiwa_number == 7:
+        diff_x = e_o[0] - e_r[0]
+        diff_y = e_o[1] - e_r[2]
+        diff_z = e_o[2] + e_r[1]
+    elif iiwa_number == 14:
+        # diff_x = e_o[0] + e_r[1]
+        # diff_y = e_o[1] + e_r[2]
+        # diff_z = e_o[2] - e_r[0]       # 1 - intrisic rotations
+        diff_x = e_o[0] + e_r[2]
+        diff_y = e_o[1] + e_r[0]
+        diff_z = e_o[2] - e_r[1]         # 2 - extrinsic rotations
+
+    return [-diff_x, -diff_y, -diff_z]
+
+def get_orientation_error_in_correct_base(q_robot, q_object, iiwa_number):
+    ### This works for 14 for some reason (but not 7)
+    
+    r_o_0 = Rotation.from_quat(q_object).as_matrix() # correct base
+    r_r_r = Rotation.from_quat(q_robot).as_matrix() # incorrect base
+
+    if iiwa_number == 7:
+        r_0 = Rotation.from_quat([0.707, 0.707, 0.0, 0.0]).as_matrix() # 90 deg in x 
+        r_r_0 = r_r_r @ r_0
+    if iiwa_number == 14:
+        r_0 = Rotation.from_quat([0.5, -0.5, 0.5, -0.5]).as_matrix() # 90 deg in Z, then 90 deg in X
+        r_r_0 = r_r_r @ r_0
+    
+    r_o_to_r = r_o_0.T @ r_r_0
+    
+    euler_angles = Rotation.from_matrix(r_o_to_r).as_euler('XYZ', degrees=True)
     
     return euler_angles
 
@@ -428,19 +471,19 @@ if __name__== "__main__" :
     # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
-    data_folder = "varying_flux_datasets/D1-edge"
+    data_folder = "varying_flux_datasets/D2"
     # data_folder = "fixed_flux_datasets/DA-Inertia_consistency"
 
     # PRocess al folders in the desired data_folder
     folders_to_process = os.listdir(PATH_TO_DATA_FOLDER + data_folder)
     
-    surface = "_"
+    surface = "clean"
     to_process = []
     for folder in folders_to_process :
         if surface in folder: 
             to_process.append(folder)
 
-    process_data_to_one_file(data_folder, to_process, output_filename="D1-edge.csv")
+    process_data_to_one_file(data_folder, to_process, output_filename="D2_clean.csv")
     # process_all_data_for_ekf(folders_to_process)
     
 
