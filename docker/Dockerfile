@@ -33,7 +33,7 @@ WORKDIR ${HOME}
 
 RUN sudo ldconfig
 
-ARG CL_BRANCH=main
+ARG CL_BRANCH=v7.4.0
 RUN git clone -b ${CL_BRANCH} --depth 1 https://github.com/aica-technology/control-libraries.git
 
 # install source
