@@ -428,19 +428,19 @@ if __name__== "__main__" :
     # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
-    data_folder = "varying_flux_datasets/D1-edge"
+    data_folder = "varying_flux_datasets/D2"
     # data_folder = "fixed_flux_datasets/DA-Inertia_consistency"
 
     # PRocess al folders in the desired data_folder
     folders_to_process = os.listdir(PATH_TO_DATA_FOLDER + data_folder)
     
-    surface = "_"
+    surface = "clean"
     to_process = []
     for folder in folders_to_process :
         if surface in folder: 
             to_process.append(folder)
 
-    process_data_to_one_file(data_folder, to_process, output_filename="D1-edge.csv")
+    process_data_to_one_file(data_folder, to_process, output_filename="D2_clean.csv")
     # process_all_data_for_ekf(folders_to_process)
     
 
