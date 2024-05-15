@@ -12,14 +12,17 @@ def generate_gaussian_values_file(filename, num_values, mean, stddev):
 def generate_random_values_file(filename, num_values):
     with open(filename, 'w') as file:
         for _ in range(num_values):
-            random_value = random.uniform(0.5, 1.2)
-            file.write(f"{random_value:.2f}\n")
+            random_value = random.uniform(0.4, 0.9)
+            file.write(f"{random_value:.3f}\n")
 
-def sort_file(input_file, output_file):
+def sort_file(input_file, output_file, remove_input=False, reverse=False):
     with open(input_file, 'r') as file:
         lines = file.readlines()
     
-    sorted_lines = sorted(lines)
+    if remove_input:
+        os.remove(input_file)
+
+    sorted_lines = sorted(lines,reverse=reverse)
 
     with open(output_file, 'w') as file:
         for line in sorted_lines:
@@ -30,7 +33,7 @@ def plot_values(filename):
         values = [float(line.strip()) for line in file]
 
     plt.figure(figsize=(8, 6))
-    plt.hist(values, bins=30, color='skyblue', edgecolor='black')
+    plt.hist(values, bins=70, color='skyblue', edgecolor='black')
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.title('Histogram of Generated Values')
@@ -41,10 +44,11 @@ if __name__ == "__main__":
 
     ## SET FILE PARAMETERS 
     folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/src/air_hockey/desired_hitting_fluxes"
-    filename = "random_fluxes_uni"  
+    
+    filename = "random_fluxes_uni_150_low"  
 
     # SET GENERATION PARAMETERS 
-    num_values = 300  # Replace with the number of random values you want
+    num_values = 150  # Replace with the number of random values you want
     mean = 0.85  # Adjust the mean according to your preference
     stddev = 0.15 # Adjust the standard deviation according to your preference
 
@@ -53,6 +57,6 @@ if __name__ == "__main__":
     
     # generate_gaussian_values_file(complete_path, num_values, mean, stddev)
     generate_random_values_file(complete_path, num_values)
-    sort_file(complete_path, complete_path_sorted)
-    # plot_values(complete_path)
+    sort_file(complete_path, complete_path_sorted, remove_input=True, reverse = True)
+    plot_values(complete_path_sorted)
     

@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 import mplcursors
 from matplotlib.patches import Rectangle
 from matplotlib.cm import ScalarMappable
+from matplotlib.lines import Line2D
 import pybullet 
 import math
 
@@ -17,10 +18,13 @@ sys.path.append('/home/maxime/Workspace/air_hockey/python_data_processing/gmm_to
 # from gmm_torch.example import plot
 # import torch
 
-# from gmr.utils import check_random_state
-# from gmr import MVN, GMM, plot_error_ellipses
+from gmr.utils import check_random_state
+from gmr import MVN, GMM, plot_error_ellipses
 
-from process_data import parse_value, parse_list, parse_strip_list, parse_strip_list_with_commas, get_orientation_error_x_y_z
+from process_data import parse_value, parse_list, parse_strip_list, get_impact_time_from_object, get_orientation_error_x_y_z, PATH_TO_DATA_FOLDER
+
+# Fontsize for axes and titles 
+GLOBAL_FONTSIZE = 20
 
 # PROCESSING
 def wrap_angle(angle_rad):
@@ -32,13 +36,15 @@ def wrap_angle(angle_rad):
     else: return angle_deg
 
 # CLEANING FUNCTION
-def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
+def clean_data(df, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
     
     ### Remove low outliers -> due to way of recording and processing
     # Distance
     clean_df = df[df['DistanceTraveled']>distance_threshold]
     # Flux
     clean_df = clean_df[clean_df['HittingFlux']>flux_threshold]
+    # Desired Flux 
+    clean_df = clean_df[clean_df['DesiredFlux']>flux_threshold]
 
     # Reset index
     clean_df.reset_index(drop=True, inplace=True)       
@@ -47,12 +53,21 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     ## maybe : 
     ## double hits (from 14): 202, 221, 250, 409, 791
     ## didnt hit box ?? : 448 to remove for plot_hit_point_on_object
-    idx_to_remove = [436,437,438,439,440]
+    # idx_to_remove = [436,437,438,439,440] # march dataset
+    idx_to_remove = []
 
     clean_df = clean_df[~clean_df.index.isin(idx_to_remove)]
     clean_df.reset_index(drop=True, inplace=True)   
 
     print(f"Removed {len(df.index)-len(clean_df.index)} outlier datapoints")
+   
+   # Saving clean df
+    if save_clean_df :
+        processed_clean_folder = PATH_TO_DATA_FOLDER+"/airhockey_processed/clean/"
+        if not os.path.exists(processed_clean_folder):
+            os.makedirs(processed_clean_folder)
+            
+        clean_df.to_csv(processed_clean_folder+csv_fn+"_clean.csv",index_label="Index")
  
     return clean_df
 
@@ -152,11 +167,11 @@ def plot_gmr(df, n=3, plot="only_gmm"):
     plt.show()
 
 
-def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_model=None, use_mplcursors=True):
+def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_model=None, use_mplcursors=True, show_plot=False):
     ## use colors input to dtermine color of datapoints
 
     # Plot Flux
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    fig, ax = plt.subplots(1, 1, figsize=(20, 10), sharex=True)
 
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
@@ -179,7 +194,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
         lin_model = LinearRegression()
         lin_model.fit(df['HittingFlux'].values.reshape(-1,1), df['DistanceTraveled'].values)
 
-        flux_test = np.linspace(0.4,1.2,100).reshape(-1,1)
+        flux_test = np.linspace(0.5,1.2,100).reshape(-1,1)
         distance_pred = lin_model.predict(flux_test)
         ax.plot(flux_test,distance_pred,color='black', label='Linear Regression')
 
@@ -215,16 +230,44 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
         mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
             f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
 
-    ax.set_xlabel('Hitting flux [m/s]')
-    ax.set_ylabel('Distance Traveled [m]')
+    ax.set_xlabel('Hitting flux [m/s]',fontsize=GLOBAL_FONTSIZE)
+    ax.set_ylabel('Distance Traveled [m]',fontsize=GLOBAL_FONTSIZE)
     ax.grid(True)
-    plt.legend()
-    fig.suptitle(f"Distance over Flux")
+    plt.legend(fontsize=15)
+    plt.title(f"Distance over Flux",fontsize=GLOBAL_FONTSIZE)
     fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
 
-    plt.show()
+    if show_plot : plt.show()
 
-def plot_hit_position(df, plot="on object", use_mplcursors=True):
+def flux_hashtable(df, use_mplcursors=True, show_plot = False):
+    # Plot Flux
+    fig, ax = plt.subplots(1, 1, figsize=(20, 10), sharex=True)
+
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+    ax.scatter(df_iiwa7['DesiredFlux'], df_iiwa7['HittingFlux'], color='red', alpha=0.5, label='Iiwa 7')
+    ax.scatter(df_iiwa14['DesiredFlux'], df_iiwa14['HittingFlux'], color='blue', alpha=0.5, label='Iiwa 14')
+
+    # add line
+    diagonal = np.linspace(df_iiwa7['DesiredFlux'].min(), df_iiwa7['DesiredFlux'].max(), 100)
+    ax.plot(diagonal, diagonal, color='black')
+
+    # Adding info when hovering cursor
+    if use_mplcursors:
+        mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
+            f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
+
+    ax.set_xlabel('Desired flux [m/s]',fontsize=GLOBAL_FONTSIZE)
+    ax.set_ylabel('Hitting Flux [m/s]',fontsize=GLOBAL_FONTSIZE)
+    ax.grid(True)
+    plt.legend()
+    plt.title(f"Flux Hashtable",fontsize=GLOBAL_FONTSIZE)
+    fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+    
+    if show_plot : plt.show()
+
+
+def plot_hit_position(df, plot="on object", use_mplcursors=True, show_plot = False):
     # plot choices : "on object" , "flux", "distance"
 
     # for each hit, get relative error in x,y,z 
@@ -303,9 +346,9 @@ def plot_hit_position(df, plot="on object", use_mplcursors=True):
             mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
             f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
 
-    plt.show()
+    if show_plot : plt.show()
 
-def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True):
+def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True, show_plot = False):
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
 
@@ -388,45 +431,15 @@ def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True):
         ax.grid(True)
 
     plt.legend()
-    fig.suptitle(f"Orientation over Flux")
+    plt.title(f"Orientation over Flux")
     # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
 
-    plt.show()
+    if show_plot : plt.show()
 
-
-def flux_hashtable(df, use_mplcursors=True):
-    # Plot Flux
-    fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
-
-    df_iiwa7 = df[df['IiwaNumber']==7].copy()
-    df_iiwa14 = df[df['IiwaNumber']==14].copy()
-    ax.scatter(df_iiwa7['DesiredFlux'], df_iiwa7['HittingFlux'], color='red', alpha=0.5, label='Iiwa 7')
-    ax.scatter(df_iiwa14['DesiredFlux'], df_iiwa14['HittingFlux'], color='blue', alpha=0.5, label='Iiwa 14')
-
-    # add line
-    diagonal = np.linspace(df_iiwa7['DesiredFlux'].min(), df_iiwa7['DesiredFlux'].max(), 100)
-    ax.plot(diagonal, diagonal, color='black')
-
-    # Adding info when hovering cursor
-    if use_mplcursors:
-        mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
-            f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
-
-    ax.set_xlabel('Desired flux [m/s]')
-    ax.set_ylabel('Hitting Flux [m/s]')
-    ax.grid(True)
-    plt.legend()
-    fig.suptitle(f"Flux Hashtable")
-    fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
-    
-    plt.show()
-
-
-def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
-
-    fig, axes = plt.subplots(2, 1, figsize=(12, 8))# , sharex=True
-    # fig_iiwa7 ,ax_iiwa7 = plt.subplots()
-    # fig_iiwa14, ax_iiwa14 = plt.subplots()
+def plot_object_trajectory(df, use_mplcursors=True, selection="all", show_plot = False):
+   
+    fig_iiwa7 ,ax_iiwa7 = plt.subplots()
+    fig_iiwa14, ax_iiwa14 = plt.subplots()
 
     # Random selection
     if selection == "all":
@@ -475,19 +488,16 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
         # df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list})
 
         if row['IiwaNumber']==7 :
+    
+            ax_iiwa7.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
+            scatter_iiwa7 = ax_iiwa7.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
+            start_pos0.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
             
-            axes[0].plot(df_obj['PositionForIiwa7'].apply(lambda x: x[1]), df_obj['PositionForIiwa7'].apply(lambda x: x[0]), alpha=0.8)
-            scatter_iiwa7 = axes[0].scatter(df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0], label=f"idx:{index}")
-            start_pos0.append([df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0]])
-            # ax_iiwa7.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
-            # scatter_iiwa7 = ax_iiwa7.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
-            # start_pos0.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
-            
-            # ax_iiwa7.set_xlabel('Y Axis [m]')
-            # ax_iiwa7.set_ylabel('X Axis [m]')
-            # ax_iiwa7.grid(True)
-            # ax_iiwa7.set_aspect('equal')
-            # ax_iiwa7.set_title("Object trajectories for IIWA 7")
+            ax_iiwa7.set_xlabel('Y Axis [m]')
+            ax_iiwa7.set_ylabel('X Axis [m]')
+            ax_iiwa7.grid(True)
+            ax_iiwa7.set_aspect('equal')
+            ax_iiwa7.set_title("Object trajectories for IIWA 7")
             
             # Adding info when clicking cursor
             if use_mplcursors:
@@ -496,48 +506,32 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
         if row['IiwaNumber']==14 :
             
             # inverted to adpat to optitrack reference frame
-            axes[1].plot(df_obj['PositionForIiwa14'].apply(lambda x: x[1]), df_obj['PositionForIiwa14'].apply(lambda x: x[0]))
-            scatter_iiwa14 = axes[1].scatter(df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0], label=f"idx:{index}")
-            start_pos1.append([df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0]])
-            # ax_iiwa14.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
-            # scatter_iiwa14 = ax_iiwa14.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
-            # start_pos1.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
+            ax_iiwa14.plot(df_obj['Position'].apply(lambda x: -x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
+            scatter_iiwa14 = ax_iiwa14.scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], label=f"IDX:{index}")
+            start_pos1.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
 
             
-            # ax_iiwa14.set_xlabel('Y Axis [m]')
-            # ax_iiwa14.set_ylabel('X Axis [m]')
-            # ax_iiwa14.grid(True)
-            # ax_iiwa14.set_aspect('equal')
-            # ax_iiwa14.set_title("Object trajectories for IIWA 14")
+            ax_iiwa14.set_xlabel('Y Axis [m]')
+            ax_iiwa14.set_ylabel('X Axis [m]')
+            ax_iiwa14.grid(True)
+            ax_iiwa14.set_aspect('equal')
+            ax_iiwa14.set_title("Object trajectories for IIWA 14")
             
             # Adding info when clicking cursor
             if use_mplcursors:
                 mplcursors.cursor(scatter_iiwa14, hover=False).connect('add', lambda sel: sel.annotation.set_text(sel.artist.get_label()))   
 
-    # df_iiwa7 = df[df['IiwaNumber']==7].copy()
-    # df_iiwa14 = df[df['IiwaNumber']==14].copy()
-    # scatter_iiwa7 = ax_iiwa7.scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    # # scatter_iiwa14 = ax_iiwa14.scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    # cbar = plt.colorbar(scatter_iiwa7)
-    # cbar.set_label('Orientation Error in Z-axis [deg]')
-    
-    # # cbar2 = plt.colorbar(scatter_iiwa14)
-    # # cbar2.set_label('Orientation Error in Z-axis [deg]')
-    
     # add colors
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
-    scatter = axes[0].scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    # axes[1].scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
-    cbar = plt.colorbar(scatter, ax=axes.ravel().tolist())
+    scatter_iiwa7 = ax_iiwa7.scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
+    scatter_iiwa14 = ax_iiwa14.scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError2'].apply(lambda x : x[2]), cmap="viridis")
+    cbar = plt.colorbar(scatter_iiwa7)
     cbar.set_label('Orientation Error in Z-axis [deg]')
-
-    for ax in axes:
-        ax.set_xlabel('Y Axis [m]')
-        ax.set_ylabel('X-axis [m]')
-        ax.grid(True)
-        ax.set_aspect('equal')
-        
+    
+    cbar2 = plt.colorbar(scatter_iiwa14)
+    cbar2.set_label('Orientation Error in Z-axis [deg]')
+            
     # move bottom ax for pretty -> DOESN'T WORK
     # ax_pos = axes[1].get_position()
     # print(ax_pos)
@@ -549,16 +543,14 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all"):
     
     # leg = fig.legend(loc='center left', bbox_to_anchor=(0.5, 0.5))
     # leg.set_draggable(state=True)
-    # fig.suptitle(f"Object trajectories")
+    plt.title(f"Object trajectories")
     # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
     
-    plt.show()
+    if show_plot : plt.show()
 
-
-def plot_object_trajectory_onefig(df, use_mplcursors=True, selection="all"):
+def plot_object_trajectory_onefig(df, use_mplcursors=False, selection="all", show_plot = False):
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)# 
-
 
     # Random selection
     if selection == "all":
@@ -656,37 +648,245 @@ def plot_object_trajectory_onefig(df, use_mplcursors=True, selection="all"):
     
     # leg = fig.legend(loc='center left', bbox_to_anchor=(0.5, 0.5))
     # leg.set_draggable(state=True)
-    fig.suptitle(f"Object trajectories")
+    plt.title(f"Object trajectories")
     # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
     
-    plt.show()
+    if show_plot : plt.show()
+
+
+def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative=True, use_mplcursors=True, selection="all", show_plot = False):
+    # Plot object start and end view form above 
+    # One figure for each iiwa
+    # If relative, plot relative to start position
+    
+    df_iiwa7 = df[df['IiwaNumber'] == 7]
+    df_iiwa14 = df[df['IiwaNumber'] == 14]
+    
+    # SELECTION - taking only high fluxes
+    max_flux_7 = 0.80
+    max_flux_14 = 0.80
+    high_flux_iiwa_7_df = df_iiwa7[(df['HittingFlux'] >= max_flux_7)]
+    high_flux_iiwa_14_df = df_iiwa14[(df['HittingFlux'] >= max_flux_14)]
+
+    high_flux_iiwa_7_df.reset_index(drop=True, inplace=True)
+    high_flux_iiwa_14_df.reset_index(drop=True, inplace=True)
+    
+    print(f"Plotting {len(high_flux_iiwa_7_df.index)} points for iiwa 7")
+    
+    ## PLOT FOR IIWA 7
+    plt.figure(figsize=(18, 10))
+    
+    highest_angle = -10
+    lowest_angle = 0
+    
+    for index,row in high_flux_iiwa_7_df.iterrows():
+
+        # Get object trajectory from file name
+        if os.name == "nt": # Windows OS
+            rec_sess = row["RecSession"].replace(":","_")
+        else : rec_sess = row["RecSession"]
+        obj_fn = PATH_TO_DATA_FOLDER + dataset_path + rec_sess + f"/object_1_hit_{row['HitNumber']}.csv"
+        
+        if relative :
+            # Plot start
+            plt.scatter(0, 0, color='b', marker = 'o')
+            # Plot end
+            plt.scatter(row['ObjectPosEnd'][1]-row['ObjectPosStart'][1], row['ObjectPosEnd'][0]-row['ObjectPosStart'][0], alpha=0.6, color='r', marker = 'x')
+            
+        else :
+            # Plot start
+            plt.scatter(row['ObjectPosStart'][1], row['ObjectPosStart'][0], alpha=0.6, color='b', marker = 'o')
+            # Plot end
+            plt.scatter(row['ObjectPosEnd'][1], row['ObjectPosEnd'][0], alpha=0.6, color='r', marker = 'x')
+        
+        # Get highest and lowest traj fn - according to angle
+        angle = np.degrees(np.arctan2(row['ObjectPosEnd'][0]-row['ObjectPosStart'][0], abs(row['ObjectPosEnd'][1]-row['ObjectPosStart'][1])))
+        print(angle)
+        if  angle <= lowest_angle : 
+            lowest_x_fn = obj_fn
+            lowest_angle = angle
+            idx_lowest = index
+        if  angle >= highest_angle : 
+            highest_x_fn = obj_fn
+            highest_angle = angle
+            idx_highest = index
+
+    # Add trajectory for highest x value
+    df_obj = pd.read_csv(highest_x_fn , converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+    start_time, end_time = get_impact_time_from_object(highest_x_fn)
+    start_pos =  high_flux_iiwa_7_df['ObjectPosStart'].iloc[idx_highest]
+    df_obj_moving = df_obj[(df_obj['RosTime']-end_time) <= 0 ] # get object traj while it's movign due to robot 
+    if relative :
+        plt.plot(df_obj_moving['PositionForIiwa7'].apply(lambda x: x[1]-start_pos[1]), df_obj_moving['PositionForIiwa7'].apply(lambda x: x[0]-start_pos[0]), color='g')
+    else :
+        plt.plot(df_obj_moving['PositionForIiwa7'].apply(lambda x: x[1]), df_obj_moving['PositionForIiwa7'].apply(lambda x: x[0]), color='g')
+        
+    # Add trajectory for lowest x value
+    df_obj = pd.read_csv(lowest_x_fn , converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+    start_time, end_time = get_impact_time_from_object(lowest_x_fn)
+    start_pos =  high_flux_iiwa_7_df['ObjectPosStart'].iloc[idx_lowest]
+    df_obj_moving = df_obj[(df_obj['RosTime']-end_time) <= 0 ] # get object traj while it's movign due to robot 
+    if relative :
+        plt.plot(df_obj_moving['PositionForIiwa7'].apply(lambda x: x[1]-start_pos[1]), df_obj_moving['PositionForIiwa7'].apply(lambda x: x[0]-start_pos[0]), color='g')
+    else :
+        plt.plot(df_obj_moving['PositionForIiwa7'].apply(lambda x: x[1]), df_obj_moving['PositionForIiwa7'].apply(lambda x: x[0]), color='g')
+        
+    # Get the angle 
+    directional_error_angle = abs(highest_angle) + abs(lowest_angle)
+    print("IIWA 7 - Angle lowest and highest trajectories:", directional_error_angle)
+    
+    # Create custom legend
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='b', label='Start', markersize=10),
+        Line2D([0], [0], marker='x', color='r', label='End', markersize=10),
+        Line2D([0], [0], marker='', color='k', label=f'Angular Error: {directional_error_angle:.2f} degrees')
+        ]
+    plt.legend(handles=legend_elements, loc='upper left', fontsize=15)
+    
+    # Set plot variables 
+    plt.axis('equal')
+    plt.xlabel('Y Axis [m]',fontsize=GLOBAL_FONTSIZE)
+    plt.ylabel('X Axis [m]',fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+    
+    if relative:
+        plt.title(f"Relative Object trajectories for IIWA 7 for fluxes over {max_flux_7}",fontsize=GLOBAL_FONTSIZE)
+    else:
+        plt.title(f"Absolute Object trajectories for IIWA 7 for fluxes over {max_flux_7}",fontsize=GLOBAL_FONTSIZE)
+    
+    ### PLOT FOR IIWA 14
+    plt.figure(figsize=(18, 10))
+    
+    highest_angle = 0
+    lowest_angle = 0
+    
+    for index,row in high_flux_iiwa_14_df.iterrows():
+
+        # Get object trajectory from file name
+        if os.name == "nt": # Windows OS
+            rec_sess = row["RecSession"].replace(":","_")
+        else : rec_sess = row["RecSession"]
+        obj_fn = PATH_TO_DATA_FOLDER + dataset_path + rec_sess + f"/object_1_hit_{row['HitNumber']}.csv"
+              
+        if relative :
+            # Plot start
+            plt.scatter(0, 0, color='b', marker = 'o')
+            # Plot end
+            plt.scatter(row['ObjectPosEnd'][1]-row['ObjectPosStart'][1], row['ObjectPosEnd'][0]-row['ObjectPosStart'][0], alpha=0.6, color='r', marker = 'x')
+            
+        else :
+            # Plot start
+            plt.scatter(row['ObjectPosStart'][1], row['ObjectPosStart'][0], alpha=0.6, color='b', marker = 'o')
+            # Plot end
+            plt.scatter(row['ObjectPosEnd'][1], row['ObjectPosEnd'][0], alpha=0.6, color='r', marker = 'x')
+            
+        # Get highest and lowest traj fn - according to angle
+        angle = np.degrees(np.arctan2(row['ObjectPosEnd'][0]-row['ObjectPosStart'][0], abs(row['ObjectPosEnd'][1]-row['ObjectPosStart'][1])))
+        if  angle < lowest_angle : 
+            lowest_x_fn = obj_fn
+            lowest_angle = angle
+            idx_lowest = index
+        if  angle > highest_angle : 
+            highest_x_fn = obj_fn
+            highest_angle = angle
+            idx_highest = index
+    
+    # Add trajectory for highest x value
+    df_obj = pd.read_csv(highest_x_fn , converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+    start_time, end_time = get_impact_time_from_object(highest_x_fn)
+    start_pos =  high_flux_iiwa_14_df['ObjectPosStart'].iloc[idx_highest] # get this for offset
+    df_obj_moving = df_obj[(df_obj['RosTime']-end_time) <= 0 ] # get object traj while it's movign due to robot 
+    if relative :
+        plt.plot(df_obj_moving['PositionForIiwa14'].apply(lambda x: x[1]-start_pos[1]), df_obj_moving['PositionForIiwa14'].apply(lambda x: x[0]-start_pos[0]), color='g')
+    else :
+        plt.plot(df_obj_moving['PositionForIiwa14'].apply(lambda x: x[1]), df_obj_moving['PositionForIiwa14'].apply(lambda x: x[0]), color='g')
+        
+    # Add trajectory for lowest x value
+    df_obj = pd.read_csv(lowest_x_fn , converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
+    start_time, end_time = get_impact_time_from_object(lowest_x_fn)
+    start_pos =  high_flux_iiwa_14_df['ObjectPosStart'].iloc[idx_lowest]
+    df_obj_moving = df_obj[(df_obj['RosTime']-end_time) <= 0 ] # get object traj while it's movign due to robot 
+    if relative :
+        plt.plot(df_obj_moving['PositionForIiwa14'].apply(lambda x: x[1]-start_pos[1]), df_obj_moving['PositionForIiwa14'].apply(lambda x: x[0]-start_pos[0]), color='g')
+    else :
+        plt.plot(df_obj_moving['PositionForIiwa14'].apply(lambda x: x[1]), df_obj_moving['PositionForIiwa14'].apply(lambda x: x[0]), color='g')
+        
+    # Get the angle for highest traj
+    directional_error_angle = abs(highest_angle) + abs(lowest_angle)
+    print("Angle lowest and highest trajectories:", directional_error_angle)
+    
+    # Create custom legend
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='b', label='Start', markersize=10),
+        Line2D([0], [0], marker='x', color='r', label='End', markersize=10),
+        Line2D([0], [0], marker='', color='k', label=f'Directional error angle: {directional_error_angle:.2f} degrees')
+        ]
+    plt.legend(handles=legend_elements, loc='upper left', fontsize=15)
+    
+    # Set plot variables 
+    plt.axis('equal')
+    plt.xlabel('Y Axis [m]', fontsize=GLOBAL_FONTSIZE)
+    plt.ylabel('X Axis [m]', fontsize=GLOBAL_FONTSIZE)
+    plt.grid(True)
+    if relative :
+        plt.title(f"Relative Object trajectories for IIWA 14 for fluxes over {max_flux_14}",fontsize=GLOBAL_FONTSIZE)
+    else :
+        plt.title(f"Absolute Object trajectories for IIWA 14 for fluxes over {max_flux_14}",fontsize=GLOBAL_FONTSIZE)
+        
+    if show_plot : plt.show()
+
+
+
+def save_all_figures(dataset): 
+
+    # Specify the directory where you want to save the figures
+    save_dir = PATH_TO_DATA_FOLDER + "figures/" + dataset
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Save all figures without window borders
+    for fig in plt.get_fignums():
+        plt.figure(fig)
+        title = plt.gca().get_title()  # Get the title of the figure
+        print(title)
+        file_name = f"{title}.png" if title else f"figure_{fig}.png"
+        plt.gca().set_frame_on(True)  # Turn on frame
+        plt.savefig(os.path.join(save_dir, file_name), bbox_inches="tight", pad_inches=0.1)
+
+    print("All figures saved successfully!")
 
 
 if __name__== "__main__" :
     
-    processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
+    processed_raw_folder = PATH_TO_DATA_FOLDER + "airhockey_processed/raw/"
     
     ### Datafile to use
-    csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
+    # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
+    csv_fn ="D1-edge" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
-    df = pd.read_csv(processed_data_folder+csv_fn+".csv", index_col="Index", converters={
-        'ObjectPos' : parse_strip_list_with_commas, 'HittingPos': parse_strip_list_with_commas, 
-        'ObjectOrientation' : parse_strip_list, 'HittingOrientation': parse_strip_list_with_commas})#
+    df = pd.read_csv(processed_raw_folder+csv_fn+".csv", index_col="Index", converters={
+        'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,
+        'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
     
-    clean_df = clean_data(df)
-    # Saving clean df
-    clean_df.to_csv(processed_data_folder+csv_fn+"_clean.csv",index_label="Index")
-
+    clean_df = clean_data(df, save_clean_df=True)
 
     ### Plot functions
     plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    flux_hashtable(clean_df)
+    plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D1-edge/", relative=True)
+    
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")
-    flux_hashtable(clean_df)
     # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
     # plot_object_trajectory(clean_df, use_mplcursors=True, selection="all")
+    
+
+    save_all_figures(dataset=csv_fn)
+    # plt.show()
 
 
     # test_gmm_torch(clean_df)
