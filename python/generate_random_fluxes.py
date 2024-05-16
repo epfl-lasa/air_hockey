@@ -45,10 +45,10 @@ if __name__ == "__main__":
     ## SET FILE PARAMETERS 
     folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/src/air_hockey/desired_hitting_fluxes"
     
-    filename = "random_fluxes_uni_250"  
+    filename = "random_fluxes_uni_50"  
 
     # SET GENERATION PARAMETERS 
-    num_values = 250  # Replace with the number of random values you want
+    num_values = 50  # Replace with the number of random values you want
     mean = 0.85  # Adjust the mean according to your preference
     stddev = 0.15 # Adjust the standard deviation according to your preference
 

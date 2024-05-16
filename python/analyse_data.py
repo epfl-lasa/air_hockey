@@ -674,6 +674,15 @@ def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative
     
     print(f"Plotting {len(high_flux_iiwa_7_df.index)} points for iiwa 7")
     
+    # get object number based on dataset path
+    dataset = dataset_path.split('/')[1]
+    if dataset == 'D1' or dataset == 'D3':
+        object_number = 1
+    if dataset == 'D2' or dataset == 'D4':
+        object_number = 2
+    if dataset == 'D5' or dataset == 'D6':
+        object_number = 3
+    
     ## PLOT FOR IIWA 7
     plt.figure(figsize=(18, 10))
     
@@ -686,7 +695,7 @@ def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative
         if os.name == "nt": # Windows OS
             rec_sess = row["RecSession"].replace(":","_")
         else : rec_sess = row["RecSession"]
-        obj_fn = PATH_TO_DATA_FOLDER + dataset_path + rec_sess + f"/object_1_hit_{row['HitNumber']}.csv"
+        obj_fn = PATH_TO_DATA_FOLDER + dataset_path + rec_sess + f"/object_{object_number}_hit_{row['HitNumber']}.csv"
         
         if relative :
             # Plot start
@@ -767,7 +776,7 @@ def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative
         if os.name == "nt": # Windows OS
             rec_sess = row["RecSession"].replace(":","_")
         else : rec_sess = row["RecSession"]
-        obj_fn = PATH_TO_DATA_FOLDER + dataset_path + rec_sess + f"/object_1_hit_{row['HitNumber']}.csv"
+        obj_fn = PATH_TO_DATA_FOLDER + dataset_path + rec_sess + f"/object_{object_number}_hit_{row['HitNumber']}.csv"
               
         if relative :
             # Plot start
@@ -1061,7 +1070,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn ="D1_clean" #"data_test_april"#  #"data_consistent_march"
+    csv_fn = "D5"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
@@ -1072,11 +1081,11 @@ if __name__== "__main__" :
     clean_df = clean_data(df, save_clean_df=True)
 
     ### Plot functions
-    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
     # flux_hashtable(clean_df)
-    # plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D1-edge/", relative=True)
+    plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D5/", relative=True)
     # plot_orientation_vs_displacement(clean_df, orientation='error',sanity_check=False)
-    plot_orientation_vs_flux(clean_df)
+    # plot_orientation_vs_flux(clean_df)
     plot_displacement_vs_flux(clean_df) 
 
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
@@ -1085,7 +1094,7 @@ if __name__== "__main__" :
     # plot_object_trajectory(clean_df, use_mplcursors=True, selection="all")
     
 
-    # save_all_figures(dataset=csv_fn)
+    save_all_figures(dataset=csv_fn)
     plt.show()
 
 
