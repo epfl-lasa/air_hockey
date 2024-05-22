@@ -178,7 +178,7 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
     # Use derivative to find changes in speed 
-    derivative_threshold_start = 0.3 #0.15 #0.05 ## high to avoid noise at start
+    derivative_threshold_start = 0.2 #0.15 #0.05 ## high to avoid noise at start
     derivative_threshold_stop = 0.01 #0.15 #0.05 ## low to avoid noise during motion
 
     # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN X AXIS
@@ -201,7 +201,7 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
 
     if show_print: 
         df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
-        print(idx_stop_moving, filtered_df['derivative'].loc[idx_start_moving:idx_stop_moving].abs())
+        # print(idx_stop_moving, filtered_df['derivative'].loc[idx_start_moving:idx_stop_moving].abs())
         print(f"Start moving from {df[pos_name_str].iloc[idx_before_impact]} at {df['RosTime'].iloc[idx_before_impact]}")
         print(f"Stop moving from {df[pos_name_str].iloc[idx_stop_moving]} at {df['RosTime'].iloc[idx_stop_moving]}")
 
@@ -487,19 +487,19 @@ if __name__== "__main__" :
     # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
     #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
-    data_folder = "varying_flux_datasets/D3"
+    data_folder = "varying_flux_datasets/D1"
     # data_folder = "fixed_flux_datasets/DA-Inertia_consistency"
 
     # PRocess al folders in the desired data_folder
     folders_to_process = os.listdir(PATH_TO_DATA_FOLDER + data_folder)
     
-    surface = "_"
+    surface = "clean"
     to_process = []
     for folder in folders_to_process :
         if surface in folder: 
             to_process.append(folder)
 
-    process_data_to_one_file(data_folder, to_process, output_filename="D3.csv")
+    process_data_to_one_file(data_folder, to_process, output_filename="D1_clean.csv")
     # process_all_data_for_ekf(folders_to_process)
     
 

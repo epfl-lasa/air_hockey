@@ -1102,7 +1102,7 @@ def get_precise_hit_position(df):
 
     point_eef = [hit["HittingPos"][1]*100,hit["HittingPos"][0]*100]
     point_object = [(hit["ObjectPosStart"][1]-0.12) *100,hit["ObjectPosStart"][0]*100]
-    # TODO fix this line, becuase its not grabbing a list
+    # # TODO fix this line, becuase its not grabbing a list
     # point_object = [hit["AttractorPos"][1]*100,hit["AttractorPos"][0]*100]
 
     angle_eef = Rotation.from_quat(hit["HittingOrientation"]).as_euler('XYZ', degrees=True)[2]
@@ -1137,8 +1137,8 @@ def get_precise_hit_position(df):
     ax.plot(point_object[0], point_object[1], 'go', label='Objet Position')
 
     # Set plot limits
-    # ax.set_xlim(-2, 2)
-    # ax.set_ylim(-15, 15)
+    ax.set_xlim(28, 32)
+    ax.set_ylim(45,65)
 
     # Add labels and legend
     ax.set_xlabel('Y [cm]')
@@ -1176,12 +1176,12 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn = "D2_clean"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
+    csv_fn = "D1_clean"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
     df = pd.read_csv(processed_raw_folder+csv_fn+".csv", index_col="Index", converters={
-        'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,
+        'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,'AttractorPos' : parse_strip_list,
         'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
     
     clean_df = clean_data(df, save_clean_df=True)
@@ -1189,13 +1189,13 @@ if __name__== "__main__" :
     # object_number = get_object_based_on_dataset(csv_fn)
 
     # ### Plot functions
-    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    flux_hashtable(clean_df)
+    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    # flux_hashtable(clean_df)
     # plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D4/", relative=True)
     # plot_orientation_vs_displacement(clean_df, orientation='error',sanity_check=False, only_7=True,  object_number=object_number)
     # plot_orientation_vs_flux(clean_df, sanity_check=True, object_number=object_number)
-    plot_displacement_vs_flux(clean_df) 
-    # get_precise_hit_position(clean_df)
+    # plot_displacement_vs_flux(clean_df) 
+    get_precise_hit_position(clean_df)
 
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")
