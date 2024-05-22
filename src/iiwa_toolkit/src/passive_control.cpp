@@ -402,10 +402,10 @@ void PassiveControl::computeTorqueCmd(){
     else if(start == 1){ // PD torque controller with big damping for initialization 
         // compute PD torque 
         er_null = _robot.jnt_position -_robot.nulljnt_position;
-        
-        if (er_null.norm()>0.4){ // Clamping to avoid high torques when far away
-            er_null = 0.4*er_null.normalized();
-        }
+        std::cout << " err _null : " << er_null << std::endl;
+        // if (er_null.norm()>0.4){ // Clamping to avoid high torques when far away
+        //     er_null = 0.4*er_null.normalized();
+        // }
 
         for (int i =0; i<7; i++){ 
             tmp_jnt_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness

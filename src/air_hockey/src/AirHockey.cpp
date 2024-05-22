@@ -597,7 +597,7 @@ void AirHockey::run() {
   int display_pause_count = 0;
   int hit_count = 1;
   int update_flux_once = 0;
-  
+
   FSMState fsm_state;
 
   std::cout << "READY TO RUN " << std::endl;
@@ -675,14 +675,28 @@ void AirHockey::run() {
     }
 
     // UPDATE robot state
+    // if(fsm_state.mode_iiwa7 == HIT){
+    //   refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+    //   update_flux_once = 1; // only update after 1 hit from each robot
+    // }
+
+    // if(fsm_state.mode_iiwa14 == HIT){
+    //   refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+    //   // update_flux_once = 1; // only update after 1 hit from each robot
+    // }
+
     if(fsm_state.mode_iiwa7 == HIT){
-      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      auto refVelQuat = generateHitting7_->flux_DS_with_quat(hittingFlux_[IIWA_7], generateHitting14_->get_current_position(), iiwaTaskInertiaPosInv_[IIWA_7]);
       update_flux_once = 1; // only update after 1 hit from each robot
+      refVelocity_[IIWA_7] = refVelQuat.first;
+      refQuat_[IIWA_7] = refVelQuat.second;
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+      auto refVelQuat = generateHitting14_->flux_DS_with_quat(hittingFlux_[IIWA_14],generateHitting7_->get_current_position(), iiwaTaskInertiaPosInv_[IIWA_14]);
       // update_flux_once = 1; // only update after 1 hit from each robot
+      refVelocity_[IIWA_14] = refVelQuat.first;
+      refQuat_[IIWA_14] = refVelQuat.second;
     }
 
     if(fsm_state.mode_iiwa7 == REST || fsm_state.isHit == 1){

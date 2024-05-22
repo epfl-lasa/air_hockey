@@ -82,6 +82,7 @@ private:
   float objectMass_;
   std::vector<float> hittingFluxArr_;
   float objectSafetyDistance_;
+  geometry_msgs::Pose refVelQuat_;
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string pubPosQuatTopic_[NB_ROBOTS];

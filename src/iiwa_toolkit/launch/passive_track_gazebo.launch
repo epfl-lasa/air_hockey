@@ -6,17 +6,17 @@
 
     <arg name="iiwa_model" default="7"/>
 
-    <!-- <include file="$(find iiwa_gazebo)/launch/iiwa_gazebo.launch">
-        <arg name="robot_name_1" value="$(arg robot_name_1)"/>
-        <arg name="iiwa_model_1" value="$(arg iiwa_model_1)"/>
-    </include> -->
+    <include file="$(find iiwa_gazebo)/launch/iiwa_gazebo.launch">
+        <arg name="robot_name_1" value="$(arg robot_name)"/>
+        <arg name="iiwa_model_1" value="$(arg iiwa_model)"/>
+    </include>
 
-    <group ns="/$(arg robot_name)">
+ <!--    <group ns="/$(arg robot_name)">
         <node name="passive_tracking" pkg="iiwa_toolkit" type="passive_track" output="screen">
         </node>
 
         <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual.yaml" command="load"/>
-    </group>
+    </group>  -->
 <!--     
     <node name="plotter"
             pkg="rqt_plot"
