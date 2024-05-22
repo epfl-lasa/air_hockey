@@ -70,10 +70,10 @@ def get_orientation_error_in_correct_base(q_robot, q_object, iiwa_number):
     r_r_r = Rotation.from_quat(q_robot).as_matrix() # incorrect base
 
     if iiwa_number == 7:
-        r_0 = Rotation.from_quat([0.707, 0.707, 0.0, 0.0]).as_matrix() # 90 deg in x 
+        r_0 = Rotation.from_quat([0.707, 0.0, 0.0, 0.707]).as_matrix() # 90 deg in x 
         r_r_0 = r_r_r @ r_0
     if iiwa_number == 14:
-        r_0 = Rotation.from_quat([0.5, -0.5, 0.5, -0.5]).as_matrix() # 90 deg in Z, then 90 deg in X
+        r_0 = Rotation.from_quat([-0.5, 0.5, -0.5, 0.5]).as_matrix() # -90 deg in Z, then -90 deg in X
         r_r_0 = r_r_r @ r_0
     
     r_o_to_r = r_o_0.T @ r_r_0
@@ -81,6 +81,22 @@ def get_orientation_error_in_correct_base(q_robot, q_object, iiwa_number):
     euler_angles = Rotation.from_matrix(r_o_to_r).as_euler('XYZ', degrees=True)
     
     return euler_angles
+
+def get_corrected_quat_object_2(q_object):
+    # overcoming offset from object 2 (didn't set axis properly in motive)
+
+    # Define the rotation angles
+    angles = [-90, 0, 90]  # -90 degrees around x, 0 degrees around y, 90 degrees around z
+    rotation = Rotation.from_euler('XYZ', angles, degrees=True) ## this hsould be dtermnied from the base orienation 
+
+    rot = rotation * Rotation.from_quat(q_object)
+
+    rot_euler = rot.as_euler('xyz')
+    rot_euler_corrected = [rot_euler[0], -rot_euler[2], rot_euler[1]]
+
+    rot_final = Rotation.from_euler('xyz', rot_euler_corrected)
+
+    return rot_final.as_quat()
 
 def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=False):
     ### Returns robot data info at hit time : Flux, inertia, EFF pose

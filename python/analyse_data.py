@@ -1146,7 +1146,7 @@ def get_precise_hit_position(df):
     ax.legend()
     ax.grid(True)
 
-    plt.show()
+    # plt.show()
 
 
 def save_all_figures(dataset): 
@@ -1176,7 +1176,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn = "D1_clean"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
+    csv_fn = "D1-edge"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
@@ -1186,16 +1186,16 @@ if __name__== "__main__" :
     
     clean_df = clean_data(df, save_clean_df=True)
 
-    object_number = get_object_based_on_dataset(csv_fn)
+    # object_number = get_object_based_on_dataset(csv_fn)
 
-    ### Plot functions
-    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    # flux_hashtable(clean_df)
+    # ### Plot functions
+    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    flux_hashtable(clean_df)
     # plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D4/", relative=True)
     # plot_orientation_vs_displacement(clean_df, orientation='error',sanity_check=False, only_7=True,  object_number=object_number)
     # plot_orientation_vs_flux(clean_df, sanity_check=True, object_number=object_number)
-    # plot_displacement_vs_flux(clean_df) 
-    get_precise_hit_position(clean_df)
+    plot_displacement_vs_flux(clean_df) 
+    # get_precise_hit_position(clean_df)
 
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")
@@ -1203,7 +1203,7 @@ if __name__== "__main__" :
     # plot_object_trajectory(clean_df, use_mplcursors=True, selection="all")
     
 
-    # save_all_figures(dataset=csv_fn)
+    save_all_figures(dataset=csv_fn)
     plt.show()
 
 
