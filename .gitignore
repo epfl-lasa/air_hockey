@@ -7,8 +7,8 @@ data/airhockey_processed/*
 !data/airhockey_processed/raw
 
 # DO NOT ignore these data folders 
-!data/varying_flux_datasets/
-!data/fixed_flux_datasets/
+#!data/varying_flux_datasets/
+#!data/fixed_flux_datasets/
 !data/figures
 !data/README.md
 
