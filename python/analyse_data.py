@@ -1176,7 +1176,7 @@ if __name__== "__main__" :
     
     ### Datafile to use
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
-    csv_fn = "D1-edge"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
+    csv_fn = "D2_clean"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
 
 
     ## Reading and cleanign data 
