@@ -87,7 +87,7 @@ def restructure_for_config_agnostic_plot(df_cfg1, df_cfg2):
     return df_combined
 
 # CLEANING FUNCTION
-def clean_data(df, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
+def clean_data(df, resample=False, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
     
     ### Remove low outliers -> due to way of recording and processing
     # Distance
@@ -97,7 +97,7 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=Fa
     # Desired Flux 
     clean_df = clean_df[clean_df['DesiredFlux']>flux_threshold]
 
-    clean_df = resample_uniformally(clean_df, n_samples=2000)
+    if resample : clean_df = resample_uniformally(clean_df, n_samples=2000)
     # clean_df = clean_df[clean_df['DesiredFlux']<0.9]
 
     # IIWA
@@ -708,6 +708,7 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all", show_plot =
     
     if show_plot : plt.show()
 
+
 def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", use_mplcursors=False, selection="all", show_plot = False):
 
     fig, axes = plt.subplots(2, 1, figsize=(20, 10), sharex=True)
@@ -804,7 +805,6 @@ def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", 
     # plt.title(f"Object trajectories seen from above", fontsize=GLOBAL_FONTSIZE)
     
     if show_plot : plt.show()
-
 
 def plot_object_start_end(df, dataset_path="varying_flux_datasets/D1/", relative=True, use_mplcursors=True, selection="all", show_plot = False):
     # Plot object start and end view form above 
@@ -1314,7 +1314,6 @@ if __name__== "__main__" :
     processed_raw_folder = PATH_TO_DATA_FOLDER + "airhockey_processed/raw/"
     
     ### Datafile to use
-    # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
     csv_fn = "D1_clean"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
 
     ## Reading and cleanign data 
@@ -1322,7 +1321,7 @@ if __name__== "__main__" :
         'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,'AttractorPos' : parse_strip_list,
         'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
     
-    clean_df = clean_data(df, save_clean_df=True)
+    clean_df = clean_data(df, resample=True, save_clean_df=True)
 
     ## restructre data for paper plots 
     # csv_fn2 = "D3"
@@ -1358,7 +1357,7 @@ if __name__== "__main__" :
     # plot_distance_vs_flux(df_combined, colors="config", with_linear_regression=True, use_mplcursors=False)
     # plot_object_trajectory_onefig(clean_df, dataset_path="varying_flux_datasets/D1/", use_mplcursors=False, selection="selected")
 
-    save_all_figures(folder_name="robot_agnostic")
+    save_all_figures(folder_name=csv_fn)
     plt.show()
 
 
