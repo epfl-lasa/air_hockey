@@ -66,42 +66,54 @@ def resample_uniformally(df, n_samples=300):
 
     df_sampled = df_sorted.loc[sampled_indices]
 
+    print(f"Resampled df to {len(df_sampled.index)} values.")
+
     return df_sampled
 
-def restructure_for_config_agnostic_plot(df_cfg1, df_cfg2):
+def restructure_for_agnostic_plots(df1, df2, resample=False, parameter="config"):
     ## get 300 samples from each df and conglomerate into one
 
-    #### Grab n_samples values from df_cfg1 
-    n_samples = len(df_cfg2.index)
-    df_sampled = resample_uniformally(df_cfg1, n_samples=n_samples)
+    #### Grab n_samples values from df1 
+    n_samples = len(df2.index)
+    if resample : 
+        df_sampled = resample_uniformally(df1, n_samples=n_samples)
+    else:
+        df_sampled = df1
 
     ## Add config to df
     # Add a new column to each DataFrame to indicate the source
-    df_sampled['Config'] = 1
-    df_cfg2['Config'] = 2
+    if parameter == "config" :
+        df_sampled['Config'] = 1
+        df2['Config'] = 2
+    elif parameter == "object" :
+        df_sampled['Object'] = 1
+        df2['Object'] = 2
 
     ## Combine both df 
-    df_combined = pd.concat([df_sampled, df_cfg2], ignore_index=True)
+    df_combined = pd.concat([df_sampled, df2], ignore_index=True)
     df_combined.reset_index(drop=True, inplace=True)
+
 
     return df_combined
 
 # CLEANING FUNCTION
-def clean_data(df, resample=False, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
+def clean_data(df, resample=False, n_samples=2000, only_7=False, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
     
     ### Remove low outliers -> due to way of recording and processing
+  
     # Distance
-    clean_df = df[df['DistanceTraveled']>distance_threshold]
+    clean_df = df[df['DistanceTraveled']>distance_threshold]  
+    # Robot 
+    if only_7 : clean_df = clean_df[clean_df['IiwaNumber']==7]
     # Flux
     clean_df = clean_df[clean_df['HittingFlux']>flux_threshold]
     # Desired Flux 
     clean_df = clean_df[clean_df['DesiredFlux']>flux_threshold]
 
-    if resample : clean_df = resample_uniformally(clean_df, n_samples=2000)
+    if resample : clean_df = resample_uniformally(clean_df, n_samples=n_samples)
     # clean_df = clean_df[clean_df['DesiredFlux']<0.9]
 
     # IIWA
-    # clean_df = clean_df[clean_df['IiwaNumber']==7]
 
     # Reset index
     clean_df.reset_index(drop=True, inplace=True)       
@@ -315,6 +327,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
 
+    ## Plot with different colors 
     if colors == "iiwa":
         ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='red', alpha=0.5, label='IIWA 7')
         ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.5, label='IIWA 14')
@@ -332,6 +345,13 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
         df_cfg2 = df[df['Config']==2].copy()
         ax.scatter(df_cfg1['HittingFlux'], df_cfg1['DistanceTraveled'], color='green', alpha=0.5, label='Config 1')
         ax.scatter(df_cfg2['HittingFlux'], df_cfg2['DistanceTraveled'], color='orange', alpha=0.5, label='Config 2')
+
+
+    elif colors == "object":
+        df_obj1 = df[df['Object']==1].copy()
+        df_obj2 = df[df['Object']==2].copy()
+        ax.scatter(df_obj1['HittingFlux'], df_obj1['DistanceTraveled'], color='purple', alpha=0.5, label='Object 1')
+        ax.scatter(df_obj2['HittingFlux'], df_obj2['DistanceTraveled'], color='orange', alpha=0.5, label='Object 2')
 
     ## Add linear regression
     if with_linear_regression: 
@@ -355,8 +375,23 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
             lin_model2.fit(df_cfg2['HittingFlux'].values.reshape(-1,1), df_cfg2['DistanceTraveled'].values)
 
             flux_test2 = np.linspace(0.53,1.1,100).reshape(-1,1)
-            distance_pred2 = lin_model2.predict(flux_test)
+            distance_pred2 = lin_model2.predict(flux_test2)
             ax.plot(flux_test2,distance_pred2,color='orange', label='Linear Regression Config 2')
+
+        elif colors =="object":
+            lin_model = LinearRegression()
+            lin_model.fit(df_obj1['HittingFlux'].values.reshape(-1,1), df_obj1['DistanceTraveled'].values)
+
+            flux_test = np.linspace(0.55,0.94,100).reshape(-1,1)
+            distance_pred = lin_model.predict(flux_test)
+            ax.plot(flux_test,distance_pred,color='purple', label='Linear Regression Object 1')
+
+            lin_model2 = LinearRegression()
+            lin_model2.fit(df_obj2['HittingFlux'].values.reshape(-1,1), df_obj2['DistanceTraveled'].values)
+
+            flux_test2 = np.linspace(0.53,0.8,100).reshape(-1,1)
+            distance_pred2 = lin_model2.predict(flux_test2)
+            ax.plot(flux_test2,distance_pred2,color='orange', label='Linear Regression Object 2')
 
 
     ## Add GMM model
@@ -375,16 +410,20 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
             plt.gca().add_patch(ellipse)
 
     # Print some infos
-    low_to_med_threshold = 0.65
-    med_to_high_threshold = 0.85
     print(f"Dataset info : \n"
           f" Iiwa 7 points : {len(df_iiwa7.index)} \n"
           f" Iiwa 14 points : {len(df_iiwa14.index)} \n"
-        #   f" Low Flux points (below {low_to_med_threshold}): {len(df[df['HittingFlux'] < low_to_med_threshold].index)} \n"
-        #   f" Medium Flux points : {len(df[df['HittingFlux'] > low_to_med_threshold].index) - len(df[df['HittingFlux'] > med_to_high_threshold].index)} \n"
-        #   f" High Flux points (above {med_to_high_threshold}) : {len(df[df['HittingFlux'] > med_to_high_threshold].index)} \n"
           f" Total points : {len(df.index)}")
     
+    if colors == "object":
+        print(f"Dataset info : \n"
+          f" Object 1 points : {len(df_obj1.index)} \n"
+          f" Object 2 points : {len(df_obj2.index)}")
+    if colors == "config":
+        print(f"Dataset info : \n"
+          f" Config 1 points : {len(df_cfg1.index)} \n"
+          f" config 2 points : {len(df_cfg2.index)}")
+        
     # Adding info when hovering cursor
     if use_mplcursors:
         mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
@@ -1321,16 +1360,20 @@ if __name__== "__main__" :
         'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,'AttractorPos' : parse_strip_list,
         'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
     
-    clean_df = clean_data(df, resample=True, save_clean_df=True)
+    clean_df = clean_data(df, resample=True, n_samples=800, only_7=True, save_clean_df=True)
 
     ## restructre data for paper plots 
-    # csv_fn2 = "D3"
-    # df2 = pd.read_csv(processed_raw_folder+csv_fn2+".csv", index_col="Index", converters={
-    #     'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,
-    #     'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
-    # clean_df2 = clean_data(df2, save_clean_df=True)
+    csv_fn2 = "D2_clean"
+    df2 = pd.read_csv(processed_raw_folder+csv_fn2+".csv", index_col="Index", converters={
+        'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,
+        'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})
+    
+    clean_df2 = clean_data(df2, resample=True, n_samples=800, only_7=True, save_clean_df=True)
 
-    # df_combined = restructure_for_config_agnostic_plot(clean_df, clean_df2)
+    #### AGNOSTIC PARAM
+    agnostic_param = "object"
+
+    df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, parameter=agnostic_param)
     
     ### Values used for plots 
     object_number = get_object_based_on_dataset(csv_fn)
@@ -1353,11 +1396,12 @@ if __name__== "__main__" :
     # #### USED IN PAPER 
     # plot_gmr(clean_df, n=2, plot="only_gmm")
     # plot_bic_aic_with_sklearn(clean_df)
-    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True, use_mplcursors=False)
+    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True, use_mplcursors=False)
+    plot_distance_vs_flux(df_combined, colors=agnostic_param, with_linear_regression=True, use_mplcursors=False)
     # plot_distance_vs_flux(df_combined, colors="config", with_linear_regression=True, use_mplcursors=False)
     # plot_object_trajectory_onefig(clean_df, dataset_path="varying_flux_datasets/D1/", use_mplcursors=False, selection="selected")
 
-    save_all_figures(folder_name=csv_fn)
+    save_all_figures(folder_name=f"{agnostic_param}_agnostic")
     plt.show()
 
 
