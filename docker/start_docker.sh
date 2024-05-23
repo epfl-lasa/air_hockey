@@ -84,7 +84,10 @@ if [ "${MODE}" != "connect" ]; then
     #FWD_ARGS+=(--env ROS_HOSTNAME="$(hostname)")
 
     # Handle GPU usage
-    [[ ${USE_NVIDIA_TOOLKIT} = true ]] && GPU_FLAG="--gpus all" || GPU_FLAG=""
+    #if [ ${USE_NVIDIA_TOOLKIT} = true ]; then
+    #	GPU_FLAG="--gpus all"
+    #	#FWD_ARGS+=("--gpus all")
+    #fi
 
     # Other
     FWD_ARGS+=("--privileged")
@@ -95,9 +98,8 @@ if [ "${MODE}" != "connect" ]; then
     FWD_ARGS+=(--volume="${PWD}/src/iiwa_toolkit:/home/ros/ros_ws/src/iiwa_toolkit:rw")
     FWD_ARGS+=(--volume="${PWD}/python:/home/ros/ros_ws/python:rw")
     FWD_ARGS+=(--volume="${PWD}/data:/home/ros/ros_ws/data:rw")
-    
-    echo ${FWD_ARGS}
 
+    echo "${FWD_ARGS[@]}"
 fi
 
 # Trick aica-docker into making a server on a host network container

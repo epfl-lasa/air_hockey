@@ -7,8 +7,8 @@ import re
 import yaml
 from scipy.spatial.transform import Rotation
 
-
 PATH_TO_DATA_FOLDER = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/"
+
 
 # PARSING FUNCTIONS
 def parse_list(cell):
@@ -490,7 +490,7 @@ if __name__== "__main__" :
     data_folder = "varying_flux_datasets/D1"
     # data_folder = "fixed_flux_datasets/DA-Inertia_consistency"
 
-    # PRocess al folders in the desired data_folder
+    # Process al folders in the desired data_folder
     folders_to_process = os.listdir(PATH_TO_DATA_FOLDER + data_folder)
     
     surface = "clean"
@@ -499,13 +499,13 @@ if __name__== "__main__" :
         if surface in folder: 
             to_process.append(folder)
 
-    process_data_to_one_file(data_folder, to_process, output_filename="D1_clean.csv")
+    # process_data_to_one_file(data_folder, to_process, output_filename="D2_clean.csv")
     # process_all_data_for_ekf(folders_to_process)
     
 
-    # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    # path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/"
+    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
+    path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/dirty/"
     
-    # robot_csv = os.path.join(path_to_data_airhockey,"2024-04-26_15:29:59", "IIWA_7_hit_1.csv" )
-    # object_csv = os.path.join(path_to_data_airhockey,"2024-04-26_15:29:59", "object_hit_1.csv" )
-    # process_one_file_for_ekf(robot_csv, object_csv, path_to_data_ekf)
+    robot_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "IIWA_7_hit_21.csv" )
+    object_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "object_1_hit_21.csv" )
+    process_one_file_for_ekf(robot_csv, object_csv, path_to_data_ekf)

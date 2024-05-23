@@ -5,10 +5,12 @@ import numpy as np
 from datetime import datetime
 import time
 from sklearn.linear_model import LinearRegression
+from sklearn.mixture import GaussianMixture
 import mplcursors
 from matplotlib.patches import Rectangle
 from matplotlib.cm import ScalarMappable
 from matplotlib.lines import Line2D
+import matplotlib.patches as patches
 import pybullet 
 import math
 from scipy.spatial.transform import Rotation
@@ -48,6 +50,42 @@ def get_object_based_on_dataset(dataset):
 
     return object_number
 
+def resample_uniformally(df, n_samples=300):
+    ## resample uniform along HittingFlux 
+    df_sorted = df.sort_values(by='HittingFlux')
+    interval_edges = np.linspace(df_sorted['HittingFlux'].min(), df_sorted['HittingFlux'].max(), n_samples + 1)
+    sampled_indices = []
+
+    # Sample one point from each interval
+    for start, end in zip(interval_edges[:-1], interval_edges[1:]):
+        # Find the rows that fall within the current interval
+        interval_df = df_sorted[(df_sorted['HittingFlux'] >= start) & (df_sorted['HittingFlux'] < end)]
+        # Randomly select one row from the interval if it is not empty
+        if not interval_df.empty:
+            sampled_indices.append(interval_df.sample(n=1).index[0])
+
+    df_sampled = df_sorted.loc[sampled_indices]
+
+    return df_sampled
+
+def restructure_for_config_agnostic_plot(df_cfg1, df_cfg2):
+    ## get 300 samples from each df and conglomerate into one
+
+    #### Grab n_samples values from df_cfg1 
+    n_samples = len(df_cfg2.index)
+    df_sampled = resample_uniformally(df_cfg1, n_samples=n_samples)
+
+    ## Add config to df
+    # Add a new column to each DataFrame to indicate the source
+    df_sampled['Config'] = 1
+    df_cfg2['Config'] = 2
+
+    ## Combine both df 
+    df_combined = pd.concat([df_sampled, df_cfg2], ignore_index=True)
+    df_combined.reset_index(drop=True, inplace=True)
+
+    return df_combined
+
 # CLEANING FUNCTION
 def clean_data(df, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
     
@@ -58,6 +96,12 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=Fa
     clean_df = clean_df[clean_df['HittingFlux']>flux_threshold]
     # Desired Flux 
     clean_df = clean_df[clean_df['DesiredFlux']>flux_threshold]
+
+    clean_df = resample_uniformally(clean_df, n_samples=2000)
+    # clean_df = clean_df[clean_df['DesiredFlux']<0.9]
+
+    # IIWA
+    # clean_df = clean_df[clean_df['IiwaNumber']==7]
 
     # Reset index
     clean_df.reset_index(drop=True, inplace=True)       
@@ -85,6 +129,7 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=Fa
     return clean_df
 
 # PLOTTING FUNCTIONS
+## GMM ANALYISIS
 def test_gmm_torch(df): 
 
     temp_array = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
@@ -104,21 +149,22 @@ def test_gmm_torch(df):
     plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=model, use_mplcursors=False)
     # plot(data, y)
 
-def plot_gmr(df, n=3, plot="only_gmm"):
+def plot_gmr(df, n=3, plot="only_gmm", show_plot=False):
     
     X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
 
     mvn = MVN(random_state=0)
     mvn.from_samples(X)
 
-    X_test = np.linspace(0.45, 1.1, 100)
+    # X_test = np.linspace(0.5, 0.88, 100) #### D1
+    X_test = np.linspace(0.5, 0.7, 100) #### D2
     mean, covariance = mvn.predict(np.array([0]), X_test[:, np.newaxis])
     
     gmm = GMM(n_components=n, random_state=0)
     gmm.from_samples(X)
     Y = gmm.predict(np.array([0]), X_test[:, np.newaxis])
 
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(20, 10))
     colors_list = ["r","g","b","y","m","c","k"]
 
     if plot == "with_mvn":
@@ -143,10 +189,11 @@ def plot_gmr(df, n=3, plot="only_gmm"):
         plt.plot(X_test, Y.ravel(), c="k", lw=2)
 
     elif plot == "only_gmm":
-        plt.title("Mixture of Experts: $p(Y | X) = \Sigma_k \pi_{k, Y|X} "
-        "\mathcal{N}_{k, Y|X}$")
-        plt.xlabel("Hitting Flux [m/s]")   
-        plt.ylabel("Distance travelled [m]") 
+        # plt.title("Mixture of Experts: $p(Y | X) = \Sigma_k \pi_{k, Y|X} "
+        # "\mathcal{N}_{k, Y|X}$")
+        plt.title("Gaussian Mixture Model fit", fontsize=GLOBAL_FONTSIZE)
+        plt.xlabel("Hitting Flux [m/s]", fontsize=GLOBAL_FONTSIZE)   
+        plt.ylabel("Distance travelled [m]", fontsize=GLOBAL_FONTSIZE) 
         
         plt.scatter(X[:, 0], X[:, 1])
         plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n], alpha = 0.12)
@@ -177,9 +224,88 @@ def plot_gmr(df, n=3, plot="only_gmm"):
         plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n+1], alpha = 0.12)
         plt.plot(X_test, Y.ravel(), c="k", lw=2)
     
-    plt.show()
+    if show_plot: plt.show()
+
+# Function to calculate BIC and AIC for a range of components
+def calculate_bic_aic(X, max_components):
+    bic_scores = []
+    aic_scores = []
+    n_components_range = range(1, max_components + 1)
+    
+    for n in n_components_range:
+        gmm = GaussianMixture(n_components=n, random_state=0)
+        gmm.fit(X)
+        bic_scores.append(gmm.bic(X))
+        aic_scores.append(gmm.aic(X))
+    
+    return n_components_range, bic_scores, aic_scores
+
+def plot_bic_aic_with_sklearn(df, show_plot=False):
+
+    X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
+
+    max_components = 10
+    n_components_range, bic_scores, aic_scores = calculate_bic_aic(X, max_components)
+
+    # Plotting BIC and AIC scores
+    plt.figure(figsize=(20, 10))
+    plt.plot(n_components_range, bic_scores, label='BIC', marker='o')
+    plt.plot(n_components_range, aic_scores, label='AIC', marker='o')
+    plt.xlabel('Number of Components', fontsize=GLOBAL_FONTSIZE)
+    plt.ylabel('Score', fontsize=GLOBAL_FONTSIZE)
+    plt.title('BIC and AIC Scores for Different Number of GMM Components', fontsize=GLOBAL_FONTSIZE)
+    plt.legend(fontsize=GLOBAL_FONTSIZE)
+    if show_plot: plt.show()
+
+def plot_gmm_with_sklearn(df, show_plot=False):
+    
+    X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
+
+    # Fit Gaussian Mixture Model
+    n_components = 3  # Example: 3 components
+    gmm = GaussianMixture(n_components=n_components, random_state=0)
+    gmm.fit(X)
+
+    # Predict Y for X_test
+    # X_test = np.linspace(0.45, 1.1, 100).reshape(-1, 1)
+    # Y = gmm.predict(X_test)
+
+    # Plotting
+    plt.figure(figsize=(10, 8))
+    plt.title("GMM fit")
+    plt.xlabel("Hitting Flux [m/s]")
+    plt.ylabel("Distance travelled [m]")
+
+    plt.scatter(X[:, 0], X[:, 1])
+
+    # Define colors for the ellipses
+    colors_list = plt.cm.viridis(np.linspace(0, 1, n_components))
+
+    # Plot error ellipses
+    for n, color in enumerate(colors_list):
+        mean = gmm.means_[n]
+        covariances = gmm.covariances_[n]
+
+        if covariances.shape == (2, 2):
+            covariances = covariances
+        else:
+            covariances = np.diag(covariances)
+
+        v, w = np.linalg.eigh(covariances)
+        v = 2.0 * np.sqrt(2.0) * np.sqrt(v)
+        u = w[0] / np.linalg.norm(w[0])
+
+        angle = np.arctan(u[1] / u[0])
+        angle = 180.0 * angle / np.pi
+
+        ell = patches.Ellipse(mean, v[0], v[1], 180.0 + angle, color=color, alpha=0.12)
+        plt.gca().add_patch(ell)
+
+    # plt.plot(X_test, Y, c="k", lw=2)
+    if show_plot: plt.show()
 
 
+## DATA PLOTS
 def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_model=None, use_mplcursors=True, show_plot=False):
     ## use colors input to dtermine color of datapoints
 
@@ -189,10 +315,9 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
 
-
     if colors == "iiwa":
-        ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='red', alpha=0.5, label='Iiwa 7')
-        ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.5, label='Iiwa 14')
+        ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='red', alpha=0.5, label='IIWA 7')
+        ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.5, label='IIWA 14')
 
     elif colors == "orientation":
         ###TODO : check this is correct ?? 
@@ -202,14 +327,36 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
         cbar = plt.colorbar(scatter)
         cbar.set_label('Orientation error')
 
+    elif colors == "config":
+        df_cfg1 = df[df['Config']==1].copy()
+        df_cfg2 = df[df['Config']==2].copy()
+        ax.scatter(df_cfg1['HittingFlux'], df_cfg1['DistanceTraveled'], color='green', alpha=0.5, label='Config 1')
+        ax.scatter(df_cfg2['HittingFlux'], df_cfg2['DistanceTraveled'], color='orange', alpha=0.5, label='Config 2')
+
     ## Add linear regression
     if with_linear_regression: 
-        lin_model = LinearRegression()
-        lin_model.fit(df['HittingFlux'].values.reshape(-1,1), df['DistanceTraveled'].values)
+        if colors == "iiwa":
+            lin_model = LinearRegression()
+            lin_model.fit(df['HittingFlux'].values.reshape(-1,1), df['DistanceTraveled'].values)
 
-        flux_test = np.linspace(0.5,1.2,100).reshape(-1,1)
-        distance_pred = lin_model.predict(flux_test)
-        ax.plot(flux_test,distance_pred,color='black', label='Linear Regression')
+            flux_test = np.linspace(0.53,0.94,100).reshape(-1,1)
+            distance_pred = lin_model.predict(flux_test)
+            ax.plot(flux_test,distance_pred,color='black', label='Linear Regression')
+        
+        elif colors =="config":
+            lin_model = LinearRegression()
+            lin_model.fit(df_cfg1['HittingFlux'].values.reshape(-1,1), df_cfg1['DistanceTraveled'].values)
+
+            flux_test = np.linspace(0.55,0.94,100).reshape(-1,1)
+            distance_pred = lin_model.predict(flux_test)
+            ax.plot(flux_test,distance_pred,color='green', label='Linear Regression Config 1')
+
+            lin_model2 = LinearRegression()
+            lin_model2.fit(df_cfg2['HittingFlux'].values.reshape(-1,1), df_cfg2['DistanceTraveled'].values)
+
+            flux_test2 = np.linspace(0.53,1.1,100).reshape(-1,1)
+            distance_pred2 = lin_model2.predict(flux_test)
+            ax.plot(flux_test2,distance_pred2,color='orange', label='Linear Regression Config 2')
 
 
     ## Add GMM model
@@ -245,7 +392,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
 
     ax.set_xlabel('Hitting flux [m/s]',fontsize=GLOBAL_FONTSIZE)
     ax.set_ylabel('Distance Traveled [m]',fontsize=GLOBAL_FONTSIZE)
-    ax.grid(True)
+    ax.grid(True, alpha=0.5)
     plt.legend(fontsize=15)
     plt.title(f"Distance over Flux",fontsize=GLOBAL_FONTSIZE)
     fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
@@ -561,9 +708,9 @@ def plot_object_trajectory(df, use_mplcursors=True, selection="all", show_plot =
     
     if show_plot : plt.show()
 
-def plot_object_trajectory_onefig(df, use_mplcursors=False, selection="all", show_plot = False):
+def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", use_mplcursors=False, selection="all", show_plot = False):
 
-    fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)# 
+    fig, axes = plt.subplots(2, 1, figsize=(20, 10), sharex=True)
 
     # Random selection
     if selection == "all":
@@ -584,18 +731,16 @@ def plot_object_trajectory_onefig(df, use_mplcursors=False, selection="all", sho
 
     elif selection == "selected" :
         # hand selected trajectories to plot 
-        idx_to_plot = [4,21,33,67,69,81,105,115,122,130,169,171,306,357,649,652,655,669,701,755,788,837,845,861,870]
+        idx_to_plot = [4,7,33,63,67,69,84,97,115,130,131,132,138,649,701,712,870,891,899,900,1019,1174]
+        # idx_to_plot = [4,21,33,67,69,81,105,115,122,130,169,171,306,357,649,652,655,669,701,755,788,837,845,861,870]
         df = df[df.index.isin(idx_to_plot)]
 
-    # # get wrapped orientation error
-    # df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1).copy()
-    # df["OrientationError"] = df["OrientationError"].apply(lambda x : [wrap_angle(i) for i in x]).copy()
-    
-    # df["OrientationError2"] = df.apply(lambda row : [pybullet.getEulerFromQuaternion(row["HittingOrientation"])[i]- pybullet.getEulerFromQuaternion(row["ObjectOrientation"])[i] for i in range(3)],axis=1).copy()
-
-    
     start_pos0 = [] # list for color
     start_pos1 = []
+
+    # get object number based on dataset path
+    dataset = dataset_path.split('/')[1]
+    object_number = get_object_based_on_dataset(dataset)
 
     for index,row in df.iterrows():
 
@@ -605,7 +750,7 @@ def plot_object_trajectory_onefig(df, use_mplcursors=False, selection="all", sho
             rec_sess = row["RecSession"].replace(":","_")
         else : rec_sess = row["RecSession"]
         
-        obj_fn = data_folder + rec_sess + f"/object_hit_{row['HitNumber']}.csv"
+        obj_fn = PATH_TO_DATA_FOLDER + dataset_path + rec_sess + f"/object_{object_number}_hit_{row['HitNumber']}.csv"
         
         df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionForIiwa14': parse_list})
 
@@ -615,7 +760,7 @@ def plot_object_trajectory_onefig(df, use_mplcursors=False, selection="all", sho
             scatter_iiwa7 = axes[0].scatter(df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0], label=f"idx:{index}")
             start_pos0.append([df_obj['PositionForIiwa7'].iloc[0][1], df_obj['PositionForIiwa7'].iloc[0][0]])
 
-            axes[0].set_title("IIWA 7")
+            axes[0].set_title("IIWA 7", fontsize=GLOBAL_FONTSIZE)
             
             # Adding info when clicking cursor
             if use_mplcursors:
@@ -627,7 +772,7 @@ def plot_object_trajectory_onefig(df, use_mplcursors=False, selection="all", sho
             scatter_iiwa14 = axes[1].scatter(df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0], label=f"idx:{index}")
             start_pos1.append([df_obj['PositionForIiwa14'].iloc[0][1], df_obj['PositionForIiwa14'].iloc[0][0]])
             
-            axes[1].set_title("IIWA 14")
+            axes[1].set_title("IIWA 14", fontsize=GLOBAL_FONTSIZE)
             
             # Adding info when clicking cursor
             if use_mplcursors:
@@ -642,27 +787,21 @@ def plot_object_trajectory_onefig(df, use_mplcursors=False, selection="all", sho
     sm = ScalarMappable(norm=norm, cmap="viridis")
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=axes.ravel().tolist())
-    cbar.set_label('Hitting Flux [m/s]')
+    cbar.set_label('Hitting Flux [m/s]', fontsize=GLOBAL_FONTSIZE)
 
+    # Set axes settings
     for ax in axes:
-        ax.set_xlabel('Y Axis [m]')
-        ax.set_ylabel('X-axis [m]')
-        ax.grid(True)
-        # ax.set_aspect('equal')
-        
-    # move bottom ax for pretty -> DOESN'T WORK
-    # ax_pos = axes[1].get_position()
-    # print(ax_pos)
-    # fig_width, fig_height = fig.get_size_inches()
-    # new_left = ax_pos.x0 - 0.29
-    # ax_pos.x0 = new_left
-    # print(ax_pos)
-    # axes[1].set_position(ax_pos)
-    
-    # leg = fig.legend(loc='center left', bbox_to_anchor=(0.5, 0.5))
+        ax.set_ylabel('X-axis [m]', fontsize=GLOBAL_FONTSIZE)
+        ax.grid(True, alpha=0.5)
+        ax.set_ylim(0.39,0.62)
+
+    axes[1].set_xlabel('Y Axis [m]', fontsize=GLOBAL_FONTSIZE)
+
+    # leg = fig.legend(loc='center left', bbox_to_anchor=(0.9, 0.9))
     # leg.set_draggable(state=True)
-    plt.title(f"Object trajectories")
-    # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+
+    fig.suptitle(f"Object trajectories seen from above", fontsize=GLOBAL_FONTSIZE)
+    # plt.title(f"Object trajectories seen from above", fontsize=GLOBAL_FONTSIZE)
     
     if show_plot : plt.show()
 
@@ -1149,10 +1288,10 @@ def get_precise_hit_position(df):
     # plt.show()
 
 
-def save_all_figures(dataset): 
+def save_all_figures(folder_name): 
 
     # Specify the directory where you want to save the figures
-    save_dir = PATH_TO_DATA_FOLDER + "figures/" + dataset
+    save_dir = PATH_TO_DATA_FOLDER + "figures/" + folder_name
 
     # Create the directory if it doesn't exist
     if not os.path.exists(save_dir):
@@ -1178,7 +1317,6 @@ if __name__== "__main__" :
     # csv_fn ="100_hits-object_1-config_1-fixed_start-random_flux-IIWA_7-reduced_inertia" #"data_test_april"#  #"data_consistent_march"
     csv_fn = "D1_clean"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
 
-
     ## Reading and cleanign data 
     df = pd.read_csv(processed_raw_folder+csv_fn+".csv", index_col="Index", converters={
         'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,'AttractorPos' : parse_strip_list,
@@ -1186,26 +1324,44 @@ if __name__== "__main__" :
     
     clean_df = clean_data(df, save_clean_df=True)
 
-    # object_number = get_object_based_on_dataset(csv_fn)
+    ## restructre data for paper plots 
+    # csv_fn2 = "D3"
+    # df2 = pd.read_csv(processed_raw_folder+csv_fn2+".csv", index_col="Index", converters={
+    #     'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,
+    #     'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
+    # clean_df2 = clean_data(df2, save_clean_df=True)
 
-    # ### Plot functions
-    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    # df_combined = restructure_for_config_agnostic_plot(clean_df, clean_df2)
+    
+    ### Values used for plots 
+    object_number = get_object_based_on_dataset(csv_fn)
+
+    ### Plot functions
+    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True, use_mplcursors=False)
     # flux_hashtable(clean_df)
     # plot_object_start_end(clean_df, dataset_path="varying_flux_datasets/D4/", relative=True)
     # plot_orientation_vs_displacement(clean_df, orientation='error',sanity_check=False, only_7=True,  object_number=object_number)
     # plot_orientation_vs_flux(clean_df, sanity_check=True, object_number=object_number)
     # plot_displacement_vs_flux(clean_df) 
-    get_precise_hit_position(clean_df)
+    # get_precise_hit_position(clean_df)
 
     # plot_hit_position(clean_df, plot="on object" , use_mplcursors=False)
     # plot_orientation_vs_distance(clean_df, axis="z")
     # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
-    # plot_object_trajectory(clean_df, use_mplcursors=True, selection="all")
-    
+    # plot_object_trajectory(clean_df, use_mplcursors=True, selection="selected")
+    # plot_gmm_with_sklearn(clean_df)
 
-    save_all_figures(dataset=csv_fn)
+    # #### USED IN PAPER 
+    # plot_gmr(clean_df, n=2, plot="only_gmm")
+    # plot_bic_aic_with_sklearn(clean_df)
+    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True, use_mplcursors=False)
+    # plot_distance_vs_flux(df_combined, colors="config", with_linear_regression=True, use_mplcursors=False)
+    # plot_object_trajectory_onefig(clean_df, dataset_path="varying_flux_datasets/D1/", use_mplcursors=False, selection="selected")
+
+    save_all_figures(folder_name="robot_agnostic")
     plt.show()
 
 
     # test_gmm_torch(clean_df)
-    # plot_gmr(clean_df, n=3, plot="only_gmm")
+
+
