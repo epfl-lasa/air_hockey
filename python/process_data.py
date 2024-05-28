@@ -178,7 +178,7 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
     # Use derivative to find changes in speed 
-    derivative_threshold_start = 0.2 #0.15 #0.05 ## high to avoid noise at start
+    derivative_threshold_start = 0.4 #0.15 #0.05 ## high to avoid noise at start
     derivative_threshold_stop = 0.01 #0.15 #0.05 ## low to avoid noise during motion
 
     # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN X AXIS
@@ -493,19 +493,19 @@ if __name__== "__main__" :
     # Process al folders in the desired data_folder
     folders_to_process = os.listdir(PATH_TO_DATA_FOLDER + data_folder)
     
-    surface = "clean"
+    surface = "2024-05-08_14:15:56__clean_paper"
     to_process = []
     for folder in folders_to_process :
         if surface in folder: 
             to_process.append(folder)
 
-    # process_data_to_one_file(data_folder, to_process, output_filename="D2_clean.csv")
+    process_data_to_one_file(data_folder, to_process, output_filename="D1_comp_test.csv")
     # process_all_data_for_ekf(folders_to_process)
     
 
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
-    path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/dirty/"
+    # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
+    # path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/dirty/"
     
-    robot_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "IIWA_7_hit_21.csv" )
-    object_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "object_1_hit_21.csv" )
-    process_one_file_for_ekf(robot_csv, object_csv, path_to_data_ekf)
+    # robot_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "IIWA_7_hit_21.csv" )
+    # object_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "object_1_hit_21.csv" )
+    # process_one_file_for_ekf(robot_csv, object_csv, path_to_data_ekf)

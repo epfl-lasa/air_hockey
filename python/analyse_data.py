@@ -27,7 +27,8 @@ from gmr import MVN, GMM, plot_error_ellipses
 from process_data import parse_value, parse_list, parse_strip_list, get_impact_time_from_object, get_corrected_quat_object_2, get_orientation_error_x_y_z, get_orientation_error_manually, get_orientation_error_in_correct_base, PATH_TO_DATA_FOLDER
 
 # Fontsize for axes and titles 
-GLOBAL_FONTSIZE = 20
+GLOBAL_FONTSIZE = 30
+AXIS_TICK_FONTSIZE = 20
 
 # PROCESSING
 def wrap_angle(angle_rad):
@@ -97,7 +98,7 @@ def restructure_for_agnostic_plots(df1, df2, resample=False, parameter="config")
     return df_combined
 
 # CLEANING FUNCTION
-def clean_data(df, resample=False, n_samples=2000, only_7=False, distance_threshold=0.05, flux_threshold=0.5, save_clean_df=False):
+def clean_data(df, resample=False, n_samples=2000, only_7=False, distance_threshold=0.1, flux_threshold=0.5, save_clean_df=False):
     
     ### Remove low outliers -> due to way of recording and processing
   
@@ -107,6 +108,7 @@ def clean_data(df, resample=False, n_samples=2000, only_7=False, distance_thresh
     if only_7 : clean_df = clean_df[clean_df['IiwaNumber']==7]
     # Flux
     clean_df = clean_df[clean_df['HittingFlux']>flux_threshold]
+    clean_df = clean_df[clean_df['HittingFlux']<0.8]
     # Desired Flux 
     clean_df = clean_df[clean_df['DesiredFlux']>flux_threshold]
 
@@ -168,8 +170,7 @@ def plot_gmr(df, n=3, plot="only_gmm", show_plot=False):
     mvn = MVN(random_state=0)
     mvn.from_samples(X)
 
-    # X_test = np.linspace(0.5, 0.88, 100) #### D1
-    X_test = np.linspace(0.5, 0.7, 100) #### D2
+    X_test = np.linspace(df['HittingFlux'].min(), df['HittingFlux'].max(), 100) 
     mean, covariance = mvn.predict(np.array([0]), X_test[:, np.newaxis])
     
     gmm = GMM(n_components=n, random_state=0)
@@ -236,6 +237,9 @@ def plot_gmr(df, n=3, plot="only_gmm", show_plot=False):
         plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n+1], alpha = 0.12)
         plt.plot(X_test, Y.ravel(), c="k", lw=2)
     
+    # Increase the size of the tick labels
+    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE)  # Change 14 to the desired size
+
     if show_plot: plt.show()
 
 # Function to calculate BIC and AIC for a range of components
@@ -267,6 +271,7 @@ def plot_bic_aic_with_sklearn(df, show_plot=False):
     plt.ylabel('Score', fontsize=GLOBAL_FONTSIZE)
     plt.title('BIC and AIC Scores for Different Number of GMM Components', fontsize=GLOBAL_FONTSIZE)
     plt.legend(fontsize=GLOBAL_FONTSIZE)
+    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
     if show_plot: plt.show()
 
 def plot_gmm_with_sklearn(df, show_plot=False):
@@ -343,8 +348,11 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
     elif colors == "config":
         df_cfg1 = df[df['Config']==1].copy()
         df_cfg2 = df[df['Config']==2].copy()
+        # df_cfg1 = df[df['RecSession']=="2024-05-08_16:27:34"].copy()
+        # df_cfg2 = df[df['RecSession']=="2024-05-16_13:49:02"].copy()
         ax.scatter(df_cfg1['HittingFlux'], df_cfg1['DistanceTraveled'], color='green', alpha=0.5, label='Config 1')
         ax.scatter(df_cfg2['HittingFlux'], df_cfg2['DistanceTraveled'], color='orange', alpha=0.5, label='Config 2')
+
 
 
     elif colors == "object":
@@ -359,7 +367,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
             lin_model = LinearRegression()
             lin_model.fit(df['HittingFlux'].values.reshape(-1,1), df['DistanceTraveled'].values)
 
-            flux_test = np.linspace(0.53,0.94,100).reshape(-1,1)
+            flux_test = np.linspace(df['HittingFlux'].min(), df['HittingFlux'].max(),100).reshape(-1,1)
             distance_pred = lin_model.predict(flux_test)
             ax.plot(flux_test,distance_pred,color='black', label='Linear Regression')
         
@@ -367,14 +375,14 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
             lin_model = LinearRegression()
             lin_model.fit(df_cfg1['HittingFlux'].values.reshape(-1,1), df_cfg1['DistanceTraveled'].values)
 
-            flux_test = np.linspace(0.55,0.94,100).reshape(-1,1)
+            flux_test = np.linspace(df_cfg1['HittingFlux'].min(), df_cfg1['HittingFlux'].max(),100).reshape(-1,1)
             distance_pred = lin_model.predict(flux_test)
             ax.plot(flux_test,distance_pred,color='green', label='Linear Regression Config 1')
 
             lin_model2 = LinearRegression()
             lin_model2.fit(df_cfg2['HittingFlux'].values.reshape(-1,1), df_cfg2['DistanceTraveled'].values)
 
-            flux_test2 = np.linspace(0.53,1.1,100).reshape(-1,1)
+            flux_test2 = np.linspace(df_cfg2['HittingFlux'].min(), df_cfg2['HittingFlux'].max(),100).reshape(-1,1)
             distance_pred2 = lin_model2.predict(flux_test2)
             ax.plot(flux_test2,distance_pred2,color='orange', label='Linear Regression Config 2')
 
@@ -382,14 +390,14 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
             lin_model = LinearRegression()
             lin_model.fit(df_obj1['HittingFlux'].values.reshape(-1,1), df_obj1['DistanceTraveled'].values)
 
-            flux_test = np.linspace(0.55,0.94,100).reshape(-1,1)
+            flux_test = np.linspace(df_obj1['HittingFlux'].min(), df_obj1['HittingFlux'].max(),100).reshape(-1,1)
             distance_pred = lin_model.predict(flux_test)
             ax.plot(flux_test,distance_pred,color='purple', label='Linear Regression Object 1')
 
             lin_model2 = LinearRegression()
             lin_model2.fit(df_obj2['HittingFlux'].values.reshape(-1,1), df_obj2['DistanceTraveled'].values)
 
-            flux_test2 = np.linspace(0.53,0.8,100).reshape(-1,1)
+            flux_test2 = np.linspace(df_obj2['HittingFlux'].min(), df_obj2['HittingFlux'].max(),100).reshape(-1,1)
             distance_pred2 = lin_model2.predict(flux_test2)
             ax.plot(flux_test2,distance_pred2,color='orange', label='Linear Regression Object 2')
 
@@ -434,6 +442,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
     ax.grid(True, alpha=0.5)
     plt.legend(fontsize=15)
     plt.title(f"Distance over Flux",fontsize=GLOBAL_FONTSIZE)
+    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
     fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
 
     if show_plot : plt.show()
@@ -834,6 +843,7 @@ def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", 
         ax.set_ylabel('X-axis [m]', fontsize=GLOBAL_FONTSIZE)
         ax.grid(True, alpha=0.5)
         ax.set_ylim(0.39,0.62)
+        
 
     axes[1].set_xlabel('Y Axis [m]', fontsize=GLOBAL_FONTSIZE)
 
@@ -842,6 +852,7 @@ def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", 
 
     fig.suptitle(f"Object trajectories seen from above", fontsize=GLOBAL_FONTSIZE)
     # plt.title(f"Object trajectories seen from above", fontsize=GLOBAL_FONTSIZE)
+    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
     
     if show_plot : plt.show()
 
@@ -1360,20 +1371,23 @@ if __name__== "__main__" :
         'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,'AttractorPos' : parse_strip_list,
         'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
     
-    clean_df = clean_data(df, resample=True, n_samples=800, only_7=True, save_clean_df=True)
+    clean_df = clean_data(df, resample=False, n_samples=800, only_7=False, save_clean_df=True)
 
     ## restructre data for paper plots 
-    csv_fn2 = "D2_clean"
+    csv_fn2 = "D3"
     df2 = pd.read_csv(processed_raw_folder+csv_fn2+".csv", index_col="Index", converters={
         'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,
         'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})
     
-    clean_df2 = clean_data(df2, resample=True, n_samples=800, only_7=True, save_clean_df=True)
+    clean_df2 = clean_data(df2, resample=False, n_samples=800, only_7=True, save_clean_df=True)
 
     #### AGNOSTIC PARAM
-    agnostic_param = "object"
+    agnostic_param = "config"
 
-    df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, parameter=agnostic_param)
+    ## for special case
+    clean_df2 = clean_df2[clean_df2['RecSession']=="2024-05-08_16:27:34"]
+
+    df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, resample=False, parameter=agnostic_param)
     
     ### Values used for plots 
     object_number = get_object_based_on_dataset(csv_fn)
@@ -1394,14 +1408,15 @@ if __name__== "__main__" :
     # plot_gmm_with_sklearn(clean_df)
 
     # #### USED IN PAPER 
-    # plot_gmr(clean_df, n=2, plot="only_gmm")
+    plot_gmr(clean_df, n=2, plot="only_gmm")
     # plot_bic_aic_with_sklearn(clean_df)
     # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True, use_mplcursors=False)
-    plot_distance_vs_flux(df_combined, colors=agnostic_param, with_linear_regression=True, use_mplcursors=False)
-    # plot_distance_vs_flux(df_combined, colors="config", with_linear_regression=True, use_mplcursors=False)
+    # plot_distance_vs_flux(df_combined, colors=agnostic_param, with_linear_regression=True, use_mplcursors=False)
+    # plot_distance_vs_flux(clean_df2, colors="config", with_linear_regression=True, use_mplcursors=False)
     # plot_object_trajectory_onefig(clean_df, dataset_path="varying_flux_datasets/D1/", use_mplcursors=False, selection="selected")
 
-    save_all_figures(folder_name=f"{agnostic_param}_agnostic")
+    save_all_figures(folder_name=csv_fn)
+    # save_all_figures(folder_name=f"{agnostic_param}_agnostic")
     plt.show()
 
 
