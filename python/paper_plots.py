@@ -228,6 +228,8 @@ def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", 
 ### Functions to call to recreate paper plots
 def object_traj_plot_for_paper(dataset_to_use='clean'):
 
+    print("Plotting object trajectories...")
+
     ### Datasets to use
     csv_fn = "D1_clean" 
 
@@ -235,7 +237,7 @@ def object_traj_plot_for_paper(dataset_to_use='clean'):
 
     ### Read OR clean datasets
     if dataset_to_use == "raw":
-        clean_df = read_and_clean_data(csv_fn, dataset_name=dataset_new_name, resample=False, save_folder=SAVE_FOLDER_FOR_PAPER, save_clean_df=True)
+        clean_df = read_and_clean_data(csv_fn, dataset_name=dataset_new_name, max_flux=0.82, resample=False, save_folder=SAVE_FOLDER_FOR_PAPER, save_clean_df=True)
     elif dataset_to_use == "clean":
         clean_df = read_airhockey_csv(fn=dataset_new_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{SAVE_FOLDER_FOR_PAPER}/")
 
@@ -246,6 +248,8 @@ def object_traj_plot_for_paper(dataset_to_use='clean'):
     plt.show()
 
 def robot_agnostic(dataset_to_use='clean'):
+
+    print("Plotting robot agnostic flux over distance...")
 
     ### Datasets to use
     csv_fn = "D1_clean" 
@@ -266,6 +270,8 @@ def robot_agnostic(dataset_to_use='clean'):
     plt.show()
 
 def object_agnostic(dataset_to_use='clean'):
+
+    print("Plotting object agnostic flux over distance...")
 
     ### Datasets to use
     csv_fn = "D1_clean"
@@ -292,6 +298,8 @@ def object_agnostic(dataset_to_use='clean'):
     plt.show()
 
 def config_agnostic(dataset_to_use='clean'):
+    
+    print("Plotting config agnostic flux over distance...")
 
     ### Datasets to use
     csv_fn = "D1_clean"
@@ -325,7 +333,7 @@ if __name__== "__main__" :
     ## Tune parameters inside each respective function
     ## Use 'raw' dataset to sample different datapoints for plots
 
-    object_traj_plot_for_paper()
+    object_traj_plot_for_paper('raw')
     # robot_agnostic(dataset_to_use='clean')
     # object_agnostic(dataset_to_use='clean')
     # config_agnostic(dataset_to_use="clean")
