@@ -9,8 +9,11 @@ from scipy.spatial.transform import Rotation
 
 PATH_TO_DATA_FOLDER = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/"
 
+### Processing variables to detect object motion
+DERIVATIVE_THRESHOLD_START = 0.4 # 0.4 # 0.15 ## high to avoid noise at start
+DERIVATIVE_THRESHOLD_STOP = 0.01                ## low to get full distance at end
 
-# PARSING FUNCTIONS
+## PARSING FUNCTIONS
 def parse_list(cell):
     # Split the space-separated values and parse them as a list of floats
     return [float(value) for value in cell.split()]
@@ -27,6 +30,7 @@ def parse_strip_list(cell):
     # Split the space-separated values and parse them as a list of floats
     return [float(value) for value in cell.strip("[]").split()]
 
+## Orienatation calculations
 def get_orientation_error_x_y_z(q_a, q_b):
     ### Get 2 quaternions and return euler angles from q_a to q_b
     ## This works for 7 for some reason (but not 14)
@@ -98,6 +102,7 @@ def get_corrected_quat_object_2(q_object):
 
     return rot_final.as_quat()
 
+## Processing functions to extract HIT INFO
 def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=False):
     ### Returns robot data info at hit time : Flux, inertia, EFF pose
 
@@ -178,10 +183,7 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
     # Use derivative to find changes in speed 
-    derivative_threshold_start = 0.4 #0.15 #0.05 ## high to avoid noise at start
-    derivative_threshold_stop = 0.01 #0.15 #0.05 ## low to avoid noise during motion
-
-    # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN X AXIS
+    # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN Y AXIS
     x_values =  df[pos_name_str].apply(lambda x: x[1])
     df['derivative'] = x_values.diff() / df['RosTime'].diff()
 
@@ -192,8 +194,8 @@ def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False
     
 
     # get start and end index
-    idx_start_moving =  (filtered_df['derivative'].abs() > derivative_threshold_start).idxmax() # detect 1st time derivative is non-zero
-    idx_stop_moving = (filtered_df['derivative'].loc[idx_start_moving:].abs() < derivative_threshold_stop).idxmax() # detect 1st time derivative comes back to zero
+    idx_start_moving =  (filtered_df['derivative'].abs() > DERIVATIVE_THRESHOLD_START).idxmax() # detect 1st time derivative is non-zero
+    idx_stop_moving = (filtered_df['derivative'].loc[idx_start_moving:].abs() < DERIVATIVE_THRESHOLD_STOP).idxmax() # detect 1st time derivative comes back to zero
     idx_before_impact = idx_start_moving-1 # time just before impact - 5ms error due to Recorder at 200Hz 
 
     hit_time = df['RosTime'].iloc[idx_before_impact] # HIT TIME as float 
@@ -350,6 +352,7 @@ def process_data_to_one_file(data_folder, recording_sessions, output_filename="t
 
     return
 
+## EKF processing
 def process_one_file_for_ekf(robot_csv, object_csv, output_folder):
     
     #read files
@@ -502,7 +505,7 @@ if __name__== "__main__" :
     process_data_to_one_file(data_folder, to_process, output_filename="D1_comp_test.csv")
     # process_all_data_for_ekf(folders_to_process)
     
-
+    ### EKF Processing
     # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
     # path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/dirty/"
     

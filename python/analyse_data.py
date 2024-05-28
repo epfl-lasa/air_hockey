@@ -2,8 +2,6 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from datetime import datetime
-import time
 from sklearn.linear_model import LinearRegression
 from sklearn.mixture import GaussianMixture
 import mplcursors
@@ -24,11 +22,16 @@ sys.path.append('/home/maxime/Workspace/air_hockey/python_data_processing/gmm_to
 from gmr.utils import check_random_state
 from gmr import MVN, GMM, plot_error_ellipses
 
-from process_data import parse_value, parse_list, parse_strip_list, get_impact_time_from_object, get_corrected_quat_object_2, get_orientation_error_x_y_z, get_orientation_error_manually, get_orientation_error_in_correct_base, PATH_TO_DATA_FOLDER
+from process_data import (parse_value, parse_list, parse_strip_list, parse_strip_list_with_commas, get_impact_time_from_object, 
+                          get_corrected_quat_object_2, get_orientation_error_x_y_z, get_orientation_error_manually, 
+                          get_orientation_error_in_correct_base, PATH_TO_DATA_FOLDER)
 
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 30
 AXIS_TICK_FONTSIZE = 20
+
+PROCESSED_RAW_FOLDER = PATH_TO_DATA_FOLDER + "airhockey_processed/raw/"
+    
 
 # PROCESSING
 def wrap_angle(angle_rad):
@@ -71,7 +74,7 @@ def resample_uniformally(df, n_samples=300):
 
     return df_sampled
 
-def restructure_for_agnostic_plots(df1, df2, resample=False, parameter="config"):
+def restructure_for_agnostic_plots(df1, df2, resample=False, parameter="config", dataset_name=None, save_folder="/", save_new_df=False):
     ## get 300 samples from each df and conglomerate into one
 
     #### Grab n_samples values from df1 
@@ -83,67 +86,91 @@ def restructure_for_agnostic_plots(df1, df2, resample=False, parameter="config")
 
     ## Add config to df
     # Add a new column to each DataFrame to indicate the source
-    if parameter == "config" :
-        df_sampled['Config'] = 1
-        df2['Config'] = 2
-    elif parameter == "object" :
-        df_sampled['Object'] = 1
-        df2['Object'] = 2
+    df_sampled[parameter] = 1
+    df2[parameter] = 2
 
     ## Combine both df 
     df_combined = pd.concat([df_sampled, df2], ignore_index=True)
     df_combined.reset_index(drop=True, inplace=True)
 
+    # Saving clean df
+    if save_new_df :
+
+        if "/" not in save_folder:
+            save_folder = "/" + save_folder + "/"
+
+        if dataset_name is None:
+            dataset_name = parameter+"_agnostic_combined"
+
+        processed_clean_folder = PATH_TO_DATA_FOLDER+"/airhockey_processed/clean" + save_folder
+        if not os.path.exists(processed_clean_folder):
+            os.makedirs(processed_clean_folder)
+
+        df_combined.to_csv(processed_clean_folder+dataset_name+".csv",index_label="Index")
 
     return df_combined
 
-# CLEANING FUNCTION
-def clean_data(df, resample=False, n_samples=2000, only_7=False, distance_threshold=0.1, flux_threshold=0.5, save_clean_df=False):
+def read_airhockey_csv(fn, folder=PROCESSED_RAW_FOLDER):
+    ## Read airhockey_processed files, by default in folder 'raw/'
     
-    ### Remove low outliers -> due to way of recording and processing
-  
+    if "raw" in folder:
+        df = pd.read_csv(folder+fn+".csv", index_col="Index", converters={'ObjectPos' : parse_strip_list, 
+            'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,'AttractorPos' : parse_strip_list,
+            'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})
+    
+    elif "clean" in folder:
+                df = pd.read_csv(folder+fn+".csv", index_col="Index", converters={'ObjectPos' : parse_strip_list_with_commas, 
+            'HittingPos': parse_strip_list_with_commas, 'ObjectOrientation' : parse_strip_list_with_commas,
+            'AttractorPos' : parse_strip_list_with_commas,'HittingOrientation': parse_strip_list_with_commas, 
+            'ObjectPosStart' : parse_strip_list_with_commas,'ObjectPosEnd' : parse_strip_list_with_commas})
+    
+    print(f"Reading {fn} with {len(df.index)} samples.")
+
+    return df
+
+# CLEANING FUNCTION
+def read_and_clean_data(csv_fn, dataset_name=None, resample=False, n_samples=2000, only_7=False, distance_threshold=0.1, max_flux = 0.8, min_flux=0.5, save_folder="/", save_clean_df=False):
+    
+    ## Reading data 
+    df = read_airhockey_csv(csv_fn)
+
+    ### Remove low outliers -> due to way of recording and processing 
     # Distance
     clean_df = df[df['DistanceTraveled']>distance_threshold]  
     # Robot 
     if only_7 : clean_df = clean_df[clean_df['IiwaNumber']==7]
     # Flux
-    clean_df = clean_df[clean_df['HittingFlux']>flux_threshold]
-    clean_df = clean_df[clean_df['HittingFlux']<0.8]
+    clean_df = clean_df[clean_df['HittingFlux']>min_flux]
+    clean_df = clean_df[clean_df['HittingFlux']<max_flux]
     # Desired Flux 
-    clean_df = clean_df[clean_df['DesiredFlux']>flux_threshold]
+    clean_df = clean_df[clean_df['DesiredFlux']>min_flux]
 
     if resample : clean_df = resample_uniformally(clean_df, n_samples=n_samples)
-    # clean_df = clean_df[clean_df['DesiredFlux']<0.9]
-
-    # IIWA
 
     # Reset index
     clean_df.reset_index(drop=True, inplace=True)       
-    
-    ## REMOVING datapoints manually -> after checking plots with plot_hit_data, these points are badly recorded
-    ## maybe : 
-    ## double hits (from 14): 202, 221, 250, 409, 791
-    ## didnt hit box ?? : 448 to remove for plot_hit_point_on_object
-    # idx_to_remove = [436,437,438,439,440] # march dataset
-    idx_to_remove = []
 
-    clean_df = clean_df[~clean_df.index.isin(idx_to_remove)]
-    clean_df.reset_index(drop=True, inplace=True)   
-
-    print(f"Removed {len(df.index)-len(clean_df.index)} outlier datapoints")
+    print(f"Removed {len(df.index)-len(clean_df.index)} outlier datapoints.")
    
-   # Saving clean df
+    # Saving clean df
     if save_clean_df :
-        processed_clean_folder = PATH_TO_DATA_FOLDER+"/airhockey_processed/clean/"
+
+        if "/" not in save_folder:
+            save_folder = "/" + save_folder + "/"
+        
+        if dataset_name is None:
+            dataset_name = csv_fn + "_clean"
+
+        processed_clean_folder = PATH_TO_DATA_FOLDER+"/airhockey_processed/clean" + save_folder
         if not os.path.exists(processed_clean_folder):
             os.makedirs(processed_clean_folder)
             
-        clean_df.to_csv(processed_clean_folder+csv_fn+"_clean.csv",index_label="Index")
+        clean_df.to_csv(processed_clean_folder+dataset_name+".csv",index_label="Index")
  
     return clean_df
 
 # PLOTTING FUNCTIONS
-## GMM ANALYISIS
+## GMM ANALYISIS -- DEPRECATED
 def test_gmm_torch(df): 
 
     temp_array = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
@@ -162,165 +189,6 @@ def test_gmm_torch(df):
 
     plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=model, use_mplcursors=False)
     # plot(data, y)
-
-def plot_gmr(df, n=3, plot="only_gmm", show_plot=False):
-    
-    X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
-
-    mvn = MVN(random_state=0)
-    mvn.from_samples(X)
-
-    X_test = np.linspace(df['HittingFlux'].min(), df['HittingFlux'].max(), 100) 
-    mean, covariance = mvn.predict(np.array([0]), X_test[:, np.newaxis])
-    
-    gmm = GMM(n_components=n, random_state=0)
-    gmm.from_samples(X)
-    Y = gmm.predict(np.array([0]), X_test[:, np.newaxis])
-
-    plt.figure(figsize=(20, 10))
-    colors_list = ["r","g","b","y","m","c","k"]
-
-    if plot == "with_mvn":
-        plt.subplot(1, 2, 1)
-        plt.title("Linear: $p(Y | X) = \mathcal{N}(\mu_{Y|X}, \Sigma_{Y|X})$")
-        plt.xlabel("Hitting Flux [m/s]")   
-        plt.ylabel("Distance travelled [m]") 
-        plt.scatter(X[:, 0], X[:, 1])
-        y = mean.ravel()
-        s = 1.96 * np.sqrt(covariance.ravel())  # interval covers 95% of the data
-        plt.fill_between(X_test, y - s, y + s, alpha=0.2)
-        plt.plot(X_test, y,  c="k",lw=2)
-
-        plt.subplot(1, 2, 2)
-        plt.title("Mixture of Experts: $p(Y | X) = \Sigma_k \pi_{k, Y|X} "
-                "\mathcal{N}_{k, Y|X}$")
-        plt.xlabel("Hitting Flux [m/s]")   
-        plt.ylabel("Distance travelled [m]") 
-        
-        plt.scatter(X[:, 0], X[:, 1])
-        plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n], alpha = 0.12)
-        plt.plot(X_test, Y.ravel(), c="k", lw=2)
-
-    elif plot == "only_gmm":
-        # plt.title("Mixture of Experts: $p(Y | X) = \Sigma_k \pi_{k, Y|X} "
-        # "\mathcal{N}_{k, Y|X}$")
-        plt.title("Gaussian Mixture Model fit", fontsize=GLOBAL_FONTSIZE)
-        plt.xlabel("Hitting Flux [m/s]", fontsize=GLOBAL_FONTSIZE)   
-        plt.ylabel("Distance travelled [m]", fontsize=GLOBAL_FONTSIZE) 
-        
-        plt.scatter(X[:, 0], X[:, 1])
-        plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n], alpha = 0.12)
-        plt.plot(X_test, Y.ravel(), c="k", lw=2)
-
-    elif plot == "compare_gmm":
-        plt.subplot(1, 2, 1)
-        plt.title("Mixture of Experts: $p(Y | X) = \Sigma_k \pi_{k, Y|X} "
-        "\mathcal{N}_{k, Y|X}$")
-        plt.xlabel("Hitting Flux [m/s]")   
-        plt.ylabel("Distance travelled [m]") 
-        
-        plt.scatter(X[:, 0], X[:, 1])
-        plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n], alpha = 0.12)
-        plt.plot(X_test, Y.ravel(), c="k", lw=2)
-        
-        plt.subplot(1, 2, 2)
-        
-        gmm = GMM(n_components=n+1, random_state=0)
-        gmm.from_samples(X)
-        Y = gmm.predict(np.array([0]), X_test[:, np.newaxis])
-        plt.title("Mixture of Experts: $p(Y | X) = \Sigma_k \pi_{k, Y|X} "
-        "\mathcal{N}_{k, Y|X}$")
-        plt.xlabel("Hitting Flux [m/s]")   
-        plt.ylabel("Distance travelled [m]") 
-        
-        plt.scatter(X[:, 0], X[:, 1])
-        plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n+1], alpha = 0.12)
-        plt.plot(X_test, Y.ravel(), c="k", lw=2)
-    
-    # Increase the size of the tick labels
-    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE)  # Change 14 to the desired size
-
-    if show_plot: plt.show()
-
-# Function to calculate BIC and AIC for a range of components
-def calculate_bic_aic(X, max_components):
-    bic_scores = []
-    aic_scores = []
-    n_components_range = range(1, max_components + 1)
-    
-    for n in n_components_range:
-        gmm = GaussianMixture(n_components=n, random_state=0)
-        gmm.fit(X)
-        bic_scores.append(gmm.bic(X))
-        aic_scores.append(gmm.aic(X))
-    
-    return n_components_range, bic_scores, aic_scores
-
-def plot_bic_aic_with_sklearn(df, show_plot=False):
-
-    X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
-
-    max_components = 10
-    n_components_range, bic_scores, aic_scores = calculate_bic_aic(X, max_components)
-
-    # Plotting BIC and AIC scores
-    plt.figure(figsize=(20, 10))
-    plt.plot(n_components_range, bic_scores, label='BIC', marker='o')
-    plt.plot(n_components_range, aic_scores, label='AIC', marker='o')
-    plt.xlabel('Number of Components', fontsize=GLOBAL_FONTSIZE)
-    plt.ylabel('Score', fontsize=GLOBAL_FONTSIZE)
-    plt.title('BIC and AIC Scores for Different Number of GMM Components', fontsize=GLOBAL_FONTSIZE)
-    plt.legend(fontsize=GLOBAL_FONTSIZE)
-    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
-    if show_plot: plt.show()
-
-def plot_gmm_with_sklearn(df, show_plot=False):
-    
-    X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
-
-    # Fit Gaussian Mixture Model
-    n_components = 3  # Example: 3 components
-    gmm = GaussianMixture(n_components=n_components, random_state=0)
-    gmm.fit(X)
-
-    # Predict Y for X_test
-    # X_test = np.linspace(0.45, 1.1, 100).reshape(-1, 1)
-    # Y = gmm.predict(X_test)
-
-    # Plotting
-    plt.figure(figsize=(10, 8))
-    plt.title("GMM fit")
-    plt.xlabel("Hitting Flux [m/s]")
-    plt.ylabel("Distance travelled [m]")
-
-    plt.scatter(X[:, 0], X[:, 1])
-
-    # Define colors for the ellipses
-    colors_list = plt.cm.viridis(np.linspace(0, 1, n_components))
-
-    # Plot error ellipses
-    for n, color in enumerate(colors_list):
-        mean = gmm.means_[n]
-        covariances = gmm.covariances_[n]
-
-        if covariances.shape == (2, 2):
-            covariances = covariances
-        else:
-            covariances = np.diag(covariances)
-
-        v, w = np.linalg.eigh(covariances)
-        v = 2.0 * np.sqrt(2.0) * np.sqrt(v)
-        u = w[0] / np.linalg.norm(w[0])
-
-        angle = np.arctan(u[1] / u[0])
-        angle = 180.0 * angle / np.pi
-
-        ell = patches.Ellipse(mean, v[0], v[1], 180.0 + angle, color=color, alpha=0.12)
-        plt.gca().add_patch(ell)
-
-    # plt.plot(X_test, Y, c="k", lw=2)
-    if show_plot: plt.show()
-
 
 ## DATA PLOTS
 def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_model=None, use_mplcursors=True, show_plot=False):
@@ -346,18 +214,16 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
         cbar.set_label('Orientation error')
 
     elif colors == "config":
-        df_cfg1 = df[df['Config']==1].copy()
-        df_cfg2 = df[df['Config']==2].copy()
+        df_cfg1 = df[df['config']==1].copy()
+        df_cfg2 = df[df['config']==2].copy()
         # df_cfg1 = df[df['RecSession']=="2024-05-08_16:27:34"].copy()
         # df_cfg2 = df[df['RecSession']=="2024-05-16_13:49:02"].copy()
         ax.scatter(df_cfg1['HittingFlux'], df_cfg1['DistanceTraveled'], color='green', alpha=0.5, label='Config 1')
         ax.scatter(df_cfg2['HittingFlux'], df_cfg2['DistanceTraveled'], color='orange', alpha=0.5, label='Config 2')
 
-
-
     elif colors == "object":
-        df_obj1 = df[df['Object']==1].copy()
-        df_obj2 = df[df['Object']==2].copy()
+        df_obj1 = df[df['object']==1].copy()
+        df_obj2 = df[df['object']==2].copy()
         ax.scatter(df_obj1['HittingFlux'], df_obj1['DistanceTraveled'], color='purple', alpha=0.5, label='Object 1')
         ax.scatter(df_obj2['HittingFlux'], df_obj2['DistanceTraveled'], color='orange', alpha=0.5, label='Object 2')
 
@@ -1338,7 +1204,7 @@ def get_precise_hit_position(df):
     # plt.show()
 
 
-def save_all_figures(folder_name): 
+def save_all_figures(folder_name, title=None): 
 
     # Specify the directory where you want to save the figures
     save_dir = PATH_TO_DATA_FOLDER + "figures/" + folder_name
@@ -1350,8 +1216,8 @@ def save_all_figures(folder_name):
     # Save all figures without window borders
     for fig in plt.get_fignums():
         plt.figure(fig)
-        title = plt.gca().get_title()  # Get the title of the figure
-        print(title)
+        if title is None :
+            title = plt.gca().get_title()  # Get the title of the figure
         file_name = f"{title}.png" if title else f"figure_{fig}.png"
         plt.gca().set_frame_on(True)  # Turn on frame
         plt.savefig(os.path.join(save_dir, file_name), bbox_inches="tight", pad_inches=0.1)
@@ -1361,36 +1227,28 @@ def save_all_figures(folder_name):
 
 if __name__== "__main__" :
     
-    processed_raw_folder = PATH_TO_DATA_FOLDER + "airhockey_processed/raw/"
+    #### SAVE CLEAN DATASET TO THIS FOLDER
+    # clean_dataset_folder = "KL_div"
+
+    # ### Datasets to use
+    # csv_fn = "D1_clean" #"D1_clean" #"data_test_april"#  #"data_consistent_march"
+
+    # csv_fn2 = "D2_clean"
+
+    # ### Read and clean datasets
+    # clean_df = read_and_clean_data(csv_fn, resample=True, n_samples=2000, only_7=False, save_folder=clean_dataset_folder, save_clean_df=True)
+    # clean_df2 = read_and_clean_data(csv_fn2, resample=True, n_samples=900, only_7=False, save_folder=clean_dataset_folder, save_clean_df=True)
+
+    # #### AGNOSTIC PARAM
+    # agnostic_param = "config"
+
+    # ## for special cases
+    # # clean_df2 = clean_df2[clean_df2['RecSession']=="2024-05-08_16:27:34"]
+
+    # df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, resample=False, parameter=agnostic_param)
     
-    ### Datafile to use
-    csv_fn = "D1_clean"#"D1_clean" #"data_test_april"#  #"data_consistent_march"
-
-    ## Reading and cleanign data 
-    df = pd.read_csv(processed_raw_folder+csv_fn+".csv", index_col="Index", converters={
-        'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,'AttractorPos' : parse_strip_list,
-        'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})#
-    
-    clean_df = clean_data(df, resample=False, n_samples=800, only_7=False, save_clean_df=True)
-
-    ## restructre data for paper plots 
-    csv_fn2 = "D3"
-    df2 = pd.read_csv(processed_raw_folder+csv_fn2+".csv", index_col="Index", converters={
-        'ObjectPos' : parse_strip_list, 'HittingPos': parse_strip_list, 'ObjectOrientation' : parse_strip_list,
-        'HittingOrientation': parse_strip_list, 'ObjectPosStart' : parse_strip_list,'ObjectPosEnd' : parse_strip_list})
-    
-    clean_df2 = clean_data(df2, resample=False, n_samples=800, only_7=True, save_clean_df=True)
-
-    #### AGNOSTIC PARAM
-    agnostic_param = "config"
-
-    ## for special case
-    clean_df2 = clean_df2[clean_df2['RecSession']=="2024-05-08_16:27:34"]
-
-    df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, resample=False, parameter=agnostic_param)
-    
-    ### Values used for plots 
-    object_number = get_object_based_on_dataset(csv_fn)
+    # ### Values used for plots 
+    # object_number = get_object_based_on_dataset(csv_fn)
 
     ### Plot functions
     # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True, use_mplcursors=False)
@@ -1405,17 +1263,16 @@ if __name__== "__main__" :
     # plot_orientation_vs_distance(clean_df, axis="z")
     # plot_object_trajectory_onefig(clean_df, use_mplcursors=True, selection="all")
     # plot_object_trajectory(clean_df, use_mplcursors=True, selection="selected")
-    # plot_gmm_with_sklearn(clean_df)
 
-    # #### USED IN PAPER 
-    plot_gmr(clean_df, n=2, plot="only_gmm")
-    # plot_bic_aic_with_sklearn(clean_df)
+    ######### USED IN PAPER ###########
+
     # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True, use_mplcursors=False)
     # plot_distance_vs_flux(df_combined, colors=agnostic_param, with_linear_regression=True, use_mplcursors=False)
     # plot_distance_vs_flux(clean_df2, colors="config", with_linear_regression=True, use_mplcursors=False)
     # plot_object_trajectory_onefig(clean_df, dataset_path="varying_flux_datasets/D1/", use_mplcursors=False, selection="selected")
 
-    save_all_figures(folder_name=csv_fn)
+    # save_all_figures(folder_name=csv_fn)
+    # save_all_figures(folder_name=clean_dataset_folder)
     # save_all_figures(folder_name=f"{agnostic_param}_agnostic")
     plt.show()
 
