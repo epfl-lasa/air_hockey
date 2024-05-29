@@ -33,14 +33,6 @@ def plot_distance_vs_flux(df, colors="iiwa", title="Distance over Flux", with_li
         ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='red', alpha=0.5, label='IIWA 7')
         ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.5, label='IIWA 14')
 
-    elif colors == "orientation":
-        ###TODO : check this is correct ?? 
-        df["OrientationError"] = df.apply(lambda row : np.linalg.norm(np.array(row["HittingOrientation"])-np.array(row["ObjectOrientation"])),axis=1)
-        scatter = ax.scatter(df['HittingFlux'], df['DistanceTraveled'], c=df['OrientationError'], cmap="viridis")
-        
-        cbar = plt.colorbar(scatter)
-        cbar.set_label('Orientation error')
-
     elif colors == "config":
         df_cfg1 = df[df['config']==1].copy()
         df_cfg2 = df[df['config']==2].copy()
@@ -148,7 +140,9 @@ def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", 
 
     elif selection == "selected" :
         # hand selected trajectories to plot 
-        idx_to_plot = [4,7,33,63,67,69,84,97,115,130,131,132,138,649,701,712,870,891,899,900,1019,1174]
+        idx_to_plot = [69,900,97,132,84,712,899,1019,1074,1170,1171,1178,1179,1768,1786, 1789, 1879, 1921, 1922, 1384,1385,1389, 1271, 1273, 1278]
+        # 712, 1768
+        # idx_to_plot = [4,7,33,63,67,69,84,97,115,130,131,132,138,649,701,712,870,891,899,900,1019,1174] 1073,1168,1169,1132,1149,1788,1062,1848,1849,
         # idx_to_plot = [4,21,33,67,69,81,105,115,122,130,169,171,306,357,649,652,655,669,701,755,788,837,845,861,870]
         df = df[df.index.isin(idx_to_plot)]
 
@@ -205,22 +199,24 @@ def plot_object_trajectory_onefig(df, dataset_path="varying_flux_datasets/D1/", 
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=axes.ravel().tolist())
     cbar.set_label('Hitting Flux [m/s]', fontsize=GLOBAL_FONTSIZE)
+    cbar.ax.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
 
     # Set axes settings
     for ax in axes:
         ax.set_ylabel('X-axis [m]', fontsize=GLOBAL_FONTSIZE)
         ax.grid(True, alpha=0.5)
         ax.set_ylim(0.39,0.62)
+        ax.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
         
 
     axes[1].set_xlabel('Y Axis [m]', fontsize=GLOBAL_FONTSIZE)
 
-    # leg = fig.legend(loc='center left', bbox_to_anchor=(0.9, 0.9))
+    # leg = fig.legend(loc='center left', bbox_to_anchor=(0.8, 0.6))
     # leg.set_draggable(state=True)
 
     fig.suptitle(f"Object trajectories seen from above", fontsize=GLOBAL_FONTSIZE)
     # plt.title(f"Object trajectories seen from above", fontsize=GLOBAL_FONTSIZE)
-    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
+    # plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
     
     if show_plot : plt.show()
 
@@ -237,7 +233,7 @@ def object_traj_plot_for_paper(dataset_to_use='clean'):
 
     ### Read OR clean datasets
     if dataset_to_use == "raw":
-        clean_df = read_and_clean_data(csv_fn, dataset_name=dataset_new_name, max_flux=0.82, resample=False, save_folder=SAVE_FOLDER_FOR_PAPER, save_clean_df=True)
+        clean_df = read_and_clean_data(csv_fn, dataset_name=dataset_new_name,min_flux=0.0, max_flux=1.2, resample=False, save_folder=SAVE_FOLDER_FOR_PAPER, save_clean_df=True)
     elif dataset_to_use == "clean":
         clean_df = read_airhockey_csv(fn=dataset_new_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{SAVE_FOLDER_FOR_PAPER}/")
 
@@ -333,7 +329,7 @@ if __name__== "__main__" :
     ## Tune parameters inside each respective function
     ## Use 'raw' dataset to sample different datapoints for plots
 
-    object_traj_plot_for_paper('raw')
+    object_traj_plot_for_paper('clean')
     # robot_agnostic(dataset_to_use='clean')
     # object_agnostic(dataset_to_use='clean')
     # config_agnostic(dataset_to_use="clean")

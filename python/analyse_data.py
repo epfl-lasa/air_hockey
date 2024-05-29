@@ -137,14 +137,18 @@ def read_and_clean_data(csv_fn, dataset_name=None, resample=False, n_samples=200
     ### Remove low outliers -> due to way of recording and processing 
     # Distance
     clean_df = df[df['DistanceTraveled']>distance_threshold]  
+
     # Robot 
     if only_7 : clean_df = clean_df[clean_df['IiwaNumber']==7]
+
     # Flux
     clean_df = clean_df[clean_df['HittingFlux']>min_flux]
     clean_df = clean_df[clean_df['HittingFlux']<max_flux]
-    # Desired Flux 
-    clean_df = clean_df[clean_df['DesiredFlux']>min_flux]
 
+    # Desired Flux 
+    clean_df = clean_df[clean_df['DesiredFlux']>0.5]
+
+    # Resample
     if resample : clean_df = resample_uniformally(clean_df, n_samples=n_samples)
 
     # Reset index
@@ -1202,6 +1206,21 @@ def get_precise_hit_position(df):
     ax.grid(True)
 
     # plt.show()
+
+def save_one_figure(folder_name, title):
+    # Specify the directory where you want to save the figures
+    save_dir = PATH_TO_DATA_FOLDER + "figures/" + folder_name
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Save figure without window borders
+    file_name = f"{title}.png"
+    plt.gca().set_frame_on(True)  # Turn on frame
+    plt.savefig(os.path.join(save_dir, file_name), bbox_inches="tight", pad_inches=0.1)
+
+    print("Figure saved successfully!")
 
 
 def save_all_figures(folder_name, title=None): 

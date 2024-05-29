@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.mixture import GaussianMixture
@@ -6,7 +7,7 @@ from gmr import MVN, GMM, plot_error_ellipses
 
 from process_data import  PATH_TO_DATA_FOLDER
 
-from analyse_data import read_airhockey_csv, read_and_clean_data, save_all_figures
+from analyse_data import read_airhockey_csv, read_and_clean_data, save_all_figures, save_one_figure, resample_uniformally
 
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 30
@@ -15,7 +16,7 @@ AXIS_TICK_FONTSIZE = 20
 PROCESSED_FOLDER = PATH_TO_DATA_FOLDER + "airhockey_processed/"
 
 ## GMM ANALYISIS
-def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", show_plot=False):
+def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", save_fig=False, save_folder="", show_plot=False):
     
     X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
 
@@ -56,7 +57,7 @@ def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", show_
     elif plot == "only_gmm":
         # plt.title("Mixture of Experts: $p(Y | X) = \Sigma_k \pi_{k, Y|X} "
         # "\mathcal{N}_{k, Y|X}$")
-        plt.title(title, fontsize=GLOBAL_FONTSIZE)
+        # plt.title(title, fontsize=GLOBAL_FONTSIZE)
         plt.xlabel("Hitting Flux [m/s]", fontsize=GLOBAL_FONTSIZE)   
         plt.ylabel("Distance travelled [m]", fontsize=GLOBAL_FONTSIZE) 
         
@@ -92,6 +93,8 @@ def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", show_
     # Increase the size of the tick labels
     plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE)  # Change 14 to the desired size
 
+    if save_fig : save_one_figure(save_folder, title)
+
     if show_plot: plt.show()
 
 #### Functions to calculate BIC and AIC for a range of components
@@ -101,14 +104,14 @@ def calculate_bic_aic(X, max_components):
     n_components_range = range(1, max_components + 1)
     
     for n in n_components_range:
-        gmm = GaussianMixture(n_components=n, random_state=0)
+        gmm = GaussianMixture(n_components=n, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
         gmm.fit(X)
         bic_scores.append(gmm.bic(X))
         aic_scores.append(gmm.aic(X))
     
     return n_components_range, bic_scores, aic_scores
 
-def plot_bic_aic_with_sklearn(df, title='BIC and AIC Scores for Different Number of GMM Components',  show_plot=False):
+def plot_bic_aic_with_sklearn(df, title='BIC and AIC Scores for Different Number of GMM Components', save_fig=False, save_folder="", show_plot=False):
 
     X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
 
@@ -124,23 +127,37 @@ def plot_bic_aic_with_sklearn(df, title='BIC and AIC Scores for Different Number
     plt.title(title, fontsize=GLOBAL_FONTSIZE)
     plt.legend(fontsize=GLOBAL_FONTSIZE)
     plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
+
+    if save_fig : save_one_figure(save_folder, title)
     if show_plot: plt.show()
 
 #### Functions to calculate KL divergence 
-def calculate_KL(df1, df2):
+def calculate_KL(df1, df2, n=2, save_to_file=False, save_folder=""):
 
     X1 = np.column_stack((df1['HittingFlux'].values, df1['DistanceTraveled'].values))
     X2 = np.column_stack((df2['HittingFlux'].values, df2['DistanceTraveled'].values))
 
     # Fit Gaussian Mixture Models
-    gmm1 = GaussianMixture(n_components=3, random_state=0)
-    gmm2 = GaussianMixture(n_components=3, random_state=0)
+    gmm1 = GaussianMixture(n_components=n, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
+    gmm2 = GaussianMixture(n_components=n, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
     gmm1.fit(X1)
     gmm2.fit(X2)
 
     # Calculate the KL divergence between gmm1 and gmm2
     kl_div = kl_divergence(gmm1, gmm2)
     print(f"KL Divergence: {kl_div}")
+
+    if save_to_file :
+        fn = f"KL_div={kl_div:.4f}"
+        save_dir = PATH_TO_DATA_FOLDER + "figures/" + save_folder
+
+        # Create and write to the text file
+        with open(os.path.join(save_dir, fn), 'w') as file:
+            file.write("This file contains the KL Divergence value.\n")
+            file.write(f"KL Divergence: {kl_div}\n")
+
+        print(f"File '{fn}' created successfully.")
+
 
 def kl_divergence(gmm_p, gmm_q, n_samples=1000):
     # Sample points from gmm_p
@@ -155,14 +172,14 @@ def kl_divergence(gmm_p, gmm_q, n_samples=1000):
     return kl_div
 
 
-## NOTE - used to confirm sklearn works, gmm_torch wok
+## NOTE - used to confirm sklearn works
 def plot_gmm_with_sklearn(df, show_plot=False):
     
     X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
 
     # Fit Gaussian Mixture Model
     n_components = 2  # Example: 3 components
-    gmm = GaussianMixture(n_components=n_components, random_state=0)
+    gmm = GaussianMixture(n_components=n, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
     gmm.fit(X)
 
     # Predict Y for X_test
@@ -204,43 +221,127 @@ def plot_gmm_with_sklearn(df, show_plot=False):
     if show_plot: plt.show()
 
 
-if __name__== "__main__" :
-    
+### Pre-made functions to reproduce plots 
+def object_agnostic(use_raw_datasets = False):
+
     #### SAVE CLEAN DATASET TO THIS FOLDER
+    clean_dataset_folder = "KL_div-object_agnostic"
 
-    clean_dataset_folder = "KL_div"
-
-    use_raw_datasets = True
-    
+    ## Datasets to use
+    csv_fn = "D1_clean" 
+    csv_fn2 = "D2_clean"
 
     ############ USING RAW DATASETS ############
     if use_raw_datasets : 
-        ## Datasets to use
-        csv_fn = "D1_clean" 
-        csv_fn2 = "D2_clean"
 
         ## Read and clean datasets
-        clean_df = read_and_clean_data(csv_fn, resample=True, n_samples=2000, only_7=False, save_folder=clean_dataset_folder, save_clean_df=True)
-        clean_df2 = read_and_clean_data(csv_fn2, resample=True, n_samples=900, only_7=False, save_folder=clean_dataset_folder, save_clean_df=True)
+        clean_df = read_and_clean_data(csv_fn, resample=False, n_samples=2000, only_7=True, save_folder=clean_dataset_folder, save_clean_df=True)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=True, n_samples=400, only_7=True, save_folder=clean_dataset_folder, save_clean_df=True)
 
 
     ######### USING RESAMPLED AND CLEAN DATASETS ###########
     # NOTE - use these to reproduce plots for paper
     else :
-        clean_df = read_airhockey_csv(fn="D1_clean_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
-        clean_df2 = read_airhockey_csv(fn="D2_clean_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        clean_df2 = read_airhockey_csv(fn=f"{csv_fn2}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
     
+    print(f"Dataset info : \n"
+        f" Object 1 points : {len(clean_df.index)} \n"
+        f" Object 2 points : {len(clean_df2.index)} \n")
 
     ######### GMM Scores #########
-    plot_gmr(clean_df, n=2, plot="only_gmm", title="Gaussian Mixture Model fit for D1")
-    plot_gmr(clean_df2, n=2, plot="only_gmm", title="Gaussian Mixture Model fit for D2")
-    calculate_KL(clean_df, clean_df2)
-    plot_bic_aic_with_sklearn(clean_df, title='D1 - BIC and AIC Scores for Different Number of GMM Components')
-    plot_bic_aic_with_sklearn(clean_df2, title='D2 - BIC and AIC Scores for Different Number of GMM Components')
+    n_gaussians=2
 
-    save_all_figures(folder_name=clean_dataset_folder)
+    plot_gmr(clean_df, n=n_gaussians, plot="only_gmm", title=f"GMM fit for {csv_fn}", save_folder=clean_dataset_folder, save_fig=True)
+    plot_gmr(clean_df2, n=n_gaussians, plot="only_gmm", title=f"GMM fit for {csv_fn2}", save_folder=clean_dataset_folder, save_fig=True)
+    calculate_KL(clean_df, clean_df2, n=n_gaussians, save_folder=clean_dataset_folder, save_to_file=True)
+    plot_bic_aic_with_sklearn(clean_df, title=f"AIC-BIC for {csv_fn}", save_folder=clean_dataset_folder, save_fig=True)
+    plot_bic_aic_with_sklearn(clean_df2, title=f"AIC-BIC for {csv_fn2}", save_folder=clean_dataset_folder, save_fig=True)
+
+    plt.show()
+
+def robot_agnostic(use_raw_datasets = False):
+    
+    #### SAVE CLEAN DATASET + FIGURES TO THIS FOLDER
+    clean_dataset_folder = "KL_div-robot_agnostic-D1"
+    
+    ## Datasets to use
+    csv_fn = "D1_clean" 
+
+    ############ USING RAW DATASETS ############
+    if use_raw_datasets : 
+
+        ## Read and clean datasets
+        clean_df = read_and_clean_data(csv_fn, resample=False, min_flux=0.58, max_flux=0.8, save_folder=clean_dataset_folder, save_clean_df=True)
+      
+    ######### USING RESAMPLED AND CLEAN DATASETS ###########
+    # NOTE - use these to reproduce plots for paper
+    else :
+        clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+
+    df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
+    df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
+
+    df_iiwa14 = resample_uniformally(df_iiwa14, n_samples=1000)
+
+    print(f"Dataset info : \n"
+        f" Iiwa 7 points : {len(df_iiwa7.index)} \n"
+        f" Iiwa 14 points : {len(df_iiwa14.index)} \n")
+
+    ######### GMM Scores #########
+    n_gaussians = 2
+
+    plot_gmr(df_iiwa7, n=n_gaussians, plot="only_gmm", title=f"GMM fit for IIWA 7", save_folder=clean_dataset_folder, save_fig=True)
+    plot_gmr(df_iiwa14, n=n_gaussians, plot="only_gmm", title=f"GMM fit for IIWA 14", save_folder=clean_dataset_folder, save_fig=True)
+    calculate_KL(df_iiwa7, df_iiwa14, n=n_gaussians, save_folder=clean_dataset_folder, save_to_file=True)
+    plot_bic_aic_with_sklearn(df_iiwa7, title=f"AIC-BIC for IIWA 7", save_folder=clean_dataset_folder, save_fig=True)
+    plot_bic_aic_with_sklearn(df_iiwa14, title=f"AIC-BIC for IIWA 14", save_folder=clean_dataset_folder, save_fig=True)
+
+    plt.show()
+
+def config_agnostic(use_raw_datasets= False):
+
+    #### SAVE CLEAN DATASET TO THIS FOLDER
+    clean_dataset_folder = "KL_div-config_agnostic"
+
+    ## Datasets to use
+    csv_fn = "D1_clean" 
+    csv_fn2 = "D3_clean"
+
+    ############ USING RAW DATASETS ############
+    if use_raw_datasets : 
+
+        ## Read and clean datasets
+        clean_df = read_and_clean_data(csv_fn, resample=True, n_samples=100, max_flux=0.9, only_7=True, save_folder=clean_dataset_folder, save_clean_df=True)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=False, n_samples=500, max_flux=0.9, only_7=True, save_folder=clean_dataset_folder, save_clean_df=True)
+
+
+    ######### USING RESAMPLED AND CLEAN DATASETS ###########
+    # NOTE - use these to reproduce plots for paper
+    else :
+        clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        clean_df2 = read_airhockey_csv(fn=f"{csv_fn2}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+    
+    print(f"Dataset info : \n"
+        f" Config 1 points : {len(clean_df.index)} \n"
+        f" Config 2 points : {len(clean_df2.index)} \n")
+
+    ######### GMM Scores #########
+    n_gaussians=2
+
+    plot_gmr(clean_df, n=n_gaussians, plot="only_gmm", title=f"GMM fit for {csv_fn}", save_folder=clean_dataset_folder, save_fig=True)
+    plot_gmr(clean_df2, n=n_gaussians, plot="only_gmm", title=f"GMM fit for {csv_fn2}", save_folder=clean_dataset_folder, save_fig=True)
+    calculate_KL(clean_df, clean_df2, n=n_gaussians, save_folder=clean_dataset_folder, save_to_file=True)
+    plot_bic_aic_with_sklearn(clean_df, title=f"AIC-BIC for {csv_fn}", save_folder=clean_dataset_folder, save_fig=True)
+    plot_bic_aic_with_sklearn(clean_df2, title=f"AIC-BIC for {csv_fn2}", save_folder=clean_dataset_folder, save_fig=True)
 
     plt.show()
 
 
+if __name__== "__main__" :
 
+    ## Run one of these to get the plots for agnosticism 
+
+    object_agnostic(use_raw_datasets=False)
+    # robot_agnostic(use_raw_datasets=False)
+    # config_agnostic(use_raw_datasets=True)
