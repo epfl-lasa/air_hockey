@@ -8,6 +8,9 @@ data/airhockey_processed/*
 !data/airhockey_processed/clean/
 data/airhockey_processed/clean/*
 !data/airhockey_processed/clean/for_paper/
+!data/airhockey_processed/clean/KL_div-config_agnostic/
+!data/airhockey_processed/clean/KL_div-object_agnostic/
+!data/airhockey_processed/clean/KL_div-robot_agnostic-D1/
 
 # DO NOT ignore these data folders 
 #!data/varying_flux_datasets/
