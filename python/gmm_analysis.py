@@ -304,6 +304,8 @@ def config_agnostic(use_raw_datasets= False):
     #### SAVE CLEAN DATASET TO THIS FOLDER
     clean_dataset_folder = "KL_div-config_agnostic"
 
+    new_dataset_name = "D1-D3-config_agnostic"
+
     ## Datasets to use
     csv_fn = "D1_clean" 
     csv_fn2 = "D3_clean"
@@ -312,8 +314,8 @@ def config_agnostic(use_raw_datasets= False):
     if use_raw_datasets : 
 
         ## Read and clean datasets
-        clean_df = read_and_clean_data(csv_fn, resample=True, n_samples=100, max_flux=0.9, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
-        clean_df2 = read_and_clean_data(csv_fn2, resample=False, n_samples=500, max_flux=0.9, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
+        clean_df = read_and_clean_data(csv_fn, resample=False, max_flux=0.82, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=False, max_flux=0.82, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
 
         # use only data from same day recording 
         clean_df = clean_df[clean_df['RecSession']=="2024-05-29_15:40:48__clean_paper"].copy()
@@ -321,17 +323,18 @@ def config_agnostic(use_raw_datasets= False):
         
         ## combine both into one df and save to data folder
         df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, resample=False, parameter="config", 
-                                                     dataset_name="D1-D3-config_agnostic", save_folder=clean_dataset_folder, save_new_df=True)
+                                                     dataset_name=new_dataset_name, save_folder=clean_dataset_folder, save_new_df=True)
 
 
     ######### USING RESAMPLED AND CLEAN DATASETS ###########
     # NOTE - use these to reproduce plots for paper
     else :
-        clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
-        clean_df = clean_df[clean_df['RecSession']=="2024-05-29_15:40:48__clean_paper"].copy()
+        df_combined = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+
+        ## Separate per config
+        clean_df = df_combined[df_combined['config']==1].copy()
+        clean_df2 = df_combined[df_combined['config']==2].copy()
         
-        df_combined = read_airhockey_csv(fn=f"{csv_fn2}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
-    
     
     print(f"Dataset info : \n"
         f" Config 1 points : {len(clean_df.index)} \n"
@@ -353,6 +356,6 @@ if __name__== "__main__" :
 
     ## Run one of these to get the plots for agnosticism 
 
-    object_agnostic(use_raw_datasets=False)
+    # object_agnostic(use_raw_datasets=False)
     # robot_agnostic(use_raw_datasets=False)
-    # config_agnostic(use_raw_datasets=True)
+    config_agnostic(use_raw_datasets=False)

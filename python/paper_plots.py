@@ -305,15 +305,22 @@ def config_agnostic(dataset_to_use='clean'):
 
     ### Read OR clean datasets
     if dataset_to_use == "raw":
-        clean_df = read_and_clean_data(csv_fn, resample=True, n_samples=100, max_flux=0.9, only_7=True,  save_clean_df=False)
-        clean_df2 = read_and_clean_data(csv_fn2, resample=False, n_samples=500, max_flux=0.9, only_7=True,  save_clean_df=False)
 
+        ## Read and clean datasets
+        clean_df = read_and_clean_data(csv_fn, resample=False, max_flux=1.0, only_7=True, save_clean_df=False)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=False, max_flux=1.0, only_7=True, save_clean_df=False)
+
+        # use only data from same day recording 
+        clean_df = clean_df[clean_df['RecSession']=="2024-05-29_15:40:48__clean_paper"].copy()
+        clean_df2 = clean_df2[clean_df2['RecSession']=="2024-05-29_14:30:29__clean"].copy()
+        
         ## combine both into one df
         df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, resample=False, parameter="config", 
                                                      dataset_name=dataset_new_name, save_folder=SAVE_FOLDER_FOR_PAPER, save_new_df=True)
 
     elif dataset_to_use == "clean":
         df_combined = read_airhockey_csv(fn=dataset_new_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{SAVE_FOLDER_FOR_PAPER}/")
+        # df_combined = read_airhockey_csv(fn=dataset_new_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/KL_div-config_agnostic/")
         
     plot_distance_vs_flux(df_combined, colors="config", with_linear_regression=True, use_mplcursors=False)
 
@@ -329,8 +336,8 @@ if __name__== "__main__" :
     ## Tune parameters inside each respective function
     ## Use 'raw' dataset to sample different datapoints for plots
 
-    object_traj_plot_for_paper('clean')
+    # object_traj_plot_for_paper('clean')
     # robot_agnostic(dataset_to_use='clean')
     # object_agnostic(dataset_to_use='clean')
-    # config_agnostic(dataset_to_use="clean")
+    config_agnostic(dataset_to_use="raw")
 
