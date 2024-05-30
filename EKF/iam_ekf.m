@@ -4,6 +4,8 @@ classdef iam_ekf < handle
 
     properties
         
+        N % Number of simulation iterations
+
         % Kalman Fitler
         n % number of state
         n_boxModel % number of states in box model
@@ -41,11 +43,14 @@ classdef iam_ekf < handle
 
         d_offset
 
+        convergThreshold
+        fullModel_convT % Convergence Time
 
         % Saving figures
         saveFigBool
         images_path
         dataType
+        initCoeff
 
     end
 
@@ -55,40 +60,37 @@ classdef iam_ekf < handle
             dbstop if error
             this.saveFigBool = true;
             this.images_path = 'images/';
-%             data = dataToy(); % Create data structure from toy model
-%             data = dataSim('data/log_box_traj_mu001.txt');
-%             data = dataReal('data/hit_1-IIWA_7.csv');
-%             this.init(data); % Initalize Kalman filter parameters
-%             [this.fullModel] = this.get_estimateState_fullModel(data);
-%             [this.boxModel] = this.get_estimateState_boxModel(data);
 
             % Change to run mulitple trials with diffrent coefficients
-            initialCoeffients = [0.5;0.5];
-            for i = 1:20
-%                 data = dataToy(initialCoeffients(:,i));
-%                 data = dataSim('data/log_box_traj_mu001.txt',initialCoeffients(:,i));
-                data = dataReal('data/hit_1-IIWA_7.csv',initialCoeffients(:,i));
+            this.initCoeff = [0.5;0.7];
+            this.N = 15;
+
+            for i = 1:this.N
+%                 data = dataToy(this.initCoeff(:,i));
+%                 data = dataSim('data/log_box_traj_mu001.txt',this.initCoeff(:,i));
+                data = dataReal('data/hit_1-IIWA_7.csv',this.initCoeff(:,i));
+%                 data = dataReal('data/clean/hit_1-IIWA_7.csv',this.initCoeff(:,i));
+%                 data = dataReal('data/dirty/hit_571-IIWA_7.csv',this.initCoeff(:,i));
 
                 this.init(data);
                 [this.fullModel{i}] = this.get_estimateState_fullModel(data);
-                initialCoeffients(:,i+1) = this.fullModel{i}.estimateState([end-1:end],end);
+                this.initCoeff(:,i+1) = this.fullModel{i}.estimateState([end-1:end],end);
             end
             [this.boxModel] = this.get_estimateState_boxModel(data);
 
-            trialDex = 1;
-%             get_plots(this,data,trialDex);
-%             get_plots(this,data,2);
-%             get_plots(this,data,5);
-            get_plots(this,data,20);
+            % Full model convergence time
+            for i = 1:this.N
+                this.fullModel_convT(i) = this.fullModel{i}.otherVars_kal.convT;
+            end
 
-            figure; 
-            plot(initialCoeffients','.','markersize',30,'linewidth',2.5); hold on;
-            box off; set(gca,'linewidth',2.5,'fontsize', 16);
-            ylim([0 1]);
-            ylabel('Coefficient (au)','interpreter','latex','fontsize',25);
-            xlabel('Trial Number','interpreter','latex','fontsize',25);
-            legend('location','southeast');
-            grid on;
+            trialDex = 15;
+%             get_plots(this,data,1);
+%             get_plots(this,data,2);
+%             get_plots(this,data,3);
+            get_plots_paper(this,data,1,false);
+%             get_plots_paper(this,data,2,false);
+% 
+            get_plots_paper(this,data,trialDex,true);
 
             disp('test');
 
@@ -104,17 +106,17 @@ classdef iam_ekf < handle
             this.dataType = data.dataType;
 
             if strcmp(this.dataType,'sim')
-                this.d_offset = 0.15;
+                this.d_offset = 0.158;
             elseif strcmp(this.dataType,'toy')
                 this.d_offset = 0;
             elseif strcmp(this.dataType,'real')
-                this.d_offset = -0.277;
+                this.d_offset = -0.275;
             end
 
 
             % Initialize the filter
             this.n = data.n;   
-            this.n_boxModel = 4;
+            this.n_boxModel = 3;
             this.q = data.q;
             this.r = data.r;
             this.R = diag(this.r);
@@ -122,6 +124,7 @@ classdef iam_ekf < handle
             this.P_init = eye(this.n);                           
             this.e_pred = data.sigma_1*data.sigma_2*sqrt(2*pi);
             this.e_bool = 1;
+            this.convergThreshold = 0.02;
 
         end
 
@@ -178,6 +181,11 @@ classdef iam_ekf < handle
               otherVars_kal.Xf_pred_int(k) = Xf_pred_int(k);
             end
 
+            tmp = abs(Xf_pred-data.measuredStates(1,end)) < this.convergThreshold;
+            t_converge = data.t_kal(max(find(tmp~=1))); % Kalman Time
+            t_impact = data.t(min(find(data.dx_o>0.001))); % Sample Time
+            otherVars_kal.convT = t_converge-t_impact;
+
             % Create output Structure fullModel
             fullModel.estimateState = estimateState;
             fullModel.Xf_pred = Xf_pred;
@@ -191,13 +199,13 @@ classdef iam_ekf < handle
             Xf_pred = NaN(1,data.numSteps);
 
             measCount = 1;
-            x = data.X_init([1:2,end-1:end]);
+            x = data.X_init([1:2,end-1]);
             u = data.flux;
             P = this.P_init(1:this.n_boxModel,1:this.n_boxModel); % (CHECK) Assumed identidy P_init
-            Q_box = diag(this.q([1:2,end-1:end]));
+            Q_box = diag(this.q([1:2,end-1]));
 
             % Observation matrix Jacobian
-            H = [1,0,0,0]; 
+            H = [1,0,0]; 
 
             for k = 1:data.numSteps
 
@@ -227,6 +235,11 @@ classdef iam_ekf < handle
               otherVars_kal.P(k,:,:) = P; 
             end
 
+            tmp = abs(Xf_pred-data.measuredStates(1,end)) < this.convergThreshold;
+            t_converge = data.t_kal(max(find(tmp~=1))); % Kalman Time
+            t_impact = data.t(min(find(data.dx_o>0.001))); % Sample Time
+            otherVars_kal.convT = t_converge-t_impact;
+
             % Create output Structure fullModel
             boxModel.estimateState = estimateState;
             boxModel.Xf_pred = Xf_pred;
@@ -248,6 +261,8 @@ classdef iam_ekf < handle
 
                 if E >= this.e_pred
                     E_next = this.e_pred;
+                elseif E >= this.e_pred/2
+                    E_next = E + this.dt*abs(dx_o*f_ext) + 0.01;
                 else
                     E_next = E + this.dt*abs(dx_o*f_ext);
                 end
@@ -266,16 +281,14 @@ classdef iam_ekf < handle
             elseif strcmp(model,'box')
 
                 % Extract State
-                [x_o, dx_o, mu, restit] = this.get_statesfromX_boxModel(x);
+                [x_o, dx_o, mu] = this.get_statesfromX_boxModel(x);
                 x_o_next =   x_o + this.dt*dx_o;
                 dx_o_next =  dx_o;
                 mu_next = mu;
-                restit_next = restit;
 
                 X_next = [x_o_next;...
                           dx_o_next;...
-                          mu_next;...
-                          restit_next];
+                          mu_next];
                 
             end
 
@@ -289,7 +302,7 @@ classdef iam_ekf < handle
             [x_o, dx_o, x_ee, dx_ee, E, mu, restit] = this.get_statesfromX(x);
             hVec = [x_o;x_ee];
             elseif strcmp(model,'box')
-                [x_o, dx_o, mu, restit] = this.get_statesfromX_boxModel(x);
+                [x_o, dx_o, mu] = this.get_statesfromX_boxModel(x);
                 hVec = [x_o];
             end
         end
@@ -303,6 +316,7 @@ classdef iam_ekf < handle
                 % Extract State
                 [x_o, dx_o, x_ee, dx_ee, E, mu, restit] = this.get_statesfromX(x);
                 [f_ext,f_f] = this.get_force(x,u);
+                phi = u; % flux is the input
 
                 par_fext_par_x_o = -1 * (-this.get_d(x))/this.sigma_2^2 * f_ext;
                 par_fext_par_x_ee = -1 * par_fext_par_x_o; % Same except for negative sign
@@ -314,7 +328,7 @@ classdef iam_ekf < handle
                 par_dx_o_par_x_ee = this.dt * (1/this.m) * par_fext_par_x_ee;
 
                 par_fext_par_mu = 0;
-                par_fext_par_restit = this.m*(1+restit)/(this.sigma_2 * sqrt(2*pi)) * exp(-this.get_d(x)^2/(2*this.sigma_2^2));
+                par_fext_par_restit = phi^2*this.m*(1+restit)/(this.sigma_2 * sqrt(2*pi)) * exp(-this.get_d(x)^2/(2*this.sigma_2^2));
 
                 par_ff_par_mu = -sign(dx_o)*this.m*this.g;
                 par_ff_par_restit = 0;
@@ -337,10 +351,9 @@ classdef iam_ekf < handle
 
                 % (FIX) Add partial terms for mu and restit
             elseif strcmp(model,'box')
-                F = [1, this.dt,   0,   0;...
-                     0,       1,   0,   0;...
-                     0,       0,   1,   0;...
-                     0,       0,   0,   1];
+                F = [1, this.dt,   0;...
+                     0,       1,   0;...
+                     0,       0,   1];
             end
         
         end
@@ -391,7 +404,7 @@ classdef iam_ekf < handle
                 Xf_pred = (1-alpha) * (Xf_pred_flux) + alpha * (Xf_pred_int);
 
             elseif strcmp(model,'box')
-                [x_o, dx_o, mu, restit] = this.get_statesfromX_boxModel(x);
+                [x_o, dx_o, mu] = this.get_statesfromX_boxModel(x);
                 Xf_pred = x_o + (dx_o^2 / (2 * mu * this.g));
 
             end
@@ -416,12 +429,11 @@ classdef iam_ekf < handle
 
         end
 
-        function [x_o, dx_o, mu, restit] = get_statesfromX_boxModel(this,x)
+        function [x_o, dx_o, mu] = get_statesfromX_boxModel(this,x)
 
             x_o = x(1);
             dx_o = x(2);
             mu = x(3);
-            restit = x(4);
 
         end
 
@@ -437,13 +449,11 @@ classdef iam_ekf < handle
 
         end
 
-        function [X_o, dX_o, X_ee, dX_ee, E, mu, restit] = get_statesfromX_boxModel_vec(this)
+        function [X_o, dX_o, mu] = get_statesfromX_boxModel_vec(this)
 
             X_o = this.boxModel.estimateState(1,:);
             dX_o = this.boxModel.estimateState(2,:);
             mu = this.boxModel.estimateState(3,:);
-            restit = this.boxModel.estimateState(4,:);
-
         end
 
         % make plots
@@ -495,7 +505,7 @@ classdef iam_ekf < handle
             linkaxes(ax,'x');
 
             if this.saveFigBool
-                    saveas(gcf,[this.images_path,'/',this.dataType,'-SummaryPlot.png']);
+                    saveas(gcf,[this.images_path,'/',this.dataType,'tra-SummaryPlot.png']);
             end
 
             figure('position',[2074 337 560 705]);
@@ -536,13 +546,13 @@ classdef iam_ekf < handle
 
             % Coefficients
             figure;
-            plot(data.t_kal, mu,'linewidth',2.5,DisplayName="\mu"); hold on;
-            plot(data.t_kal, restit,'linewidth',2.5,DisplayName="\epsilon");
+            plot(data.t_kal, mu,'linewidth',2.5,DisplayName="$\mu$"); hold on;
+            plot(data.t_kal, restit,'linewidth',2.5,DisplayName="$\epsilon$");
             box off; set(gca,'linewidth',2.5,'fontsize', 16);
             ylim([0 1]);
             ylabel('Coefficient (au)','interpreter','latex','fontsize',25);
             xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',25);
-            legend('location','southeast');
+            legend('location','southeast','interpreter','latex');
             grid on;
 
 
@@ -580,6 +590,100 @@ classdef iam_ekf < handle
             xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',25);
             legend('location','southeast');
     
+        end
+
+        function [] = get_plots_paper(this,data,trialDex,plotCoeffTrue)
+
+            FS = 16;
+            [X_o, dX_o, X_ee, dX_ee, E, mu , restit] = this.get_statesfromX_vec(trialDex);
+            colorVec = {[0.4940, 0.1840, 0.5560],...
+                [0.4660, 0.6740, 0.1880],...
+                [0.3010, 0.7450, 0.9330],...
+                [0.6350, 0.0780, 0.1840]};
+
+            % Position
+            figure('position',[476 639 560 227]);
+            plot(data.t,data.x_o,'LineWidth',3,DisplayName="$\chi_o$ (Measured)"); hold on;
+            plot(data.t_kal,X_o,':','LineWidth',3,DisplayName="$\chi_o$ (Estimated)"); hold on;
+            plot(data.t_kal,this.fullModel{trialDex}.Xf_pred,"-",'LineWidth',3,DisplayName="$\hat{\chi}^{f}$ (Full Model)");
+            plot(data.t_kal,this.boxModel.Xf_pred,"--",'LineWidth',3,DisplayName="$\hat{\chi}^{f}$ (Box Model)");
+            ylabel("Position (m)");
+            xlabel("Time (s)");
+            xlim([data.t(1) data.t(end)]);
+%             ylim([0 1]);
+            legend('location','southeast','interpreter','latex'); box off; set(gca,'linewidth',2.5,'fontsize', FS);
+            
+            if this.saveFigBool
+                saveas(gcf,[this.images_path,'/',this.dataType,'-trail',int2str(trialDex),'_position.png']);
+            end
+
+%             % Velocity
+%             figure;
+%             plot(data.t,data.dx_o,'LineWidth',3,DisplayName="Measured Box Speed"); hold on;
+%             plot(data.t_kal,dX_o,'LineWidth',3,DisplayName="Estimated Box Speed"); hold on;
+%             ylabel("Speed (m/s)");
+%             xlabel("Time (s)");
+%             legend; box off; set(gca,'linewidth',2.5,'fontsize', 16);
+% 
+%             if this.saveFigBool
+%                 saveas(gcf,[this.images_path,'/',this.dataType,'_velocity.png']);
+%             end
+
+            figure('position',[476 639 560 227]);
+            plot(data.t_kal, E,'linewidth',2.5,DisplayName="Estimated Energy"); hold on;
+            plot(data.t_kal, this.e_pred*ones(data.numSteps,1),'--k','linewidth',1,DisplayName="Predicted Energy");
+            box off; set(gca,'linewidth',2.5,'fontsize', FS);
+            ylabel('$E \textrm{(J)}$','interpreter','latex','fontsize',FS);
+            xlabel('Time $\textrm{(s)}$','interpreter','latex','fontsize',FS);
+            legend('location','southeast');
+            xlim([data.t(1) data.t(end)]);
+
+%             grid on;
+            if this.saveFigBool
+                    saveas(gcf,[this.images_path,'/',this.dataType,'-trail',int2str(trialDex),'_energy.png']);
+            end
+
+            % Coefficients
+            if plotCoeffTrue
+                figure('position',[476 639 560 227]);
+                plot(this.initCoeff(1,:),'-o','MarkerFaceColor', colorVec{1},'color',colorVec{1},'markersize',10,'linewidth',2.5,DisplayName="$\mu$"); hold on;
+                plot(this.initCoeff(2,:),'-o','MarkerFaceColor', colorVec{2},'color',colorVec{2},'markersize',10,'linewidth',2.5,DisplayName="$\epsilon$"); hold on;
+                box off; set(gca,'linewidth',2.5,'fontsize', 16);
+%                 ylim([0 1]);
+                ylabel('Coefficient (au)','interpreter','latex','fontsize',FS);
+                xlabel('Trial Number','interpreter','latex','fontsize',FS);
+                legend('location','northeast','interpreter','latex');
+                %             grid on;
+
+                if this.saveFigBool
+                    saveas(gcf,[this.images_path,'/',this.dataType,'_coefficient_convergence.png']);
+                end
+
+
+                % Convergence Time
+                figure('position',[476 639 560 227]);
+
+                plot(this.fullModel_convT,'-o','MarkerFaceColor', [0.9290 0.6940 0.1250],'color',[0.9290 0.6940 0.1250],'markersize',10,'linewidth',2.5,DisplayName="Full Model"); hold on;
+                plot(this.boxModel.otherVars_kal.convT*ones(size(this.fullModel_convT)),'-o','MarkerFaceColor', [0.4940 0.1840 0.5560]	,'color',[0.4940 0.1840 0.5560]	,'markersize',10,'linewidth',2.5,DisplayName="Box Model"); hold on;
+
+
+%                 plot(this.fullModel_convT,'markersize',30,'linewidth',2.5,DisplayName="Full Model"); hold on;
+%                 plot([1;this.N],this.boxModel.otherVars_kal.convT.*[1;1],':','markersize',30,'linewidth',2.5,DisplayName="Box Model"); hold on;
+                box off; set(gca,'linewidth',2.5,'fontsize', FS);
+                %             ylim([0 1]);
+                xlim([0.8 15.2]);
+                ylim([0 1.5]);
+                ylabel('Convergence Time (s)','interpreter','latex','fontsize',FS);
+                xlabel('Trial Number','interpreter','latex','fontsize',FS);
+                legend('location','southeast');
+                %             grid on;
+
+                if this.saveFigBool
+                    saveas(gcf,[this.images_path,'/',this.dataType,'_deltaT.png']);
+                end
+            end
+
+
         end
 
 

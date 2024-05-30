@@ -4,22 +4,22 @@ classdef dataSim < dataClass
 
     methods
 
-        function this = dataSim(fileName,initialCoeff)
+        function this = dataSim(fileName,initCoeff)
 
             this.dataType = 'sim';
             this.fileName = fileName;
-            this.init(initialCoeff);
+            this.init(initCoeff);
             this.check_variablesDefined();
 
         end
 
-        function [this] = init(this)
+        function [this] = init(this,initCoeff)
 
             delimiterIn = ' ';
             sim_data = importdata(this.fileName,delimiterIn)';
 
-            mu_initial = initialCoeff(1);
-            restit_initial = initialCoeff(2);
+            mu_initial = initCoeff(1);
+            restit_initial = initCoeff(2);
 
             % Simulate box's trajectory and track it
             % Specifying all parameters, boh for simulation (_sim) and for the Extended Kalman Filter
@@ -30,10 +30,24 @@ classdef dataSim < dataClass
             this.numSteps = length(this.t_kal);
 
             this.t = sim_data(1,:);
-            this.x_o = sim_data(3,:); % X position of the box
+            this.x_o = sim_data(3,:)-sim_data(3,1); % X position of the box %%% make initial box position zero
+                   
+%             % TEST: Add error like real
+%             addError = zeros(size(this.x_o));
+%             increment = 0;
+%             dexContact = find((1./diff(this.t)).*diff(this.x_o)>0.1,1,'first');
+%             for i = 1:length(this.x_o)
+%                 if (mod(i,5)==0) && (i > dexContact)
+%                     increment = increment - 0.003;
+%                 end
+%                 addError(i) = increment;
+%             end
+%             this.x_o = this.x_o + addError;
+
+
             this.dx_o = (1./diff(this.t)).*diff(this.x_o);
-            this.dx_o(end+1) = this.dx_o(end);
-            this.x_ee = sim_data(6,:); % (CHECK)
+            this.dx_o(end+1) = this.dx_o(end); 
+            this.x_ee = sim_data(6,:)-sim_data(3,1); % (CHECK) %%% make initial box position zero
 
             this.m = 0.363;
             this.m_ee = 2;

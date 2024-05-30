@@ -4,14 +4,14 @@ classdef dataToy < dataClass
 
     methods
 
-        function this = dataToy(initialCoeff)
+        function this = dataToy(initCoeff)
 
-            this.init(initialCoeff);
+            this.init(initCoeff);
             this.check_variablesDefined();
 
         end
 
-        function [] = init(this,initialCoeff)
+        function [] = init(this,initCoeff)
 
             this.dataType = 'toy';
 
@@ -22,8 +22,8 @@ classdef dataToy < dataClass
             this.g = 9.81;
             this.restit = 0.7;
 
-            mu_initial = initialCoeff(1);
-            restit_initial = initialCoeff(2);
+            mu_initial = initCoeff(1);
+            restit_initial = initCoeff(2);
 
             this.r = [0.01; 0.01].^2;
             this.q = [0.01; 0.03; 0.01; 0.03; 0.01; 0.01; 0.01].^2;
