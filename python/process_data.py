@@ -176,7 +176,7 @@ def get_impact_time_from_object(csv_file, pos_name_str = 'PositionForIiwa7',show
     # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
 
     # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file,
+    df = pd.read_csv(csv_file, skiprows=1,
                      converters={'RosTime' : parse_value, pos_name_str: parse_list}) # 'PositionForIiwa7'
                 
     ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
@@ -184,6 +184,7 @@ def get_impact_time_from_object(csv_file, pos_name_str = 'PositionForIiwa7',show
     # find start and end index by using derivative in x axis -- NOTE : ASSUME MOVEMENT IN Y AXIS
     x_values =  df[pos_name_str].apply(lambda x: x[1])
     df['derivative'] = x_values.diff() / df['RosTime'].diff()
+
 
     # print(df['derivative'].tail(40))
     

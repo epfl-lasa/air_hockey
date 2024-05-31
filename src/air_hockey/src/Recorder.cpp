@@ -284,6 +284,7 @@ void Recorder::objectPositionCallbackRealRaw(const geometry_msgs::PoseStamped::C
   objectPositionFromSource_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
   objectOrientationFromSource_ << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
       msg->pose.orientation.w;
+  timeOptitrack_ = msg->header.stamp;
 }
 
 void Recorder::iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k){
@@ -419,6 +420,7 @@ void Recorder::recordObject(bool manual){
   newState.orientation_for_base_2 = objectOrientationForIiwa_[IIWA_14];
   newState.position_in_world_frame = objectPositionFromSource_;
   newState.orientation_in_world_frame = objectOrientationFromSource_;
+  newState.time_optitrack = timeOptitrack_;
 
   // Add the new state to the vector
   if(manual){objectStatesVectorManual_.push_back(newState);}
@@ -519,7 +521,7 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
             << "Iiwa14BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_14].transpose() << "\n";
 
   // Write CSV header
-  outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14,PositionWorldFrame,OrientationWorldFrame\n";
+  outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14,PositionWorldFrame,OrientationWorldFrame,TimeOptitrack\n";
 
   if(!manual){
     // Write each RobotState structure to the file
@@ -530,7 +532,8 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
                 << state.position_for_base_2.transpose() << ","
                 << state.orientation_for_base_2.transpose() << ","
                 << state.position_in_world_frame.transpose() << ","
-                << state.orientation_in_world_frame.transpose() << "\n";
+                << state.orientation_in_world_frame.transpose() << ","
+                << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time_optitrack.toSec()+gmt_offset_  << "\n";
     }
 
     outFile.close();

@@ -89,16 +89,22 @@ def plot_robot_data(csv_file, show_plot=True):
     if show_plot : plt.show()
 
 def plot_object_data(csv_file, show_plot=True):
+
+    print(f"Reading {csv_file}")
+
     # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file,
-                     converters={'RosTime' : parse_value, 'Position': parse_list})
+    df = pd.read_csv(csv_file, skiprows=1,
+                     converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list, 'PositionWorldFrame': parse_list, 'Position': parse_list})
                     #  dtype={'RosTime': 'float64'})
 
-    x_values = df['Position'].apply(lambda x: x[0])
+    x_values = df['PositionForIiwa7'].apply(lambda x: x[1])
     df['Derivative'] = x_values.diff() / df['RosTime'].diff()
     df = df[df['Derivative'] != 0.0].copy()
 
-    hit_time = get_impact_time_from_object(path_to_object_hit, pos_name_str='Position')
+    x_values_world =  df['PositionWorldFrame'].apply(lambda x: x[0])
+    df['derivative_world'] = x_values_world.diff() / df['RosTime'].diff()
+
+    hit_time = get_impact_time_from_object(path_to_object_hit, pos_name_str='PositionForIiwa7')
     datetime_hit_time= pd.to_datetime(hit_time, unit='s')
     # Convert the 'Time' column to datetime format
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
@@ -109,9 +115,10 @@ def plot_object_data(csv_file, show_plot=True):
     # Plot the data
     plt.figure(figsize=(12, 6))
     for i in range(3):
-        plt.plot(df['RosTime'], df['Position'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
+        plt.plot(df['RosTime'], df['PositionForIiwa7'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
+        plt.plot(df['RosTime'], df['PositionWorldFrame'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]} - World')
 
-    plt.vlines(datetime_hit_time, ymin =0, ymax=np.array(df['Position'][0]).max(), colors = 'r')
+    plt.vlines(datetime_hit_time, ymin =0, ymax=np.array(df['PositionForIiwa7'][0]).max(), colors = 'r')
 
     # Make title string
     filename = os.path.basename(csv_file)
@@ -129,8 +136,9 @@ def plot_object_data(csv_file, show_plot=True):
 
     # Plot Object velocity
     fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
-    for i in range(3):
-        ax.plot(df['RosTime'], df['Derivative'], label=f'Axis {coordinate_labels[i]}')
+
+    ax.plot(df['RosTime'], df['Derivative'], label=f'Axis y')
+    ax.plot(df['RosTime'], df['derivative_world'], label=f'Axis x - world')
 
     # ax.axvline(datetime_hit_time, color = 'r')
     # ax.axvline(recorded_hit_time, color = 'g')
@@ -764,7 +772,7 @@ if __name__== "__main__" :
     # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
  
     # READ from file using index or enter manually
-    read_hit_info_from_file = True
+    read_hit_info_from_file = False
     ### Plots variables
     if read_hit_info_from_file:
         index_to_plot = 105 # 2168 #2176# 2267 #2299 ## FILL THIS IF ABOVE IS TRUE
@@ -778,9 +786,9 @@ if __name__== "__main__" :
     
     else : ## OTHERWISE FILL THIS 
         folder_name = "latest" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = [x for x in range(1,10)]  # ##[2,3,4,5,6] #[16,17] #
+        hit_number = 1  # ##[2,3,4,5,6] #[16,17] #
         iiwa_number = 7
-        object_number = 2
+        object_number = 1
 
     ### DATA TO PLOT 
     plot_this_data = ["Object", "ObjectVel", "ObjectAcc"]#"Pos","Vel" "Inertia", "Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
@@ -792,8 +800,8 @@ if __name__== "__main__" :
     # PLOT FOR SINGLE HIT 
     if isinstance(hit_number, int) :
         path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit_number}.csv"
-        # path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_{object_number}_hit_{hit_number}.csv"
-        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
+        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_{object_number}_hit_{hit_number}.csv"
+        # path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
 
         # Plot one hit info with hit time 
         plot_object_data(path_to_object_hit)
