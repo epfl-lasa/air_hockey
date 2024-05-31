@@ -10,8 +10,8 @@ from process_data import  PATH_TO_DATA_FOLDER
 from analyse_data import read_airhockey_csv, read_and_clean_data, restructure_for_agnostic_plots, save_one_figure, resample_uniformally
 
 # Fontsize for axes and titles 
-GLOBAL_FONTSIZE = 30
-AXIS_TICK_FONTSIZE = 20
+GLOBAL_FONTSIZE = 40
+AXIS_TICK_FONTSIZE = 30
 
 PROCESSED_FOLDER = PATH_TO_DATA_FOLDER + "airhockey_processed/"
 
@@ -61,7 +61,7 @@ def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", save_
         plt.xlabel("Hitting Flux [m/s]", fontsize=GLOBAL_FONTSIZE)   
         plt.ylabel("Distance travelled [m]", fontsize=GLOBAL_FONTSIZE) 
         
-        plt.scatter(X[:, 0], X[:, 1])
+        plt.scatter(X[:, 0], X[:, 1], s=100)
         plot_error_ellipses(plt.gca(), gmm, colors=colors_list[0:n], alpha = 0.12)
         plt.plot(X_test, Y.ravel(), c="k", lw=2)
 
@@ -91,7 +91,11 @@ def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", save_
         plt.plot(X_test, Y.ravel(), c="k", lw=2)
     
     # Increase the size of the tick labels
-    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE)  # Change 14 to the desired size
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['left'].set_linewidth(2)  # Set left spine thickness
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
 
     if save_fig : save_one_figure(save_folder, title)
 
@@ -222,28 +226,36 @@ def plot_gmm_with_sklearn(df, show_plot=False):
 
 
 ### Pre-made functions to reproduce plots 
-def object_agnostic(use_raw_datasets = False):
+def object_agnostic(use_clean_dataset = True):
 
     #### SAVE CLEAN DATASET TO THIS FOLDER
     clean_dataset_folder = "KL_div-object_agnostic"
+
+    new_dataset_name = "D1-D2-object_agnostic"
 
     ## Datasets to use
     csv_fn = "D1_clean" 
     csv_fn2 = "D2_clean"
 
     ############ USING RAW DATASETS ############
-    if use_raw_datasets : 
+    if not use_clean_dataset : 
 
         ## Read and clean datasets
         clean_df = read_and_clean_data(csv_fn, resample=False, n_samples=2000, only_7=True, save_folder=clean_dataset_folder, save_clean_df=True)
-        clean_df2 = read_and_clean_data(csv_fn2, resample=True, n_samples=400, only_7=True, save_folder=clean_dataset_folder, save_clean_df=True)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=True, n_samples=800, only_7=True, save_folder=clean_dataset_folder, save_clean_df=True)
 
+        ## combine both into one df
+        df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, resample=False, parameter="object", 
+                                                     dataset_name=new_dataset_name, save_folder=clean_dataset_folder, save_new_df=True)
 
     ######### USING RESAMPLED AND CLEAN DATASETS ###########
     # NOTE - use these to reproduce plots for paper
     else :
-        clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
-        clean_df2 = read_airhockey_csv(fn=f"{csv_fn2}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        df_combined = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        
+        ## Separate per config
+        clean_df = df_combined[df_combined['object']==1].copy()
+        clean_df2 = df_combined[df_combined['object']==2].copy()
     
     print(f"Dataset info : \n"
         f" Object 1 points : {len(clean_df.index)} \n"
@@ -260,16 +272,18 @@ def object_agnostic(use_raw_datasets = False):
 
     plt.show()
 
-def robot_agnostic(use_raw_datasets = False):
+def robot_agnostic(use_clean_dataset = True):
     
     #### SAVE CLEAN DATASET + FIGURES TO THIS FOLDER
     clean_dataset_folder = "KL_div-robot_agnostic-D1"
-    
+
+    new_dataset_name = "D1-robot_agnostic"
+
     ## Datasets to use
     csv_fn = "D1_clean" 
 
     ############ USING RAW DATASETS ############
-    if use_raw_datasets : 
+    if not use_clean_dataset : 
 
         ## Read and clean datasets
         clean_df = read_and_clean_data(csv_fn, resample=False, min_flux=0.58, max_flux=0.8, save_folder=clean_dataset_folder, save_clean_df=True)
@@ -278,6 +292,7 @@ def robot_agnostic(use_raw_datasets = False):
     # NOTE - use these to reproduce plots for paper
     else :
         clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        # clean_df = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
 
     df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
     df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
@@ -299,7 +314,7 @@ def robot_agnostic(use_raw_datasets = False):
 
     plt.show()
 
-def config_agnostic(use_raw_datasets= False):
+def config_agnostic(use_clean_dataset=True):
 
     #### SAVE CLEAN DATASET TO THIS FOLDER
     clean_dataset_folder = "KL_div-config_agnostic"
@@ -311,7 +326,7 @@ def config_agnostic(use_raw_datasets= False):
     csv_fn2 = "D3_clean"
 
     ############ USING RAW DATASETS ############
-    if use_raw_datasets : 
+    if not use_clean_dataset : 
 
         ## Read and clean datasets
         clean_df = read_and_clean_data(csv_fn, resample=False, max_flux=0.82, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
@@ -356,6 +371,6 @@ if __name__== "__main__" :
 
     ## Run one of these to get the plots for agnosticism 
 
-    # object_agnostic(use_raw_datasets=False)
-    # robot_agnostic(use_raw_datasets=False)
-    config_agnostic(use_raw_datasets=False)
+    object_agnostic(use_clean_dataset=True)
+    # robot_agnostic(use_clean_dataset=True)
+    # config_agnostic(use_raw_dataset=True)
