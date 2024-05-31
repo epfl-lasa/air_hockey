@@ -9,6 +9,7 @@ from process_data import parse_list, parse_value, get_impact_time_from_object, g
 import pybullet
 from analyse_data import wrap_angle
 import math 
+from scipy.interpolate import interp1d
 
 
 def get_latest_folder(path_to_data_airhockey, folder_name): 
@@ -93,7 +94,11 @@ def plot_object_data(csv_file, show_plot=True):
                      converters={'RosTime' : parse_value, 'Position': parse_list})
                     #  dtype={'RosTime': 'float64'})
 
-    hit_time = get_impact_time_from_object(path_to_object_hit)
+    x_values = df['Position'].apply(lambda x: x[0])
+    df['Derivative'] = x_values.diff() / df['RosTime'].diff()
+    df = df[df['Derivative'] != 0.0].copy()
+
+    hit_time = get_impact_time_from_object(path_to_object_hit, pos_name_str='Position')
     datetime_hit_time= pd.to_datetime(hit_time, unit='s')
     # Convert the 'Time' column to datetime format
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
@@ -120,6 +125,21 @@ def plot_object_data(csv_file, show_plot=True):
     plt.ylabel('Position')
     plt.legend()
     plt.grid(True)
+
+
+    # Plot Object velocity
+    fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    for i in range(3):
+        ax.plot(df['RosTime'], df['Derivative'], label=f'Axis {coordinate_labels[i]}')
+
+    # ax.axvline(datetime_hit_time, color = 'r')
+    # ax.axvline(recorded_hit_time, color = 'g')
+    fig.suptitle(f"Object Velocity: iiwa {parts[1]}, hit #{parts[2]} ")
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Velocity')
+    ax.legend()
+    ax.grid(True)
+
 
     if show_plot : plt.show()
 
@@ -157,8 +177,47 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
     datetime_hit_time= pd.to_datetime(hit_time, unit='s')
     datetime_stop_time= pd.to_datetime(stop_time, unit='s')
 
+    df_during_hit = df_obj[df_obj['RosTime']>hit_time]
+    df_during_hit = df_during_hit[df_during_hit['RosTime']<stop_time]
+
+    ### FOR OBJECT - get pos relative to iiwa
+    if (parts[1]== '7'):
+        obj_pos = df_obj['PositionForIiwa7']
+        obj_pos_during_hit = df_during_hit['PositionForIiwa7']
+    elif (parts[1] == '14'):
+        obj_pos = df_obj['PositionForIiwa14']
+        obj_pos_during_hit = df_during_hit['PositionForIiwa14']
+
+    x_values = obj_pos.apply(lambda x: x[1])   
+
+    ### test out stuff for data for ekf
+    # Interpolate
+    f_linear = interp1d(df_obj['RosTime'][::5], x_values[::5], kind='linear')
+    f_cubic = interp1d(df_obj['RosTime'][::5], x_values[::5], kind='cubic')
+    new_time = np.linspace(df_obj['RosTime'].min(), df_obj['RosTime'].max()-0.05, len(df_obj['RosTime'].index)*2)
+    y_linear = f_linear(new_time)
+    y_cubic = f_cubic(new_time)
+
+    window_size = 3
+    y_moving_average = np.convolve(x_values, np.ones(window_size)/window_size, mode='valid')
+
+    window_size = 5
+    y_during_hit = obj_pos_during_hit.apply(lambda x: x[1])   
+    y_moving_average_during_hit = np.convolve(y_during_hit, np.ones(window_size)/window_size, mode='valid')
+
+    dy_lin = np.gradient(y_linear, new_time)
+    dy_cubic = np.gradient(y_cubic, new_time)
+    dy_moving_average = np.gradient(y_moving_average, df_obj['RosTime'][len(df_obj['RosTime']) - len(y_moving_average):])
+    dy_moving_average_during_hit = np.gradient(y_moving_average_during_hit, df_during_hit['RosTime'][len(df_during_hit['RosTime']) - len(y_moving_average_during_hit):])
+    df_obj['Derivative'] = x_values.diff() / df_obj['RosTime'].diff()
+    df_obj['Acceleration'] = df_obj['Derivative'].diff() / df_obj['RosTime'].diff()
+
+    v_moving_average = np.convolve(df_obj['Derivative'], np.ones(window_size)/window_size, mode='valid')
+
     # Get the 'Time' column as datetime
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
+    new_time = pd.to_datetime(new_time, unit='s')
+    df_during_hit['RosTime'] = pd.to_datetime(df_during_hit['RosTime'], unit='s')
     df_obj['RosTime'] = pd.to_datetime(df_obj['RosTime'], unit='s')
         
     # Labels for the coordinates
@@ -255,26 +314,63 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         axs[i].set_xlabel('Time [s]')
         fig.suptitle(f"Joint Velocity : iiwa {parts[1]}, hit #{parts[3]}")
         fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
-            
-    
+               
     if "Object" in data_to_plot:
-        # get pos relative to iiwa
-        if (parts[1]== '7'):
-            obj_pos = df_obj['PositionForIiwa7']
-        elif (parts[1] == '14'):
-            obj_pos = df_obj['PositionForIiwa14']
-
         # Plot Object position  
         fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
         for i in range(3):
             ax.plot(df_obj['RosTime'], obj_pos.apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
+        # ax.plot(new_time, y_linear, label=f'Linear interp y axis')
+        # ax.plot(new_time, y_cubic, label=f'cubic interp y axis')
+        # ax.plot(df_obj['RosTime'][len(df_obj['RosTime']) - len(y_moving_average):], dy_moving_average, label=f'cubic')
+        ax.plot(df_obj['RosTime'][len(df_obj['RosTime']) - len(y_moving_average):], y_moving_average, label=f'moving average')
+        ax.plot(df_during_hit['RosTime'][len(df_during_hit['RosTime']) - len(y_moving_average_during_hit):], y_moving_average_during_hit, label=f'moving average during hit')
+        
         ax.axvline(datetime_hit_time, color = 'r')
         ax.axvline(datetime_stop_time, color = 'b')
         # ax.axvline(recorded_hit_time, color = 'g')
         fig.suptitle(f"Object Position: iiwa {parts[1]}, hit #{parts[3]} ")
         ax.set_xlabel('Time [s]')
         ax.set_ylabel('Position')
+        ax.legend()
+        ax.grid(True)
+        # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
+
+    if "ObjectVel" in data_to_plot:
+        # Plot Object velocity
+        fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+        for i in range(3):
+            ax.plot(df_obj['RosTime'], df_obj['Derivative'], label=f'Axis {coordinate_labels[i]}')
+        
+        # ax.plot(df_obj['RosTime'][len(df_obj['RosTime']) - len(v_moving_average):], v_moving_average, label='Moving average')
+        # ax.plot(new_time, dy_lin, label=f'linear')
+        # ax.plot(new_time, dy_cubic, label=f'cubic')
+        ax.plot(df_obj['RosTime'][len(df_obj['RosTime']) - len(y_moving_average):], dy_moving_average, label=f'derivative of moving average')
+        ax.plot(df_during_hit['RosTime'][len(df_during_hit['RosTime']) - len(y_moving_average_during_hit):], dy_moving_average_during_hit, label=f'derivative of moving average during hit')
+
+        ax.axvline(datetime_hit_time, color = 'r')
+        ax.axvline(datetime_stop_time, color = 'b')
+        # ax.axvline(recorded_hit_time, color = 'g')
+        fig.suptitle(f"Object Velocity: iiwa {parts[1]}, hit #{parts[3]} ")
+        ax.set_xlabel('Time [s]')
+        ax.set_ylabel('Velocity')
+        ax.legend()
+        ax.grid(True)
+        # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
+    
+    if "ObjectAcc" in data_to_plot:
+        # Plot Object velocity
+        fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+        for i in range(3):
+            ax.plot(df_obj['RosTime'], df_obj['Acceleration'], label=f'Axis {coordinate_labels[i]}')
+
+        ax.axvline(datetime_hit_time, color = 'r')
+        ax.axvline(datetime_stop_time, color = 'b')
+        # ax.axvline(recorded_hit_time, color = 'g')
+        fig.suptitle(f"Object Accelertion: iiwa {parts[1]}, hit #{parts[3]} ")
+        ax.set_xlabel('Time [s]')
+        ax.set_ylabel('Acceleration')
         ax.legend()
         ax.grid(True)
         # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
@@ -664,18 +760,18 @@ def process_timestamped_folders(root_folder):
 
 if __name__== "__main__" :
 
-    # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
+    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
+    # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
  
     # READ from file using index or enter manually
     read_hit_info_from_file = True
     ### Plots variables
     if read_hit_info_from_file:
-        index_to_plot = 100 ## FILL THIS IF ABOVE IS TRUE
-        file_to_read = "D1_clean_clean.csv"
+        index_to_plot = 105 # 2168 #2176# 2267 #2299 ## FILL THIS IF ABOVE IS TRUE
+        file_to_read = "all_data_march.csv" #"D1_clean.csv" #
         object_number = 1
 
-        processed_df = pd.read_csv(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/clean/"+file_to_read, index_col="Index")
+        processed_df = pd.read_csv(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/raw/"+file_to_read, index_col="Index")
         folder_name = processed_df['RecSession'].loc[index_to_plot] # "2024-03-05_14:04:43"
         hit_number = int(processed_df['HitNumber'].loc[index_to_plot]) #82 #[16,17]
         iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
@@ -687,7 +783,7 @@ if __name__== "__main__" :
         object_number = 2
 
     ### DATA TO PLOT 
-    plot_this_data = ["Object","Vel" ,"Flux", "Pos"]#"Pos","Inertia", "Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    plot_this_data = ["Object", "ObjectVel", "ObjectAcc"]#"Pos","Vel" "Inertia", "Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
        
     # Get the latest folder
     if(folder_name == "latest"):
@@ -696,10 +792,12 @@ if __name__== "__main__" :
     # PLOT FOR SINGLE HIT 
     if isinstance(hit_number, int) :
         path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit_number}.csv"
-        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_{object_number}_hit_{hit_number}.csv"
+        # path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_{object_number}_hit_{hit_number}.csv"
+        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
 
         # Plot one hit info with hit time 
-        plot_actual_vs_des(path_to_robot_hit, path_to_object_hit, data_to_plot=plot_this_data)
+        plot_object_data(path_to_object_hit)
+        # plot_actual_vs_des(path_to_robot_hit, path_to_object_hit, data_to_plot=plot_this_data)
 
     
     # PLOT SEVERAL HITS (hit_number should be a list)

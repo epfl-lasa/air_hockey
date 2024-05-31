@@ -172,10 +172,8 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
     else: 
         return flux_at_hit, dir_inertia_at_hit, np.array(pos_at_hit), np.array(orient_at_hit)
     
-def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False):    
+def get_impact_time_from_object(csv_file, pos_name_str = 'PositionForIiwa7',show_print=False, return_indexes=False):    
     # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
-    
-    pos_name_str = 'PositionForIiwa7'
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file,
@@ -353,10 +351,10 @@ def process_data_to_one_file(data_folder, recording_sessions, output_filename="t
     return
 
 ## EKF processing
-def process_one_file_for_ekf(robot_csv, object_csv, output_folder):
+def process_one_file_for_ekf(robot_csv, object_csv, output_folder, pos_name_str = 'PositionForIiwa7'):
     
     #read files
-    df_obj = pd.read_csv(object_csv, converters={'RosTime' : parse_value, 'PositionForIiwa7': parse_list}) #'Position': parse_list, 'PositionForIiwa14': parse_list})
+    df_obj = pd.read_csv(object_csv, converters={'RosTime' : parse_value, pos_name_str: parse_list}) #'Position': parse_list, 'PositionForIiwa14': parse_list})
     df_robot = pd.read_csv(robot_csv, skiprows=1, converters={'RosTime' : parse_value, 'EEF_Position': parse_list, 'HittingFlux': parse_value})
     
     # Get different position depending on iiwa !
@@ -372,7 +370,7 @@ def process_one_file_for_ekf(robot_csv, object_csv, output_folder):
     df_robot['RosTime'] = df_robot['RosTime'].apply(lambda x : round(x,3))
     
     merged_df = pd.merge(df_obj, df_robot, on='RosTime', how='outer')
-    merged_df = merged_df[['RosTime', 'PositionForIiwa7', 'EEF_Position', 'HittingFlux']]
+    merged_df = merged_df[['RosTime', pos_name_str, 'EEF_Position', 'HittingFlux']]
     
     # Complete EEF_Position with last know EEF_value 
     last_eef_value = df_robot['EEF_Position'].iloc[-1]
@@ -388,12 +386,16 @@ def process_one_file_for_ekf(robot_csv, object_csv, output_folder):
     merged_df.dropna(inplace=True)
     
     # Reformat for James' EKF -> WATCH OUT INVERTING X AND Y HERE (due to optitrack frame)
-    formatted_data = merged_df.apply(lambda row : [row['RosTime'], row['PositionForIiwa7'][2],row['PositionForIiwa7'][0],row['PositionForIiwa7'][1], 
+    formatted_data = merged_df.apply(lambda row : [row['RosTime'], row[pos_name_str][2],row[pos_name_str][0],row[pos_name_str][1], 
                                                     row['EEF_Position'][2],row['EEF_Position'][0],row['EEF_Position'][1], row['HittingFlux']], axis=1)
+    
+    ## FOR MARCH DATA 
+    # formatted_data = merged_df.apply(lambda row : [row['RosTime'], row[pos_name_str][2],row[pos_name_str][1],row[pos_name_str][0], 
+    #                                                 row['EEF_Position'][2],row['EEF_Position'][0],row['EEF_Position'][1], row['HittingFlux']], axis=1)
 
     formatted_df = pd.DataFrame(formatted_data.tolist(), columns=['time', 'z_o', 'y_o', 'x_o', 'z_eef', 'y_eef', 'x_eef', 'flux'])
 
-    # offset x due to wrong frame ! 
+    # offset x due to wrong frame ! -- > FOR MARCH DATA 
     # df_top_row = pd.read_csv(robot_csv, nrows=1, header=None)
     # top_row_list = df_top_row.iloc[0].to_list()
     # des_pos = parse_list(top_row_list[5])
@@ -503,12 +505,15 @@ if __name__== "__main__" :
             to_process.append(folder)
 
     process_data_to_one_file(data_folder, to_process, output_filename="D3_clean.csv")
-    # process_all_data_for_ekf(folders_to_process)
+
     
     ### EKF Processing
-    # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/varying_flux_datasets/D1/"
-    # path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/dirty/"
+    # path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
+    # path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/march/"
     
-    # robot_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "IIWA_7_hit_21.csv" )
-    # object_csv = os.path.join(path_to_data_airhockey,"2024-05-07_18:04:00__clean_paper", "object_1_hit_21.csv" )
-    # process_one_file_for_ekf(robot_csv, object_csv, path_to_data_ekf)
+    # robot_csv = os.path.join(path_to_data_airhockey,"2024-03-05_12:20:48", "IIWA_7_hit_91.csv" )
+    # object_csv = os.path.join(path_to_data_airhockey,"2024-03-05_12:20:48", "object_hit_91.csv" )
+    # process_one_file_for_ekf(robot_csv, object_csv, path_to_data_ekf, pos_name_str='Position')    
+    
+    
+    # process_all_data_for_ekf(folders_to_process)
