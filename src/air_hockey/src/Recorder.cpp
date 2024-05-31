@@ -513,10 +513,10 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
   }
 
   // Write single value info in first row
-    outFile << "Iiwa7BasePosition," << iiwaBasePositionFromSource_[IIWA_7] << ","
-            << "Iiwa7BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_7] << ","
-            << "Iiwa14BasePosition," << iiwaBasePositionFromSource_[IIWA_14] << ","
-            << "Iiwa14BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_14] << "\n";
+    outFile << "Iiwa7BasePosition," << iiwaBasePositionFromSource_[IIWA_7].transpose() << ","
+            << "Iiwa7BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_7].transpose() << ","
+            << "Iiwa14BasePosition," << iiwaBasePositionFromSource_[IIWA_14].transpose() << ","
+            << "Iiwa14BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_14].transpose() << "\n";
 
   // Write CSV header
   outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14,PositionWorldFrame,OrientationWorldFrame\n";
