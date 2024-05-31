@@ -87,6 +87,8 @@ private:
     Eigen::Vector4f orientation_for_base_1;
     Eigen::Vector3f position_for_base_2;
     Eigen::Vector4f orientation_for_base_2;
+    Eigen::Vector3f position_in_world_frame;
+    Eigen::Vector4f orientation_in_world_frame;
   };
 
   bool isSim_;
@@ -112,6 +114,7 @@ private:
   std::string iiwaPositionTopicSim_;
   std::string objectPositionTopic_;
   std::string objectPositionTopicReal_[NB_ROBOTS];
+  std::string iiwaBasePositionTopic_[NB_ROBOTS];
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
   std::string iiwaJointStateTopicReal_[NB_ROBOTS];
@@ -123,6 +126,7 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher pubVelQuat_[NB_ROBOTS];
   ros::Subscriber objectPositionSim_;
+  ros::Subscriber objectPositionReal_;
   ros::Subscriber iiwaPositionSim_;
   ros::Subscriber objectPosition_[NB_ROBOTS];
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
@@ -130,6 +134,7 @@ private:
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
   ros::Subscriber iiwaJointStateReal_[NB_ROBOTS];
   ros::Subscriber iiwaDesiredVelocity_[NB_ROBOTS];
+  ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
   ros::Subscriber iiwaTorqueCmd_[NB_ROBOTS];
   ros::Subscriber iiwaDirGrad_[NB_ROBOTS];
   ros::Subscriber FSMState_;
@@ -145,7 +150,9 @@ private:
   Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
   Eigen::Vector4f objectOrientationForIiwa_[NB_ROBOTS];
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
+  Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
   Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
+  Eigen::Vector4f iiwaBaseOrientationFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPosInv_[NB_ROBOTS];;
   Eigen::Vector3f iiwaDesiredVelocityFromSource_[NB_ROBOTS];
@@ -179,6 +186,7 @@ public:
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
+  void objectPositionCallbackRealRaw(const geometry_msgs::PoseStamped::ConstPtr& msg);
   void iiwaTorqueCmdCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k);
   void iiwaDirGradCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k);
   void FSMCallback(const air_hockey::FSM_state::ConstPtr& msg);

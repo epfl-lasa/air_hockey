@@ -47,6 +47,11 @@ bool Recorder::init() {
     if (!nh_.getParam("/iiwa/info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
     if (!nh_.getParam("/optitrack/object_from_base_1/pose", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/object_from_base_1/pose not found");}
     if (!nh_.getParam("/optitrack/object_from_base_2/pose", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/object_from_base_2/pose not found");}
+    
+    if (!nh_.getParam("/optitrack/from_optitrack_base/object", objectPositionTopic_)) {ROS_ERROR("Topic /optitrack/from_optitrack_base/object not found");}
+    if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_7", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_7 not found");}
+    if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_14", iiwaBasePositionTopic_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_14 not found");}
+    
   }
 
   // Init subscribers
@@ -104,6 +109,26 @@ bool Recorder::init() {
                                             boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_14),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
+
+    objectPositionReal_ = nh_.subscribe(objectPositionTopic_,
+                                  1,
+                                  &Recorder::objectPositionCallbackRealRaw,
+                                  this,
+                                  ros::TransportHints().reliable().tcpNoDelay());
+
+    iiwaBasePosition_[IIWA_7] = 
+        nh_.subscribe<geometry_msgs::PoseStamped>(iiwaBasePositionTopic_[IIWA_7],
+                                                  1,
+                                                  boost::bind(&Recorder::iiwaBasePositionCallbackReal, this, _1, IIWA_7),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
+    
+    iiwaBasePosition_[IIWA_14] = 
+        nh_.subscribe<geometry_msgs::PoseStamped>(iiwaBasePositionTopic_[IIWA_14],
+                                                  1,
+                                                  boost::bind(&Recorder::iiwaBasePositionCallbackReal, this, _1, IIWA_14),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
     }
 
   iiwaJointStateReal_[IIWA_7] = 
@@ -255,6 +280,18 @@ void Recorder::objectPositionCallbackReal(const geometry_msgs::PoseStamped::Cons
       msg->pose.orientation.w;
 }
 
+void Recorder::objectPositionCallbackRealRaw(const geometry_msgs::PoseStamped::ConstPtr& msg){
+  objectPositionFromSource_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  objectOrientationFromSource_ << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
+      msg->pose.orientation.w;
+}
+
+void Recorder::iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k){
+  iiwaBasePositionFromSource_[k]  <<  msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  iiwaBaseOrientationFromSource_[k] << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
+      msg->pose.orientation.w;
+}
+
 void Recorder::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k){
   iiwaJointState_[k].name =  msg->name;
   iiwaJointState_[k].position =  msg->position;
@@ -380,6 +417,8 @@ void Recorder::recordObject(bool manual){
   newState.orientation_for_base_1 = objectOrientationForIiwa_[IIWA_7];
   newState.position_for_base_2 = objectPositionForIiwa_[IIWA_14];
   newState.orientation_for_base_2 = objectOrientationForIiwa_[IIWA_14];
+  newState.position_in_world_frame = objectPositionFromSource_;
+  newState.orientation_in_world_frame = objectOrientationFromSource_;
 
   // Add the new state to the vector
   if(manual){objectStatesVectorManual_.push_back(newState);}
@@ -473,8 +512,14 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
       return;
   }
 
+  // Write single value info in first row
+    outFile << "Iiwa7BasePosition," << iiwaBasePositionFromSource_[IIWA_7] << ","
+            << "Iiwa7BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_7] << ","
+            << "Iiwa14BasePosition," << iiwaBasePositionFromSource_[IIWA_14] << ","
+            << "Iiwa14BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_14] << "\n";
+
   // Write CSV header
-  outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14\n";
+  outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14,PositionWorldFrame,OrientationWorldFrame\n";
 
   if(!manual){
     // Write each RobotState structure to the file
@@ -483,7 +528,9 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
                 << state.position_for_base_1.transpose() << ","
                 << state.orientation_for_base_1.transpose() << ","
                 << state.position_for_base_2.transpose() << ","
-                << state.orientation_for_base_2.transpose() << "\n";
+                << state.orientation_for_base_2.transpose() << ","
+                << state.position_in_world_frame.transpose() << ","
+                << state.orientation_in_world_frame.transpose() << "\n";
     }
 
     outFile.close();
@@ -731,14 +778,14 @@ void Recorder::run() {
       recordRobot(IIWA_14);
     }
 
-    // Writing data logic
-    if(fsmState_.mode_iiwa7 == REST && time_since_hit > post_hit_recording_time && write_once_7){
+    // Writing data logic -> wait until we have written object data (to avoid missing data when writing to disk)
+    if(fsmState_.mode_iiwa7 == REST && time_since_hit > post_hit_recording_time && write_once_7 && !write_once_object){
       writeRobotStatesToFile(IIWA_7, hit_count);
       if(!isAuto_){hit_count += 1;}
       write_once_7 = 0;
     }
 
-    if(fsmState_.mode_iiwa14 == REST && time_since_hit > post_hit_recording_time && write_once_14){
+    if(fsmState_.mode_iiwa14 == REST && time_since_hit > post_hit_recording_time && write_once_14 && !write_once_object){
       writeRobotStatesToFile(IIWA_14, hit_count);
       if(!isAuto_){hit_count += 1;}
       write_once_14 = 0;
