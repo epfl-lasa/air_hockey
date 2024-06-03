@@ -94,7 +94,7 @@ def plot_object_data(csv_file, show_plot=True):
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file, skiprows=1,
-                     converters={'RosTime' : parse_value, 'TimeOptitrack' : parse_value, 'PositionForIiwa7': parse_list, 'PositionWorldFrame': parse_list, 'Position': parse_list})
+                     converters={'RosTime' : parse_value, 'TimeWriting' : parse_value, 'PositionForIiwa7': parse_list, 'PositionWorldFrame': parse_list, 'Position': parse_list})
                     #  dtype={'RosTime': 'float64'})
 
     df = df[df.index<1000]

@@ -84,10 +84,10 @@ if [ "${MODE}" != "connect" ]; then
     #FWD_ARGS+=(--env ROS_HOSTNAME="$(hostname)")
 
     # Handle GPU usage
-    #if [ ${USE_NVIDIA_TOOLKIT} = true ]; then
-    #	GPU_FLAG="--gpus all"
-    #	#FWD_ARGS+=("--gpus all")
-    #fi
+    if [ ${USE_NVIDIA_TOOLKIT} = true ]; then
+    	#GPU_FLAG="--gpus all"
+    	FWD_ARGS+=(--gpus="all")
+    fi
 
     # Other
     FWD_ARGS+=("--privileged")

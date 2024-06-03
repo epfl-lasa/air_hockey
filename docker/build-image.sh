@@ -2,10 +2,10 @@
 BASE_IMAGE_TAG=noetic
 IMAGE_NAME=air_hockey
 
-ROS_IP="128.178.96.208" #$(hostname --ip-address | awk '{print $1}') #
+ROS_IP=$(hostname --ip-address | awk '{print $1}') #"128.178.96.208" #
 
 # Setup ROS MASTER communication here -> Use ROS_IP for single PC setup
-ROS_MASTER_IP="128.178.145.165"
+ROS_MASTER_IP="${ROS_IP}" #"128.178.145.165"
 
 HELP_MESSAGE="Usage: ./build-server.sh [-b|--branch branch] [-r] [-v] [-s]
 Build a Docker container for remote development and/or running unittests.
