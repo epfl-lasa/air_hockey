@@ -413,14 +413,14 @@ void Recorder::recordObject(bool manual){
 
   RecordedObjectState newState;
   // Get the current time
-  newState.time = ros::Time::now();
+  newState.time = timeOptitrack_;
   newState.position_for_base_1 = objectPositionForIiwa_[IIWA_7];
   newState.orientation_for_base_1 = objectOrientationForIiwa_[IIWA_7];
   newState.position_for_base_2 = objectPositionForIiwa_[IIWA_14];
   newState.orientation_for_base_2 = objectOrientationForIiwa_[IIWA_14];
   newState.position_in_world_frame = objectPositionFromSource_;
   newState.orientation_in_world_frame = objectOrientationFromSource_;
-  newState.time_optitrack = timeOptitrack_;
+  newState.time_writing = ros::Time::now();
 
   // Add the new state to the vector
   if(manual){objectStatesVectorManual_.push_back(newState);}
@@ -521,7 +521,7 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
             << "Iiwa14BaseOrientation," << iiwaBaseOrientationFromSource_[IIWA_14].transpose() << "\n";
 
   // Write CSV header
-  outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14,PositionWorldFrame,OrientationWorldFrame,TimeOptitrack\n";
+  outFile << "RosTime,PositionForIiwa7,OrientationForIiwa7,PositionForIiwa14,OrientationForIiwa14,PositionWorldFrame,OrientationWorldFrame,TimeWriting\n";
 
   if(!manual){
     // Write each RobotState structure to the file
@@ -533,7 +533,7 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
                 << state.orientation_for_base_2.transpose() << ","
                 << state.position_in_world_frame.transpose() << ","
                 << state.orientation_in_world_frame.transpose() << ","
-                << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time_optitrack.toSec()+gmt_offset_  << "\n";
+                << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time_writing.toSec()+gmt_offset_  << "\n";
     }
 
     outFile.close();

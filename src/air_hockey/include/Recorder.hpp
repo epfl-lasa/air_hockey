@@ -89,7 +89,7 @@ private:
     Eigen::Vector4f orientation_for_base_2;
     Eigen::Vector3f position_in_world_frame;
     Eigen::Vector4f orientation_in_world_frame;
-    ros::Time time_optitrack;
+    ros::Time time_writing;
   };
 
   bool isSim_;
