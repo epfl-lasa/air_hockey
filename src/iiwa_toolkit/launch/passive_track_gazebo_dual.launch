@@ -33,18 +33,18 @@
         <arg name="position_2" value="$(arg position_2)"/>
     </include>
 
-   <!-- <group ns="/$(arg robot_name_1)">
+   <group ns="/$(arg robot_name_1)">
         <node name="passive_tracking" pkg="iiwa_toolkit" type="passive_track" output="screen">
         </node>
 
         <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual.yaml" command="load"/>
-    </group> -->
+    </group>
 
-    <!-- <group ns="/$(arg robot_name_2)">
+    <group ns="/$(arg robot_name_2)">
         <node name="passive_tracking" pkg="iiwa_toolkit" type="passive_track" output="screen">
         </node>
 
         <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual.yaml" command="load"/>
-    </group> -->
+    </group>
     
 </launch>
