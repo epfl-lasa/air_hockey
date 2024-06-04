@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.mixture import GaussianMixture
 import matplotlib.patches as patches
 from gmr import MVN, GMM, plot_error_ellipses
+from scipy.stats import entropy
 
 from process_data import  PATH_TO_DATA_FOLDER
 
@@ -148,24 +149,36 @@ def calculate_KL(df1, df2, n=2, save_to_file=False, save_folder=""):
     gmm2.fit(X2)
 
     # Calculate the KL divergence between gmm1 and gmm2
-    kl_div = kl_divergence(gmm1, gmm2)
-    print(f"KL Divergence: {kl_div}")
+    kl_div_resampled = kl_divergence(gmm1, gmm2, n_samples=1000)
+    kl_div_resampled_inv = kl_divergence(gmm2, gmm1, n_samples=1000)
+    kl_div = kl_divergence(gmm1, gmm2, X1)
+    kl_div_inv = kl_divergence(gmm2, gmm1, X2)
+
+    print(f"\nKL Divergence: {kl_div} \n")
+    print(f"KL Divergence Resampled: {kl_div_resampled} \n")
+    print(f"KL Divergence Inverse: {kl_div_inv} \n")
+    print(f"KL Divergence Resampled Inverse: {kl_div_resampled_inv} \n")
 
     if save_to_file :
-        fn = f"KL_div={kl_div:.4f}"
+        fn = f"KL_div={kl_div:.4f}.txt"
         save_dir = PATH_TO_DATA_FOLDER + "figures/" + save_folder
 
         # Create and write to the text file
         with open(os.path.join(save_dir, fn), 'w') as file:
             file.write("This file contains the KL Divergence value.\n")
             file.write(f"KL Divergence: {kl_div}\n")
+            file.write(f"KL Divergence Resampled: {kl_div_resampled}\n")
+            file.write(f"KL Divergence Inverse: {kl_div_inv}\n")
+            file.write(f"KL Divergence Resampled Inverse: {kl_div_resampled_inv}\n")
+
 
         print(f"File '{fn}' created successfully.")
 
-def kl_divergence(gmm_p, gmm_q, n_samples=1000):
+def kl_divergence(gmm_p, gmm_q, X=None, n_samples=1000):
     # Sample points from gmm_p
-    X, _ = gmm_p.sample(n_samples)
-    
+    if X is None:
+        X, _ = gmm_p.sample(n_samples)
+
     # Compute log probabilities under both gmm_p and gmm_q
     log_p_X = gmm_p.score_samples(X)
     log_q_X = gmm_q.score_samples(X)
@@ -173,6 +186,35 @@ def kl_divergence(gmm_p, gmm_q, n_samples=1000):
     # Calculate the KL divergence
     kl_div = np.mean(log_p_X - log_q_X)
     return kl_div
+
+#### Cross validation
+def cross_validate_gmm(dataset_name='D1-robot_agnostic', n_gaussians=2, n_folds=10):
+    
+    ## DATASET TO USE 
+    df = read_airhockey_csv(fn=dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+    
+    X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
+
+    for i in range(n_folds):
+
+        ## Randomly sample X to get X_train and X_test
+        indices_train = np.random.choice(X.shape[0], size=int(0.7*len(X)), replace=False)
+        indices_test = [i for i in range(0, len(X)) if i not in indices_train]
+        X_train = X[indices_train]
+        X_test = X[indices_test]
+
+        X_test_for_predict = X_test[:, 0]
+        
+        ## Create GMM
+        gmm = GMM(n_components=n_gaussians, random_state=0)
+        gmm.from_samples(X_train, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+
+        Y = gmm.predict(np.array([0]), X_test_for_predict[:, np.newaxis])
+
+        ## Compare predict with actual data 
+        rms_error = np.sqrt(np.mean((Y[:,0] - X_test[:, 1])**2))
+
+        print(f"RMS Error : {rms_error:.4f}")
 
 
 ## NOTE - used to confirm sklearn works
@@ -284,12 +326,12 @@ def robot_agnostic(use_clean_dataset = True):
     if not use_clean_dataset : 
 
         ## Read and clean datasets
-        clean_df = read_and_clean_data(csv_fn, resample=False, min_flux=0.58, max_flux=0.8, save_folder=clean_dataset_folder, save_clean_df=True)
+        clean_df = read_and_clean_data(csv_fn, resample=False, min_flux=0.55, max_flux=0.8, save_folder=clean_dataset_folder, save_clean_df=False)
 
         df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
         df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
 
-        df_iiwa14 = resample_uniformally(df_iiwa14, n_samples=1000)
+        # df_iiwa7 = resample_uniformally(df_iiwa7, n_samples=2000)
 
         ## combine both into one df and save to data folder
         df_combined = restructure_for_agnostic_plots(df_iiwa7, df_iiwa14, resample=False, 
@@ -298,10 +340,12 @@ def robot_agnostic(use_clean_dataset = True):
     ######### USING RESAMPLED AND CLEAN DATASETS ###########
     # NOTE - use these to reproduce plots for paper
     else :
-        clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
-        # clean_df = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        # clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        clean_df = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+        
+        df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
+        df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
 
-    
 
     print(f"Dataset info : \n"
         f" Iiwa 7 points : {len(df_iiwa7.index)} \n"
@@ -312,9 +356,11 @@ def robot_agnostic(use_clean_dataset = True):
 
     plot_gmr(df_iiwa7, n=n_gaussians, plot="only_gmm", title=f"GMM fit for IIWA 7", save_folder=clean_dataset_folder, save_fig=True)
     plot_gmr(df_iiwa14, n=n_gaussians, plot="only_gmm", title=f"GMM fit for IIWA 14", save_folder=clean_dataset_folder, save_fig=True)
+    plot_gmr(clean_df, n=n_gaussians, plot="only_gmm", title=f"GMM fit for D1", save_folder=clean_dataset_folder, save_fig=True)
     calculate_KL(df_iiwa7, df_iiwa14, n=n_gaussians, save_folder=clean_dataset_folder, save_to_file=True)
     plot_bic_aic_with_sklearn(df_iiwa7, title=f"AIC-BIC for IIWA 7", save_folder=clean_dataset_folder, save_fig=True)
     plot_bic_aic_with_sklearn(df_iiwa14, title=f"AIC-BIC for IIWA 14", save_folder=clean_dataset_folder, save_fig=True)
+    plot_bic_aic_with_sklearn(clean_df, title=f"AIC-BIC for D1", save_folder=clean_dataset_folder, save_fig=True)
 
     plt.show()
 
@@ -333,8 +379,8 @@ def config_agnostic(use_clean_dataset=True):
     if not use_clean_dataset : 
 
         ## Read and clean datasets
-        clean_df = read_and_clean_data(csv_fn, resample=False, max_flux=0.82, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
-        clean_df2 = read_and_clean_data(csv_fn2, resample=False, max_flux=0.82, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
+        clean_df = read_and_clean_data(csv_fn, resample=False, max_flux=0.8, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=False, max_flux=0.8, only_7=True, save_folder=clean_dataset_folder, save_clean_df=False)
 
         # use only data from same day recording 
         clean_df = clean_df[clean_df['RecSession']=="2024-05-29_15:40:48__clean_paper"].copy()
@@ -375,6 +421,8 @@ if __name__== "__main__" :
 
     ## Run one of these to get the plots for agnosticism 
 
-    object_agnostic(use_clean_dataset=True)
+    # object_agnostic(use_clean_dataset=True)
     # robot_agnostic(use_clean_dataset=True)
-    # config_agnostic(use_raw_dataset=True)
+    # config_agnostic(use_clean_dataset=True)
+
+    cross_validate_gmm('D1-robot_agnostic')

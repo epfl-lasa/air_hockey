@@ -8,7 +8,7 @@ import mplcursors
 
 from process_data import  parse_list, parse_value, PATH_TO_DATA_FOLDER
 
-from analyse_data import read_airhockey_csv, read_and_clean_data, save_all_figures, get_object_based_on_dataset, restructure_for_agnostic_plots
+from analyse_data import read_airhockey_csv, read_and_clean_data, save_all_figures, get_object_based_on_dataset, restructure_for_agnostic_plots, resample_uniformally
 
 
 # Fontsize for axes and titles 
@@ -268,19 +268,21 @@ def robot_agnostic(use_clean_dataset=True):
     ### Read OR clean datasets
     if not use_clean_dataset :
         # TODO - separate per robot, sample, then recombine to get same number fo poitns per robot
-        clean_df = read_and_clean_data(csv_fn, dataset_name=new_dataset_name, resample=False, n_samples=2000, min_flux = 0.55, max_flux=0.80, save_folder=SAVE_FOLDER_FOR_PAPER, save_clean_df=True)
+        clean_df = read_and_clean_data(csv_fn, dataset_name=new_dataset_name, min_flux=0.55, max_flux=0.8, save_clean_df=False)
         
         df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
         df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
 
+        # df_iiwa7 = resample_uniformally(df_iiwa7, n_samples=2000)
+
         ## combine both into one df and save to data folder
-        df_combined = restructure_for_agnostic_plots(df_iiwa14, df_iiwa7, resample=True, 
+        df_combined = restructure_for_agnostic_plots(df_iiwa7, df_iiwa14, resample=False, 
                                                         dataset_name=new_dataset_name, save_folder=SAVE_FOLDER_FOR_PAPER, save_new_df=True)
     
     else:
-        clean_df = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{SAVE_FOLDER_FOR_PAPER}/")
+        df_combined = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{SAVE_FOLDER_FOR_PAPER}/")
 
-    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=False, use_mplcursors=False)
+    plot_distance_vs_flux(df_combined, colors="iiwa", with_linear_regression=False, use_mplcursors=False)
 
     save_all_figures(folder_name=SAVE_FOLDER_FOR_PAPER, title=new_dataset_name)
 
@@ -299,7 +301,7 @@ def object_agnostic(use_clean_dataset=True):
     ### Read OR clean datasets
     if not use_clean_dataset :
         clean_df = read_and_clean_data(csv_fn, resample=False, n_samples=2000, only_7=True,  save_clean_df=False)
-        clean_df2 = read_and_clean_data(csv_fn2, resample=True, n_samples=500, only_7=True,  save_clean_df=False)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=True, n_samples=800, only_7=True,  save_clean_df=False)
 
         ## combine both into one df
         df_combined = restructure_for_agnostic_plots(clean_df, clean_df2, resample=False, parameter="object", 
