@@ -213,8 +213,10 @@ def cross_validate_gmm(dataset_name='D1-robot_agnostic', n_gaussians=2, n_folds=
 
         ## Compare predict with actual data 
         rms_error = np.sqrt(np.mean((Y[:,0] - X_test[:, 1])**2))
+        rms_error_relative = np.sqrt(np.mean(((Y[:,0] - X_test[:, 1])/X_test[:,1])**2)) * 100
 
-        print(f"RMS Error : {rms_error:.4f}")
+        print(f"RMS Error : {rms_error*100:.2f} cm")
+        print(f"RMS Error Relative: {rms_error_relative:.2f} % \n")
 
 
 ## NOTE - used to confirm sklearn works
