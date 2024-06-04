@@ -74,7 +74,7 @@ def resample_uniformally(df, n_samples=300):
 
     return df_sampled
 
-def restructure_for_agnostic_plots(df1, df2, resample=False, parameter="config", dataset_name=None, save_folder="/", save_new_df=False):
+def restructure_for_agnostic_plots(df1, df2, resample=False, parameter=None, dataset_name=None, save_folder="/", save_new_df=False):
     ## get 300 samples from each df and conglomerate into one
 
     #### Grab n_samples values from df1 
@@ -86,8 +86,9 @@ def restructure_for_agnostic_plots(df1, df2, resample=False, parameter="config",
 
     ## Add config to df
     # Add a new column to each DataFrame to indicate the source
-    df_sampled[parameter] = 1
-    df2[parameter] = 2
+    if parameter is not None :
+        df_sampled[parameter] = 1
+        df2[parameter] = 2
 
     ## Combine both df 
     df_combined = pd.concat([df_sampled, df2], ignore_index=True)

@@ -268,7 +268,15 @@ def robot_agnostic(use_clean_dataset=True):
     ### Read OR clean datasets
     if not use_clean_dataset :
         # TODO - separate per robot, sample, then recombine to get same number fo poitns per robot
-        clean_df = read_and_clean_data(csv_fn, dataset_name=new_dataset_name, resample=False, n_samples=2000, max_flux=0.85, save_folder=SAVE_FOLDER_FOR_PAPER, save_clean_df=True)
+        clean_df = read_and_clean_data(csv_fn, dataset_name=new_dataset_name, resample=False, n_samples=2000, min_flux = 0.55, max_flux=0.80, save_folder=SAVE_FOLDER_FOR_PAPER, save_clean_df=True)
+        
+        df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
+        df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
+
+        ## combine both into one df and save to data folder
+        df_combined = restructure_for_agnostic_plots(df_iiwa14, df_iiwa7, resample=True, 
+                                                        dataset_name=new_dataset_name, save_folder=SAVE_FOLDER_FOR_PAPER, save_new_df=True)
+    
     else:
         clean_df = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{SAVE_FOLDER_FOR_PAPER}/")
 
@@ -320,8 +328,8 @@ def config_agnostic(use_clean_dataset=True):
     if not use_clean_dataset :
 
         ## Read and clean datasets
-        clean_df = read_and_clean_data(csv_fn, resample=False, max_flux=1.0, only_7=True, save_clean_df=False)
-        clean_df2 = read_and_clean_data(csv_fn2, resample=False, max_flux=1.0, only_7=True, save_clean_df=False)
+        clean_df = read_and_clean_data(csv_fn, resample=False, max_flux=0.8, only_7=True, save_clean_df=False)
+        clean_df2 = read_and_clean_data(csv_fn2, resample=False, max_flux=0.8, only_7=True, save_clean_df=False)
 
         # use only data from same day recording 
         clean_df = clean_df[clean_df['RecSession']=="2024-05-29_15:40:48__clean_paper"].copy()
@@ -350,7 +358,7 @@ if __name__== "__main__" :
     ## Use 'raw' dataset to sample different datapoints for plots
 
     # object_traj_plot_for_paper(use_clean_dataset=True)
-    # robot_agnostic(use_clean_dataset=True)
+    robot_agnostic(use_clean_dataset=True)
     # object_agnostic(use_clean_dataset=True)
-    config_agnostic(use_clean_dataset=True)
+    # config_agnostic(use_clean_dataset=True)
 

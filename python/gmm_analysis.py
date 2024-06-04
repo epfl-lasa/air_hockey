@@ -162,7 +162,6 @@ def calculate_KL(df1, df2, n=2, save_to_file=False, save_folder=""):
 
         print(f"File '{fn}' created successfully.")
 
-
 def kl_divergence(gmm_p, gmm_q, n_samples=1000):
     # Sample points from gmm_p
     X, _ = gmm_p.sample(n_samples)
@@ -223,7 +222,6 @@ def plot_gmm_with_sklearn(df, show_plot=False):
 
     # plt.plot(X_test, Y, c="k", lw=2)
     if show_plot: plt.show()
-
 
 ### Pre-made functions to reproduce plots 
 def object_agnostic(use_clean_dataset = True):
@@ -287,17 +285,23 @@ def robot_agnostic(use_clean_dataset = True):
 
         ## Read and clean datasets
         clean_df = read_and_clean_data(csv_fn, resample=False, min_flux=0.58, max_flux=0.8, save_folder=clean_dataset_folder, save_clean_df=True)
+
+        df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
+        df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
+
+        df_iiwa14 = resample_uniformally(df_iiwa14, n_samples=1000)
+
+        ## combine both into one df and save to data folder
+        df_combined = restructure_for_agnostic_plots(df_iiwa7, df_iiwa14, resample=False, 
+                                                        dataset_name=new_dataset_name, save_folder=clean_dataset_folder, save_new_df=True)
       
     ######### USING RESAMPLED AND CLEAN DATASETS ###########
     # NOTE - use these to reproduce plots for paper
     else :
         clean_df = read_airhockey_csv(fn=f"{csv_fn}_clean", folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
-        # clean_df = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+        # clean_df = read_airhockey_csv(fn=new_dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
 
-    df_iiwa7 = clean_df[clean_df['IiwaNumber']==7].copy()
-    df_iiwa14 = clean_df[clean_df['IiwaNumber']==14].copy()
-
-    df_iiwa14 = resample_uniformally(df_iiwa14, n_samples=1000)
+    
 
     print(f"Dataset info : \n"
         f" Iiwa 7 points : {len(df_iiwa7.index)} \n"
