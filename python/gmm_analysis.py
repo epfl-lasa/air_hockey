@@ -188,7 +188,7 @@ def kl_divergence(gmm_p, gmm_q, X=None, n_samples=1000):
     return kl_div
 
 #### Cross validation
-def cross_validate_gmm(dataset_name='D1-robot_agnostic', n_gaussians=2, n_folds=10):
+def cross_validate_gmm(dataset_name='D1-robot_agnostic', predict_value="flux", n_gaussians=2, n_folds=10):
     
     ## DATASET TO USE 
     df = read_airhockey_csv(fn=dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
@@ -201,21 +201,31 @@ def cross_validate_gmm(dataset_name='D1-robot_agnostic', n_gaussians=2, n_folds=
         indices_train = np.random.choice(X.shape[0], size=int(0.7*len(X)), replace=False)
         indices_test = [i for i in range(0, len(X)) if i not in indices_train]
         X_train = X[indices_train]
-        X_test = X[indices_test]
+        
+        if predict_value == "flux":
+            X_test = X[indices_test]
+            X_test_for_predict = X_test[:, 0] # flux
+            X_test_for_error = X_test[:, 1] # distance
+            predict_axis = np.array([0])
 
-        X_test_for_predict = X_test[:, 0]
+        elif predict_value == "distance":
+            X_test = X[indices_test]
+            X_test_for_predict = X_test[:, 1] # distance
+            X_test_for_error = X_test[:, 0] # flux
+            predict_axis = np.array([1])
         
         ## Create GMM
         gmm = GMM(n_components=n_gaussians, random_state=0)
         gmm.from_samples(X_train, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
 
-        Y = gmm.predict(np.array([0]), X_test_for_predict[:, np.newaxis])
+        Y = gmm.predict(predict_axis, X_test_for_predict[:, np.newaxis])
 
         ## Compare predict with actual data 
-        rms_error = np.sqrt(np.mean((Y[:,0] - X_test[:, 1])**2))
-        rms_error_relative = np.sqrt(np.mean(((Y[:,0] - X_test[:, 1])/X_test[:,1])**2)) * 100
+        rms_error = np.sqrt(np.mean((Y[:,0] - X_test_for_error)**2))
+        rms_error_relative = np.sqrt(np.mean(((Y[:,0] - X_test_for_error)/X_test_for_error)**2)) * 100
 
-        print(f"RMS Error : {rms_error*100:.2f} cm")
+        if predict_value == "flux" : print(f"RMS Error : {rms_error*100:.2f} cm")
+        elif predict_value == "distance": print(f"RMS Error : {rms_error*100:.2f} cm/s")
         print(f"RMS Error Relative: {rms_error_relative:.2f} % \n")
 
 
@@ -427,4 +437,4 @@ if __name__== "__main__" :
     # robot_agnostic(use_clean_dataset=True)
     # config_agnostic(use_clean_dataset=True)
 
-    cross_validate_gmm('D1-robot_agnostic')
+    cross_validate_gmm('D1-robot_agnostic', predict_value="distance")
