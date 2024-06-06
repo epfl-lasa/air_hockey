@@ -114,6 +114,7 @@ The orientation quaternion has the format W-xyz.
 #### Configuration 1 - Elbow up
 
 ![Config_1](../../media/Config_1-elbow_up.jpg)
+
 <img src="../../media/Config_1-elbow_up.jpg" alt="Config_1" width="50%" />
 
 null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
