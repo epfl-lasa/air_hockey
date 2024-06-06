@@ -190,6 +190,8 @@ def kl_divergence(gmm_p, gmm_q, X=None, n_samples=1000):
 #### Cross validation
 def cross_validate_gmm(dataset_name='D1-robot_agnostic', predict_value="flux", n_gaussians=2, n_folds=10):
     
+    print(f"\n Calculating RMS error when predicting {predict_value} on dataset {dataset_name}. \n")
+
     ## DATASET TO USE 
     df = read_airhockey_csv(fn=dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
     
@@ -224,8 +226,11 @@ def cross_validate_gmm(dataset_name='D1-robot_agnostic', predict_value="flux", n
         rms_error = np.sqrt(np.mean((Y[:,0] - X_test_for_error)**2))
         rms_error_relative = np.sqrt(np.mean(((Y[:,0] - X_test_for_error)/X_test_for_error)**2)) * 100
 
-        if predict_value == "flux" : print(f"RMS Error : {rms_error*100:.2f} cm")
-        elif predict_value == "distance": print(f"RMS Error : {rms_error*100:.2f} cm/s")
+        if predict_value == "flux" : 
+            print(f"RMS Error : {rms_error*100:.2f} cm")
+        elif predict_value == "distance": 
+            print(f"RMS Error : {rms_error*100:.2f} cm/s")
+
         print(f"RMS Error Relative: {rms_error_relative:.2f} % \n")
 
 
