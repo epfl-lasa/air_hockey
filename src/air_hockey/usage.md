@@ -105,51 +105,25 @@ Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 
 #### Configurations
 
-We have tested two different robot configurations for this framework. These configurations include a joint position and a EE Pose
+We have tested two different robot configurations on the iiwa 7 for this framework. These configurations include a joint position and a EE Pose
 
-In iiwa_toolkit/config/passive_track_parmas_dual_real.yaml, the following parameters must be changed : target/pos, target/quat, target/null_pos
-In air_hockey/config/hit_properties_air_hockey.yaml, the following parameter must be changed : return_position
+In iiwa\_toolkit/config/passive\_track\_params\_dual\_real.yaml, the following parameters must be changed : target/iiwa1/null\_pos
+In air\_hockey/config/hit\_properties\_air\_hockey.yaml, the following parameter must be changed : iiwa7/return_position
 
 The orientation shoud be the same, the position can change slightly. The joint position is used as the null_space desired position.
 The orientation quaternion has the format W-xyz.
 
-##### Configuration 1 
+##### Configuration 1 - Elbow up
 
-Elbow up 
-ADD photo 
+![Config_1](../../media/Config_1-elbow_up.png)
 
-target:
-    iiwa1:
-      pos: [0.55, -0.05, 0.22] 
-      quat: [0.707, -0.707, 0.0, 0.0] 
-      null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
-    iiwa2:
-      pos: [0.55, 0.05, 0.22]
-      quat: [-0.707, -0.707, 0.0, 0.0]  
-      null_pos : [0.553, 1.128, -0.135, -1.358, -1.092, 1.783, -2.189] # [0.561, 1.193, -0.148, -1.296, -1.075, 1.836, -0.639]
-      [0.145, 1.127, 0.384, -1.473, -1.456, 1.989, -0.494]
-      [0.682, 1.22, -0.456, -1.404, -0.938, 1.563, -0.674]
-      [0.543, 1.196, -0.133, -1.315, -1.057, 1.786, -0.587]
+null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
 
-##### Configuration 2
+##### Configuration 2 - Elbow sideways
 
-Elbow sideways
-ADD photo 
+![Config_1](../../media/Config_2-elbow_sideways.png)
 
-target:
-    iiwa1:
-      pos: [0.55, -0.05, 0.22] 
-      quat: [0.707, -0.707, 0.0, 0.0]
-      null_pos : [-1.125, 1.530, 1.193, -1.399, -2.819, -1.306, -0.355]
-    iiwa2:
-      pos: [0.55, 0.15, 0.22]
-      quat: [-0.707, -0.707, 0.0, 0.0] 
-      null_pos :  [1.1569, 1.983, -1.698, -1.379, 0.399, 1.382, -1.592]
-
-
-      pos: [0.55, -0.05, 0.22] 
-      quat: [0.0, -0.707, 0.707, 0.0] # config 1 [0.707, -0.707, 0.0, 0.0] #
-      null_pos : [-0.185, 0.678, 0.138, -1.581, -0.126, 0.920, -1.546]
+null_pos : [-1.125, 1.530, 1.193, -1.399, -2.819, -1.306, -0.355]
 
 # Authors/Maintainers 
 
