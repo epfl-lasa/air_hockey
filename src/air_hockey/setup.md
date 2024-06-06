@@ -9,7 +9,8 @@ The Air Hockey Framework requires several packages to be installed in order to w
 
 It is highly recommended to install everything using [docker](#docker).
 
-## Docker {#docker}
+{#docker}
+## Docker 
 
 A docker image containing iiwa_ros library is needed to build the air_hockey docker image. 
 
@@ -55,7 +56,7 @@ bash docker/start-docker.sh -m connect
 
 **Note** : In the start-docker.sh script, volumes are mounted on the folders src/air\_hockey, src/iiwa\_toolkit, python, data. Everything else inside the container and not in these folders will not be mofified on the host machine!
 
-# ROS docker image setup for real robots 
+## ROS docker image setup for real robots 
 
 For the real-life setup, we use 2 computers, one connected to each robot. Both need the air_hockey docker image to run this framework.
 
@@ -69,6 +70,6 @@ Computer 2 --> connected to iiwa14 (= iiwa2 = iiwa right)
 * ROS_IP: 128.178.96.118 
 
 
-# Authors/Maintainers 
+## Authors/Maintainers 
 
 Maxime Gautier : maxime.gautier@epfl.ch

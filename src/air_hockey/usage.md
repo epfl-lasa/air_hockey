@@ -15,11 +15,9 @@ The recorded data for each robot is :
 RobotName, RosTime, JointPosition, JointVelocity, JointEffort, TorqueCmd, EEF_Position, EEF_Orientation, EEF_Velocity, EEF_DesiredVelocity, Inertia, DirGrad, HittingFlux
 
 The recorded data for the object is :
-RosTime, PositionForIiwa7, OrientationForIiwa7, PositionForIiwa14, OrientationForIiwa14
+RosTime, PositionForIiwa7, OrientationForIiwa7, PositionForIiwa14, OrientationForIiwa14, PositionWorldFrame, OrientationWorldFrame, TimeWriting
 
-## AirHockey
-
-### Simulation
+## AirHockey - Simulation
 
 Run the docker container, then in one terminal, launch the gazebo simulation:
 ``` bash
@@ -28,9 +26,9 @@ bash docker/start-docker.sh
 roslaunch air_hockey air_hockey_sim.launch
 ```
 
-### Real-life framework
+## AirHockey - Real-life framework
 
-#### ROS Communication setup 
+### ROS Communication setup 
 
 We use 2 computers, one connected to each robot. Both need the air_hockey docker image to run this framework.
 
@@ -43,14 +41,14 @@ Computer 2 --> connected to iiwa14 (= iiwa2 = iiwa right)
 * ROS_MASTER_URI: 128.178.145.165 
 * ROS_IP: 128.178.96.208 
 
-#### Terminal setup 
+### Terminal setup 
 
 To facilitate starting commands, we connect via ssh from Computer 1 to Computer 2 :
 ```bash
 ssh elise@128.178.96.208
 ```
 
-You should have 4 terminals, 3 connected to the docker container on Computer 1 and one on the docker container on Computer 2. From now on, Computer 2 will refer to that last terminal (connected via ssh)
+You should have 4 terminals, 3 connected to the docker container on Computer 1 and one on the docker container on Computer 2. From now on, Computer 2 will refer to that last terminal (connected via ssh).
 
 Make sure the docker image is build with the correct ROS_IP and ROS_MASTER_URI arguments.
 
@@ -64,7 +62,7 @@ Then connect to the container on Computer 1 with the two remaining terminals :
 bash docker/start-docker.sh -m connect
 ```
 
-#### ROS launch commands
+### ROS launch commands
 
 Launch the following commands in this order
 
@@ -89,7 +87,7 @@ Sequence for iiwa trackpad :
 iiwa7 : FRIOverlayGripper -> Torque, 0, 0
 iiwa14 : FRIOverlayGripper -> Torque, 0, 0
 
-#### Remarks and troubleshooting
+### Remarks and troubleshooting
 
 Both computers must have the IP adress 190.170.10.1 for the connection to the iiwa as FRIOverlay communicates only with this adress.
 Can modify the IP adress of the robot in iiwa_driver/config/iiwa.yaml
@@ -103,7 +101,7 @@ Use 'git config core.fileMode false' to avoid pushing chmod changes to github
 **Developper Note** : In the start-docker.sh script, volumes are mounted on the folders src/air\_hockey, src/iiwa\_toolkit, python, data. Everything else inside the container and not in these folders will not be mofified on the host machine!
 
 
-#### Configurations
+### Configurations
 
 We have tested two different robot configurations on the iiwa 7 for this framework. These configurations include a joint position and a EE Pose
 
@@ -113,19 +111,19 @@ In air\_hockey/config/hit\_properties\_air\_hockey.yaml, the following parameter
 The orientation shoud be the same, the position can change slightly. The joint position is used as the null_space desired position.
 The orientation quaternion has the format W-xyz.
 
-##### Configuration 1 - Elbow up
+#### Configuration 1 - Elbow up
 
-![Config_1](../../media/Config_1-elbow_up.png)
+![Config_1](../../media/Config_1-elbow_up.jpg)
 
 null_pos : [-0.48, 1.04,  0.02, -1.35, -1.92, -1.81, -0.81]
 
-##### Configuration 2 - Elbow sideways
+#### Configuration 2 - Elbow sideways
 
-![Config_1](../../media/Config_2-elbow_sideways.png)
+![Config_2](../../media/Config_2-elbow_sideways.jpg)
 
 null_pos : [-1.125, 1.530, 1.193, -1.399, -2.819, -1.306, -0.355]
 
-# Authors/Maintainers 
+## Authors/Maintainers 
 
 Maxime Gautier : maxime.gautier@epfl.ch
 
