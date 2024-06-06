@@ -762,14 +762,13 @@ void Recorder::run() {
       std::string fn = recordingFolderPath_ + "object_"+object_number_str_+"_hit_"+ std::to_string(hit_count)+".csv";
       writeObjectStatesToFile(hit_count, fn, manual);
       std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
-      if(isAuto_){hit_count += 1;}
       write_once_object = 0;
       moved_manually_count_ = 1; // reset count for moved manually 
     }
     // If not during hit, check if we are moving the object manually, record if so
     else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
             time_since_hit > max_recording_time && !write_once_object){
-      if(!isSim_){recordObjectMovedByHand(hit_count-1);}
+      if(!isSim_){recordObjectMovedByHand(hit_count);}
     }
 
     //// ROBOT RECORDING LOGIC 
@@ -784,13 +783,13 @@ void Recorder::run() {
     // Writing data logic -> wait until we have written object data (to avoid missing data when writing to disk)
     if(fsmState_.mode_iiwa7 == REST && time_since_hit > post_hit_recording_time && write_once_7 && !write_once_object){
       writeRobotStatesToFile(IIWA_7, hit_count);
-      if(!isAuto_){hit_count += 1;}
+      hit_count += 1;
       write_once_7 = 0;
     }
 
     if(fsmState_.mode_iiwa14 == REST && time_since_hit > post_hit_recording_time && write_once_14 && !write_once_object){
       writeRobotStatesToFile(IIWA_14, hit_count);
-      if(!isAuto_){hit_count += 1;}
+      hit_count += 1;
       write_once_14 = 0;
     }
     
