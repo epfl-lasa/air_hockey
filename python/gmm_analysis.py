@@ -5,6 +5,7 @@ from sklearn.mixture import GaussianMixture
 import matplotlib.patches as patches
 from gmr import MVN, GMM, plot_error_ellipses
 from scipy.stats import entropy
+import h5py
 
 from process_data import  PATH_TO_DATA_FOLDER
 
@@ -15,9 +16,11 @@ GLOBAL_FONTSIZE = 40
 AXIS_TICK_FONTSIZE = 30
 
 PROCESSED_FOLDER = PATH_TO_DATA_FOLDER + "airhockey_processed/"
+GMM_FOLDER = PATH_TO_DATA_FOLDER + "Gaussian_models/"
+
 
 ## GMM ANALYISIS
-def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", save_fig=False, save_folder="", show_plot=False):
+def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", save_model=True, save_fig=False, save_folder="", show_plot=False):
     
     X = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
 
@@ -99,6 +102,8 @@ def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", save_
     plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
 
     if save_fig : save_one_figure(save_folder, title)
+
+    if save_model : save_model_info_for_golf(os.path.join(GMM_FOLDER, title+".h5"), gmm.n_components, gmm.means, gmm.covariances, gmm.priors)
 
     if show_plot: plt.show()
 
@@ -204,17 +209,17 @@ def cross_validate_gmm(dataset_name='D1-robot_agnostic', predict_value="flux", n
         indices_test = [i for i in range(0, len(X)) if i not in indices_train]
         X_train = X[indices_train]
         
-        if predict_value == "flux":
+        if predict_value == "distance": # use flux to predict distance
             X_test = X[indices_test]
             X_test_for_predict = X_test[:, 0] # flux
             X_test_for_error = X_test[:, 1] # distance
-            predict_axis = np.array([0])
+            predict_axis = np.array([0]) #flux 
 
-        elif predict_value == "distance":
+        elif predict_value == "flux": # use distance to predict flux 
             X_test = X[indices_test]
             X_test_for_predict = X_test[:, 1] # distance
             X_test_for_error = X_test[:, 0] # flux
-            predict_axis = np.array([1])
+            predict_axis = np.array([1]) # distance
         
         ## Create GMM
         gmm = GMM(n_components=n_gaussians, random_state=0)
@@ -226,9 +231,9 @@ def cross_validate_gmm(dataset_name='D1-robot_agnostic', predict_value="flux", n
         rms_error = np.sqrt(np.mean((Y[:,0] - X_test_for_error)**2))
         rms_error_relative = np.sqrt(np.mean(((Y[:,0] - X_test_for_error)/X_test_for_error)**2)) * 100
 
-        if predict_value == "flux" : 
+        if predict_value == "distance" : 
             print(f"RMS Error : {rms_error*100:.2f} cm")
-        elif predict_value == "distance": 
+        elif predict_value == "flux": 
             print(f"RMS Error : {rms_error*100:.2f} cm/s")
 
         print(f"RMS Error Relative: {rms_error_relative:.2f} % \n")
@@ -281,6 +286,55 @@ def plot_gmm_with_sklearn(df, show_plot=False):
 
     # plt.plot(X_test, Y, c="k", lw=2)
     if show_plot: plt.show()
+
+### Processing functions, used for GOLF
+def save_model_info_for_golf(model_data_path, n_components, means, covariances, weights):
+
+    # Open the HDF5 file in write mode
+    hf_1 = h5py.File(model_data_path.replace(" ", "_"), 'a')
+
+    # Write the parameters
+    hf_1.create_dataset('n_components', data=n_components)
+    hf_1.create_dataset('means', data=means)
+    hf_1.create_dataset('covariances', data=covariances)
+    hf_1.create_dataset('weights', data=weights)
+
+    # Close the HDF5 file
+    hf_1.close()
+
+    print("Model saved succesfully!")
+
+def read_model_for_gmr(model_name):
+    
+    # Open the HDF5 file in read mode
+    hf_1 = h5py.File(os.path.join(GMM_FOLDER, model_name+".h5"), 'r')
+
+    # Read the parameters
+    n_components = hf_1['n_components'][()]
+    means = hf_1['means'][()]
+    covariances = hf_1['covariances'][()]
+    weights = hf_1['weights'][()]
+
+    # Close the HDF5 file
+    hf_1.close()
+
+    # Put into gmr model
+    gmm = GMM(n_components=n_components, means=means, covariances=covariances, priors=weights, random_state=0)
+
+    return gmm
+
+def get_flux_for_distance_with_gmr(model_name='GMM_fit_for_D1', d1=0.5, d2=0.5):
+
+    gmm = read_model_for_gmr(model_name)
+
+    des_distances = np.array([d1, d2])
+
+    # Predict fluxes for desired distances
+    fluxes = gmm.predict(np.array([1]), des_distances[:, np.newaxis])
+
+    print(f"Flux for robot 1 : {fluxes[0,0]:.4f}")
+    print(f"Flux for robot 2 : {fluxes[1,0]:.4f}")
+
 
 ### Pre-made functions to reproduce plots 
 def object_agnostic(use_clean_dataset = True):
@@ -436,10 +490,15 @@ def config_agnostic(use_clean_dataset=True):
 
 if __name__== "__main__" :
 
+    ### PAPER PLOTS
     ## Run one of these to get the plots for agnosticism 
 
     # object_agnostic(use_clean_dataset=True)
     # robot_agnostic(use_clean_dataset=True)
     # config_agnostic(use_clean_dataset=True)
 
-    cross_validate_gmm('D1-robot_agnostic', predict_value="distance")
+    # cross_validate_gmm('D1-robot_agnostic', predict_value="flux")
+
+    ### GOLF
+    get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.5447, d2=0.4499)
+    # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.6, d2=0.5)
