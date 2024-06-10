@@ -15,6 +15,7 @@ data/airhockey_processed/clean/*
 # DO NOT ignore these data folders 
 !data/figures/
 data/figures/*
+!data/figures/golf
 !data/figures/for_paper
 !data/figures/KL_div-config_agnostic
 !data/figures/KL_div-object_agnostic
