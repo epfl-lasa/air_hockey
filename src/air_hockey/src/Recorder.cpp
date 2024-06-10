@@ -77,7 +77,7 @@ bool Recorder::init() {
                                                   ros::TransportHints().reliable().tcpNoDelay());
 
     objectPosition_[IIWA_14] = 
-        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_7],
+        nh_.subscribe<geometry_msgs::PoseStamped>(objectPositionTopicReal_[IIWA_14],
                                                   1,
                                                   boost::bind(&Recorder::objectPositionCallbackReal, this, _1, IIWA_14),
                                                   ros::VoidPtr(),
