@@ -130,7 +130,7 @@ def read_airhockey_csv(fn, folder=PROCESSED_RAW_FOLDER):
     return df
 
 # CLEANING FUNCTION
-def read_and_clean_data(csv_fn, dataset_name=None, resample=False, n_samples=2000, only_7=False, distance_threshold=0.1, max_flux = 0.8, min_flux=0.5, save_folder="/", save_clean_df=False):
+def read_and_clean_data(csv_fn, dataset_name=None, resample=False, n_samples=2000, only_7=False, distance_threshold=0.1, max_flux=0.8, min_flux=0.5, save_folder="/", save_clean_df=False):
     
     ## Reading data 
     df = read_airhockey_csv(csv_fn)

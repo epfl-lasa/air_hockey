@@ -16,7 +16,7 @@ GLOBAL_FONTSIZE = 40
 AXIS_TICK_FONTSIZE = 30
 
 PROCESSED_FOLDER = PATH_TO_DATA_FOLDER + "airhockey_processed/"
-GMM_FOLDER = PATH_TO_DATA_FOLDER + "Gaussian_models/"
+GMM_FOLDER = PATH_TO_DATA_FOLDER + "gaussian_models/"
 
 
 ## GMM ANALYISIS
@@ -103,7 +103,7 @@ def plot_gmr(df, n=3, plot="only_gmm", title="Gaussian Mixture Model fit", save_
 
     if save_fig : save_one_figure(save_folder, title)
 
-    if save_model : save_model_info_for_golf(os.path.join(GMM_FOLDER, title+".h5"), gmm.n_components, gmm.means, gmm.covariances, gmm.priors)
+    if save_model : save_model_info_for_golf(title, gmm)
 
     if show_plot: plt.show()
 
@@ -288,16 +288,18 @@ def plot_gmm_with_sklearn(df, show_plot=False):
     if show_plot: plt.show()
 
 ### Processing functions, used for GOLF
-def save_model_info_for_golf(model_data_path, n_components, means, covariances, weights):
+def save_model_info_for_golf(model_name, gmm):
+    # Save model to GMM_FOLDER 
+    model_data_path = os.path.join(GMM_FOLDER, model_name+".h5")
 
     # Open the HDF5 file in write mode
     hf_1 = h5py.File(model_data_path.replace(" ", "_"), 'a')
 
     # Write the parameters
-    hf_1.create_dataset('n_components', data=n_components)
-    hf_1.create_dataset('means', data=means)
-    hf_1.create_dataset('covariances', data=covariances)
-    hf_1.create_dataset('weights', data=weights)
+    hf_1.create_dataset('n_components', data=gmm.n_components)
+    hf_1.create_dataset('means', data=gmm.means)
+    hf_1.create_dataset('covariances', data=gmm.covariances)
+    hf_1.create_dataset('weights', data=gmm.priors)
 
     # Close the HDF5 file
     hf_1.close()
@@ -334,6 +336,56 @@ def get_flux_for_distance_with_gmr(model_name='GMM_fit_for_D1', d1=0.5, d2=0.5):
 
     print(f"Flux for robot 1 : {fluxes[0,0]:.4f}")
     print(f"Flux for robot 2 : {fluxes[1,0]:.4f}")
+
+def get_golf_gaussians(show_plot=True, save_fig=True):
+
+    #### Title
+    model_name = "golf_XY_D1" # "golf_XY_D1_complete"
+
+    ## Grab clean D1 
+    clean_dataset_folder = "KL_div-robot_agnostic-D1"
+    dataset_name = "D1-robot_agnostic"
+
+    df = read_airhockey_csv(fn=dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+    # df = read_and_clean_data("D1_clean", max_flux=1.2) ## D1_complete
+
+    ## Compute relative end pos for each hit 
+    df["RelativeEndPos"] = df.apply(lambda row : [a - b for a, b in zip(row['ObjectPosEnd'], row['ObjectPosStart'])] , axis=1)
+
+    RelEndPos_x = df["RelativeEndPos"].apply(lambda x : x[0])
+    RelEndPos_y = df["RelativeEndPos"].apply(lambda x : abs(x[1])) # get distance in y regardless of dircetion (dependant on robot)
+
+    X = np.column_stack((RelEndPos_x.values, RelEndPos_y.values))
+
+    ## Create GMM
+    gmm = GMM(n_components=2, random_state=0)
+    gmm.from_samples(X, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+
+    ## Plot 
+    plt.figure(figsize=(20, 10))
+    plt.scatter(0, 0, c='r', marker='x', s=200, label='Start Position')
+    plt.scatter(X[:, 0], X[:, 1], s=100, label='End Positon')
+    plot_error_ellipses(plt.gca(), gmm, colors=['r', 'g'], alpha = 0.12)
+
+    plt.xlabel("X Axis [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("Y Axis [m]", fontsize=GLOBAL_FONTSIZE) 
+    plt.legend(fontsize=GLOBAL_FONTSIZE-5)
+    plt.title('XY plot of object end position relative to start', fontsize=GLOBAL_FONTSIZE)
+
+    # Increase the size of the tick labels
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['left'].set_linewidth(2)  # Set left spine thickness
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
+        
+    # Save and shwo plot if desired
+    if save_fig : save_one_figure("golf", model_name)
+
+    if show_plot:  plt.show()
+
+    # Save model
+    save_model_info_for_golf(model_name, gmm)
 
 
 ### Pre-made functions to reproduce plots 
@@ -500,5 +552,6 @@ if __name__== "__main__" :
     # cross_validate_gmm('D1-robot_agnostic', predict_value="flux")
 
     ### GOLF
-    get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.5447, d2=0.4499)
+    get_golf_gaussians()
+    # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.5447, d2=0.4499)
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.6, d2=0.5)
