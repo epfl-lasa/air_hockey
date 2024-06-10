@@ -340,14 +340,16 @@ def get_flux_for_distance_with_gmr(model_name='GMM_fit_for_D1', d1=0.5, d2=0.5):
 def get_golf_gaussians(show_plot=True, save_fig=True):
 
     #### Title
-    model_name = "golf_XY_D1" # "golf_XY_D1_complete"
+    model_name = "golf_XY_D1_iiwa7" # "golf_XY_D1_complete"
 
     ## Grab clean D1 
     clean_dataset_folder = "KL_div-robot_agnostic-D1"
     dataset_name = "D1-robot_agnostic"
 
-    df = read_airhockey_csv(fn=dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
-    # df = read_and_clean_data("D1_clean", max_flux=1.2) ## D1_complete
+    # df = read_airhockey_csv(fn=dataset_name, folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/{clean_dataset_folder}/")
+    df = read_and_clean_data("D1_clean", max_flux=1.2) ## D1_complete
+
+    df = df[df['IiwaNumber']==7]
 
     ## Compute relative end pos for each hit 
     df["RelativeEndPos"] = df.apply(lambda row : [a - b for a, b in zip(row['ObjectPosEnd'], row['ObjectPosStart'])] , axis=1)
@@ -365,11 +367,12 @@ def get_golf_gaussians(show_plot=True, save_fig=True):
     plt.figure(figsize=(20, 10))
     plt.scatter(0, 0, c='r', marker='x', s=200, label='Start Position')
     plt.scatter(X[:, 0], X[:, 1], s=100, label='End Positon')
-    plot_error_ellipses(plt.gca(), gmm, colors=['r', 'g'], alpha = 0.12)
+    plot_error_ellipses(plt.gca(), gmm, colors=['r', 'g'], alpha = 0.2)
 
     plt.xlabel("X Axis [m]", fontsize=GLOBAL_FONTSIZE)   
     plt.ylabel("Y Axis [m]", fontsize=GLOBAL_FONTSIZE) 
     plt.legend(fontsize=GLOBAL_FONTSIZE-5)
+    plt.axis('equal')
     plt.title('XY plot of object end position relative to start', fontsize=GLOBAL_FONTSIZE)
 
     # Increase the size of the tick labels
