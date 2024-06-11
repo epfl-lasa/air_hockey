@@ -665,12 +665,14 @@ void AirHockey::run() {
       // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
       // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
-      // std::cout << "iiwa7 norm  " << (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm()<< std::endl;
-      // std::cout << "iiwa14 norm " << (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm()<< std::endl;
+      std::cout << "iiwa7 norm  " << (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm()<< std::endl;
+      std::cout << "iiwa14 norm " << (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm()<< std::endl;
       // std::cout << "object pos by iiwaPos_7  " << objectPositionForIiwa_[IIWA_7]<< std::endl;
       // std::cout << "object pos by  iiwaPos_14  " << objectPositionForIiwa_[IIWA_14]<< std::endl;
       // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7];       
+      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7];  
+      std::cout << "ref Vel 7 " << refVelocity_[IIWA_7]<< std::endl;
+      std::cout << " ref quat 7 " << refQuat_[IIWA_7] << std::endl;   
     }
     print_count +=1 ;
 

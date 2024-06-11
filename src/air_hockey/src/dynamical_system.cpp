@@ -104,7 +104,7 @@ Eigen::Vector4f hitting_DS::pointsToQuat(Eigen::Vector3f point_1, Eigen::Vector3
   Eigen::Quaterniond rot_quat;
 
   direction_z = point_2 - point_1;
-  direction_x = {0.0, 0.0, 1.0};
+  direction_x = {1.0, 0.0, 0.0};
   direction_y = direction_z.cross(direction_x);
   direction_z = direction_z / direction_z.norm();
   direction_y = direction_y / direction_y.norm();
