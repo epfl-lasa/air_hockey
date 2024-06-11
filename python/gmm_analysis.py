@@ -293,16 +293,26 @@ def save_model_info_for_golf(model_name, gmm):
     model_data_path = os.path.join(GMM_FOLDER, model_name+".h5")
 
     # Open the HDF5 file in write mode
-    hf_1 = h5py.File(model_data_path.replace(" ", "_"), 'a')
+    hf = h5py.File(model_data_path.replace(" ", "_"), 'a')
+
+    # Clear the datasets
+    if 'n_components' in hf:
+        del hf['n_components']
+    if 'means' in hf:
+        del hf['means']
+    if 'covariances' in hf:
+        del hf['covariances']
+    if 'weights' in hf:
+        del hf['weights']
 
     # Write the parameters
-    hf_1.create_dataset('n_components', data=gmm.n_components)
-    hf_1.create_dataset('means', data=gmm.means)
-    hf_1.create_dataset('covariances', data=gmm.covariances)
-    hf_1.create_dataset('weights', data=gmm.priors)
+    hf.create_dataset('n_components', data=gmm.n_components)
+    hf.create_dataset('means', data=gmm.means)
+    hf.create_dataset('covariances', data=gmm.covariances)
+    hf.create_dataset('weights', data=gmm.priors)
 
     # Close the HDF5 file
-    hf_1.close()
+    hf.close()
 
     print("Model saved succesfully!")
 
@@ -549,12 +559,12 @@ if __name__== "__main__" :
     ## Run one of these to get the plots for agnosticism 
 
     # object_agnostic(use_clean_dataset=True)
-    # robot_agnostic(use_clean_dataset=True)
+    robot_agnostic(use_clean_dataset=True)
     # config_agnostic(use_clean_dataset=True)
 
     # cross_validate_gmm('D1-robot_agnostic', predict_value="flux")
 
     ### GOLF
-    get_golf_gaussians()
+    # get_golf_gaussians()
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.5447, d2=0.4499)
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.6, d2=0.5)

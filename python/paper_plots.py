@@ -360,7 +360,7 @@ if __name__== "__main__" :
     ## Use 'raw' dataset to sample different datapoints for plots
 
     # object_traj_plot_for_paper(use_clean_dataset=True)
-    robot_agnostic(use_clean_dataset=True)
+    # robot_agnostic(use_clean_dataset=True)
     # object_agnostic(use_clean_dataset=True)
-    # config_agnostic(use_clean_dataset=True)
+    config_agnostic(use_clean_dataset=True)
 

@@ -101,17 +101,17 @@ def plot_object_data(csv_file, show_plot=True):
     offset_x = df['PositionForIiwa7'].iloc[0][1]- df['PositionWorldFrame'].iloc[0][0]
 
     x_values = df['PositionForIiwa7'].apply(lambda x: x[1])
-    df['Derivative'] = x_values.diff() / df['TimeOptitrack'].diff()
+    df['Derivative'] = x_values.diff() / df['RosTime'].diff()
     df = df[df['Derivative'] != 0.0].copy()
 
     x_values_world =  df['PositionWorldFrame'].apply(lambda x: x[0])
-    df['derivative_world'] = x_values_world.diff() / df['TimeOptitrack'].diff()
+    df['derivative_world'] = x_values_world.diff() / df['RosTime'].diff()
 
     hit_time = get_impact_time_from_object(path_to_object_hit, pos_name_str='PositionForIiwa7')
     datetime_hit_time= pd.to_datetime(hit_time, unit='s')
     # Convert the 'Time' column to datetime format
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
-    df['TimeOptitrack'] = pd.to_datetime(df['TimeOptitrack'], unit='s')
+    df['TimeWriting'] = pd.to_datetime(df['TimeWriting'], unit='s')
 
     # Labels for the coordinates
     coordinate_labels = ['x', 'y', 'z']
@@ -120,8 +120,8 @@ def plot_object_data(csv_file, show_plot=True):
     plt.figure(figsize=(12, 6))
     for i in range(3):
         plt.plot(df['RosTime'], df['PositionForIiwa7'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
-        plt.plot(df['TimeOptitrack'], df['PositionForIiwa7'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]} - optiTime')
-        plt.plot(df['TimeOptitrack'], df['PositionWorldFrame'].apply(lambda x: x[i]+ offset_x), label=f'Axis {coordinate_labels[i]} - World')
+        # plt.plot(df['TimeWriting'], df['PositionForIiwa7'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]} - TimeWriting')
+        plt.plot(df['RosTime'], df['PositionWorldFrame'].apply(lambda x: x[i]+ offset_x), label=f'Axis {coordinate_labels[i]} - World')
 
     plt.vlines(datetime_hit_time, ymin =0, ymax=np.array(df['PositionForIiwa7'][0]).max(), colors = 'r')
 
@@ -143,7 +143,7 @@ def plot_object_data(csv_file, show_plot=True):
     fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
 
     # ax.plot(df['RosTime'], df['Derivative'], label=f'Axis y')
-    ax.plot(df['TimeOptitrack'], df['Derivative'], label=f'Axis y')
+    ax.plot(df['RosTime'], df['Derivative'], label=f'Axis y')
     ax.plot(df['RosTime'], df['derivative_world'], label=f'Axis x - world')
 
     # ax.axvline(datetime_hit_time, color = 'r')
@@ -792,7 +792,7 @@ if __name__== "__main__" :
     
     else : ## OTHERWISE FILL THIS 
         folder_name = "latest" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = 2  # ##[2,3,4,5,6] #[16,17] #
+        hit_number = 18 # ##[2,3,4,5,6] #[16,17] #
         iiwa_number = 7
         object_number = 1
 
