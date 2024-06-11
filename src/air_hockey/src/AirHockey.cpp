@@ -173,6 +173,13 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/placement_offset/y", placementOffset_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/placement_offset/y not found"); }
   if (!nh_.getParam("iiwa14/placement_offset/z", placementOffset_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/placement_offset/x not found"); }
 
+  if (!nh_.getParam("iiwa7/hit_target/x", hitTarget_[IIWA_7][0])) { ROS_ERROR("Topic iiwa7/hit_target/x not found"); }
+  if (!nh_.getParam("iiwa7/hit_target/y", hitTarget_[IIWA_7][1])) { ROS_ERROR("Topic iiwa7/hit_target/y not found"); }
+  if (!nh_.getParam("iiwa7/hit_target/z", hitTarget_[IIWA_7][2])) { ROS_ERROR("Topic iiwa7/hit_target/z not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/x", hitTarget_[IIWA_14][0])) { ROS_ERROR("Topic iiwa14/hit_target/x not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/y", hitTarget_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/hit_target/y not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/z", hitTarget_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/hit_target/x not found"); }
+
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
 
@@ -658,13 +665,12 @@ void AirHockey::run() {
       // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
       // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
-      std::cout << "iiwa7 norm  " << (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm()<< std::endl;
-      std::cout << "iiwa14 norm " << (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm()<< std::endl;
+      // std::cout << "iiwa7 norm  " << (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm()<< std::endl;
+      // std::cout << "iiwa14 norm " << (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm()<< std::endl;
       // std::cout << "object pos by iiwaPos_7  " << objectPositionForIiwa_[IIWA_7]<< std::endl;
       // std::cout << "object pos by  iiwaPos_14  " << objectPositionForIiwa_[IIWA_14]<< std::endl;
       // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7]
-       
+      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7];       
     }
     print_count +=1 ;
 
@@ -686,14 +692,14 @@ void AirHockey::run() {
     // }
 
     if(fsm_state.mode_iiwa7 == HIT){
-      auto refVelQuat = generateHitting7_->flux_DS_with_quat(hittingFlux_[IIWA_7], generateHitting14_->get_current_position(), iiwaTaskInertiaPosInv_[IIWA_7]);
+      auto refVelQuat = generateHitting7_->flux_DS_with_quat(hittingFlux_[IIWA_7], hitTarget_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
       update_flux_once = 1; // only update after 1 hit from each robot
       refVelocity_[IIWA_7] = refVelQuat.first;
       refQuat_[IIWA_7] = refVelQuat.second;
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
-      auto refVelQuat = generateHitting14_->flux_DS_with_quat(hittingFlux_[IIWA_14],generateHitting7_->get_current_position(), iiwaTaskInertiaPosInv_[IIWA_14]);
+      auto refVelQuat = generateHitting14_->flux_DS_with_quat(hittingFlux_[IIWA_14], hitTarget_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
       // update_flux_once = 1; // only update after 1 hit from each robot
       refVelocity_[IIWA_14] = refVelQuat.first;
       refQuat_[IIWA_14] = refVelQuat.second;

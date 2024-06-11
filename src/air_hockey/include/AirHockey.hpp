@@ -75,6 +75,7 @@ private:
   ros::Duration waitDuration_;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
+  Eigen::Vector3f hitTarget_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
   Eigen::Vector4f refQuat_[NB_ROBOTS];
   Eigen::Vector3f returnPos_[NB_ROBOTS];
