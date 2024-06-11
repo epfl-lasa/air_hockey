@@ -694,8 +694,8 @@ void PassiveControl::computeTorqueCmd(){
         //     er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
         // }
 
-        // er_null = _robot.jnt_position -_robot.nulljnt_position;
-        er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
+        er_null = _robot.jnt_position -_robot.nulljnt_position;
+        // er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
 
         // compute null torque
         for (int i =0; i<7; i++){ 
