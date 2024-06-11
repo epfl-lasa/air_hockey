@@ -516,7 +516,7 @@ if __name__== "__main__" :
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     path_to_data_ekf = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_ekf/june/clean"
 
-    for hit_number in range (16,17):
+    for hit_number in range (3,9):
         robot_csv = os.path.join(path_to_data_airhockey,"2024-06-11_14:58:06", f"IIWA_7_hit_{hit_number}.csv" )
         object_csv = os.path.join(path_to_data_airhockey,"2024-06-11_14:58:06", f"object_1_hit_{hit_number}.csv" )
         process_one_file_for_ekf(robot_csv, object_csv, path_to_data_ekf, pos_name_str='PositionWorldFrame')    
