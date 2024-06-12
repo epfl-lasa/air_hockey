@@ -7,9 +7,8 @@ from gmr import MVN, GMM, plot_error_ellipses
 from scipy.stats import entropy
 import h5py
 
-from process_data import  PATH_TO_DATA_FOLDER
-
-from analyse_data import read_airhockey_csv, read_and_clean_data, restructure_for_agnostic_plots, save_one_figure, resample_uniformally
+from python.utils.data_handling_functions import (PATH_TO_DATA_FOLDER, read_airhockey_csv, read_and_clean_data, 
+                                             restructure_for_agnostic_plots, save_one_figure, resample_uniformally)
 
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 40
