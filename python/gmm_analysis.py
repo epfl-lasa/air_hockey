@@ -334,23 +334,33 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
     print(f"Using {len(idx_to_use_1_to_2)}/{len(X_test_1)} datapoints with 1 to 2")
     print(f"Using {len(idx_to_use_2_to_1)}/{len(X_test_2)} datapoints with 2 to 1 \n")
 
-    ## TOTAL ERROR
+    ## TOTAL ERROR - RMSE MSE 
     ## Compare prediction of gmm1 with actual data from gmm 2
-    rms_error_1_to_2 = np.sqrt(np.mean((real_distances_from_d2[:] - X_test_1[idx_to_use_1_to_2])**2))
-    rms_error_2_to_1 = np.sqrt(np.mean((real_distances_from_d1[:] - X_test_2[idx_to_use_2_to_1])**2))
-    rms_error_relative_1_to_2 = np.sqrt(np.mean(((real_distances_from_d2[:] - X_test_1[idx_to_use_1_to_2])/X_test_1[idx_to_use_1_to_2])**2)) * 100
-    rms_error_relative_2_to_1 = np.sqrt(np.mean(((real_distances_from_d1[:] - X_test_2[idx_to_use_2_to_1])/X_test_2[idx_to_use_2_to_1])**2)) * 100
-  
-    print(f"Total RMS Error GMM 1 to GMM2: {rms_error_1_to_2*100:.2f} cm")
-    print(f"Total RMS Error GMM 2 to GMM1: {rms_error_2_to_1*100:.2f} cm \n")
+    ms_error_1_to_2 = np.mean((real_distances_from_d2 - X_test_1[idx_to_use_1_to_2])**2)
+    ms_error_2_to_1 = np.mean((real_distances_from_d1 - X_test_2[idx_to_use_2_to_1])**2)
+    rms_error_1_to_2 = np.sqrt(np.mean((real_distances_from_d2 - X_test_1[idx_to_use_1_to_2])**2))
+    rms_error_2_to_1 = np.sqrt(np.mean((real_distances_from_d1 - X_test_2[idx_to_use_2_to_1])**2))
+    ms_error_relative_1_to_2 = np.mean(((real_distances_from_d2 - X_test_1[idx_to_use_1_to_2])/X_test_1[idx_to_use_1_to_2])**2) * 100
+    ms_error_relative_2_to_1 = np.mean(((real_distances_from_d1 - X_test_2[idx_to_use_2_to_1])/X_test_2[idx_to_use_2_to_1])**2) * 100
+    rms_error_relative_1_to_2 = np.sqrt(np.mean(((real_distances_from_d2 - X_test_1[idx_to_use_1_to_2])/X_test_1[idx_to_use_1_to_2])**2)) * 100
+    rms_error_relative_2_to_1 = np.sqrt(np.mean(((real_distances_from_d1 - X_test_2[idx_to_use_2_to_1])/X_test_2[idx_to_use_2_to_1])**2)) * 100
+    
+    print(f"MSE GMM 1 to GMM2: {ms_error_1_to_2*100:.2f} cm")
+    print(f"MSE GMM 2 to GMM1: {ms_error_2_to_1*100:.2f} cm")
+    print(f"RMSE GMM 1 to GMM2: {rms_error_1_to_2*100:.2f} cm")
+    print(f"RMSE GMM 2 to GMM1: {rms_error_2_to_1*100:.2f} cm \n")
 
-    print(f"Total RMS Error Relative GMM 1 to GMM2: {rms_error_relative_1_to_2:.2f} % ")
-    print(f"Total RMS Error Relative GMM 2 to GMM1: {rms_error_relative_2_to_1:.2f} % \n")
+    print(f"Relative MSE GMM 1 to GMM2: {ms_error_relative_1_to_2:.2f} % ")
+    print(f"Relative MSE GMM 2 to GMM1: {ms_error_relative_2_to_1:.2f} % ")
+    print(f"Relative RMSE GMM 1 to GMM2: {rms_error_relative_1_to_2:.2f} % ")
+    print(f"Relative RMSE GMM 2 to GMM1: {rms_error_relative_2_to_1:.2f} % \n")
 
     ## Plots
     ### ERROR PREDICTING GMM 1 and matching to GMM 2
     plt.figure(figsize=(20, 10))
-    plt.scatter(X_test_1[idx_to_use_1_to_2], error_1_to_2, s=100, label='Predict 1 to 2')
+    plt.scatter(X_test_1[idx_to_use_1_to_2], error_1_to_2, s=100)#, label='Predict 1 to 2')
+    plt.axhline(y=rms_error_1_to_2, color='r', linewidth=3, label='RMSE')
+    # plt.axhline(y=ms_error_1_to_2, color='b', linewidth=3, label='MSE')
     plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
     plt.ylabel("Error [m]", fontsize=GLOBAL_FONTSIZE) 
     # plt.axis('equal')
@@ -358,14 +368,18 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
 
     ### RELATIVE ERROR PREDICTING GMM 1 and matching to GMM 2
     plt.figure(figsize=(20, 10))
-    plt.scatter(X_test_1[idx_to_use_1_to_2], rel_error_1_to_2, s=100, label='Predict 1 to 2')
+    plt.scatter(X_test_1[idx_to_use_1_to_2], rel_error_1_to_2, s=100)#, label='Predict 1 to 2')
+    plt.axhline(y=rms_error_relative_1_to_2, color='r', linewidth=3, label='RMSE')
+    # plt.axhline(y=ms_error_relative_1_to_2, color='b', linewidth=3, label='MSE')
     plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
     plt.ylabel("Relative Error [%]", fontsize=GLOBAL_FONTSIZE) 
     plt.title(f'Relative Error in distance prediction from {agnosticism} 1 to {agnosticism} 2', fontsize=GLOBAL_FONTSIZE)
 
     ### ERROR PREDICTING GMM 2 and matching to GMM 1
     plt.figure(figsize=(20, 10))
-    plt.scatter(X_test_2[idx_to_use_2_to_1], error_2_to_1, s=100, label='Predict 2 to 1')
+    plt.scatter(X_test_2[idx_to_use_2_to_1], error_2_to_1, s=100)#, label='Predict 2 to 1')
+    plt.axhline(y=rms_error_2_to_1, color='r', linewidth=3, label='RMSE')
+    # plt.axhline(y=ms_error_2_to_1, color='b', linewidth=3, label='MSE')
     plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
     plt.ylabel("Error [m]", fontsize=GLOBAL_FONTSIZE) 
     plt.axis('equal')
@@ -373,7 +387,9 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
 
     ### RELATIVE ERROR PREDICTING GMM 1 and matching to GMM 2
     plt.figure(figsize=(20, 10))
-    plt.scatter(X_test_2[idx_to_use_2_to_1], rel_error_2_to_1, s=100, label='Predict 2 to 1')
+    plt.scatter(X_test_2[idx_to_use_2_to_1], rel_error_2_to_1, s=100)#, label='Predict 2 to 1')
+    plt.axhline(y=rms_error_relative_2_to_1, color='r', linewidth=3, label='RMSE')
+    # plt.axhline(y=ms_error_relative_2_to_1, color='b', linewidth=3, label='MSE')
     plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
     plt.ylabel("Relative Error [%]", fontsize=GLOBAL_FONTSIZE) 
     plt.title(f'Relative Error in distance prediction from {agnosticism} 2 to {agnosticism} 1', fontsize=GLOBAL_FONTSIZE)
@@ -387,6 +403,7 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
         plt.gca().spines['bottom'].set_linewidth(2)
         plt.gca().tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
         plt.gca().set_ylim(bottom=0)
+        plt.legend(fontsize=GLOBAL_FONTSIZE-5)
 
     # Save and shwo plot if desired
     if save_fig : 
