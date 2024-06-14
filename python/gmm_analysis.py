@@ -345,8 +345,8 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
     rms_error_relative_1_to_2 = np.sqrt(np.mean(((real_distances_from_d2 - X_test_1[idx_to_use_1_to_2])/X_test_1[idx_to_use_1_to_2])**2)) * 100
     rms_error_relative_2_to_1 = np.sqrt(np.mean(((real_distances_from_d1 - X_test_2[idx_to_use_2_to_1])/X_test_2[idx_to_use_2_to_1])**2)) * 100
     
-    print(f"MSE GMM 1 to GMM2: {ms_error_1_to_2*100:.2f} cm")
-    print(f"MSE GMM 2 to GMM1: {ms_error_2_to_1*100:.2f} cm")
+    print(f"MSE GMM 1 to GMM2: {ms_error_1_to_2*10000:.2f} cm^2")
+    print(f"MSE GMM 2 to GMM1: {ms_error_2_to_1*10000:.2f} cm^2")
     print(f"RMSE GMM 1 to GMM2: {rms_error_1_to_2*100:.2f} cm")
     print(f"RMSE GMM 2 to GMM1: {rms_error_2_to_1*100:.2f} cm \n")
 
