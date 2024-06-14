@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import mplcursors
 
-from python.utils.data_handling_functions import *
+from utils.data_handling_functions import *
 
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 40

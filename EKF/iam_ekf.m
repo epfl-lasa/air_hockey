@@ -69,7 +69,7 @@ classdef iam_ekf < handle
 %                 data = dataToy(this.initCoeff(:,i));
 %                 data = dataSim('data/log_box_traj_mu001.txt',this.initCoeff(:,i));
                 % data = dataReal('data/hit_1-IIWA_7.csv',this.initCoeff(:,i));
-                data = dataReal('data/airhockey_ekf/june/clean/hit_6-IIWA_7.csv',this.initCoeff(:,i));
+                data = dataReal('data/airhockey_ekf/june/clean/hit_7-IIWA_7.csv',this.initCoeff(:,i));
                 % data = dataReal('data/airhockey_ekf/june/dirty/hit_11-IIWA_7.csv',this.initCoeff(:,i));
 %                 data = dataReal('data/clean/hit_1-IIWA_7.csv',this.initCoeff(:,i));
 %                 data = dataReal('data/dirty/hit_571-IIWA_7.csv',this.initCoeff(:,i));

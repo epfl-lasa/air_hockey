@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from python.utils.data_handling_functions import *
+from utils.data_handling_functions import *
 
 ## Orientation calculations
 def wrap_angle(angle_rad):
@@ -14,7 +14,7 @@ def wrap_angle(angle_rad):
     if angle_deg >= 180 : return 180-mod_angle
     if angle_deg <= -180: return -mod_angle
     else: return angle_deg
-    
+
 def get_orientation_error_x_y_z(q_a, q_b):
     ### Get 2 quaternions and return euler angles from q_a to q_b
     ## This works for 7 for some reason (but not 14)

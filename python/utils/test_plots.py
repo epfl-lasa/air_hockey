@@ -13,9 +13,9 @@ import pybullet
 import math
 from scipy.spatial.transform import Rotation
 
-from python.utils.data_handling_functions import *
-from python.utils.data_processing_functions import get_impact_time_from_object
-from python.utils. test_calculations import wrap_angle, get_corrected_quat_object_2, get_orientation_error_x_y_z, get_orientation_error_manually
+from utils.data_handling_functions import *
+from utils.data_processing_functions import get_impact_time_from_object
+from utils. test_calculations import wrap_angle, get_corrected_quat_object_2, get_orientation_error_x_y_z, get_orientation_error_manually
 
 
 # Fontsize for axes and titles 

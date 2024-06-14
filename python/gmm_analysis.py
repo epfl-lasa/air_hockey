@@ -7,8 +7,8 @@ from gmr import MVN, GMM, plot_error_ellipses
 from scipy.stats import entropy
 import h5py
 
-from python.utils.data_handling_functions import (PATH_TO_DATA_FOLDER, read_airhockey_csv, read_and_clean_data, 
-                                             restructure_for_agnostic_plots, save_one_figure, resample_uniformally)
+from utils.data_handling_functions import (PATH_TO_DATA_FOLDER, read_airhockey_csv, read_and_clean_data, 
+                                             restructure_for_agnostic_plots, save_one_figure, save_all_figures, resample_uniformally)
 
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 40
@@ -236,6 +236,160 @@ def cross_validate_gmm(dataset_name='D1-robot_agnostic', predict_value="flux", n
             print(f"RMS Error : {rms_error*100:.2f} cm/s")
 
         print(f"RMS Error Relative: {rms_error_relative:.2f} % \n")
+
+### Compare GMM models
+def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=500, n_gaussians=2, show_plot=True, save_fig=True):
+    ## Compare 2 GMM models by predicting flux from one model then comparing the distance related to that flux to the distance use to predict
+    ### agnosticism = ['robot', 'object', 'config']
+
+    flux_diff_threshold = 1e-3 # How closely we match the predicted flux to the real flux
+
+    print(f"\n Calculating RMS error when predicting for robot models. \n")
+
+    ## DATASET TO USE - DEPENDS ON agnosticism
+    if agnosticism == 'robot':
+        save_fig_folder = "Distance_pred-robot_agnostic-D1"
+        df = read_airhockey_csv(fn='D1-robot_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+
+        df_1 = df[df['IiwaNumber']==7].copy()
+        df_2 = df[df['IiwaNumber']==14].copy()
+
+    elif agnosticism == 'object':
+        save_fig_folder = "Distance_pred-object_agnostic"
+        df = read_airhockey_csv(fn='D1-D2-object_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+
+        df_1 = df[df['object']==1].copy()
+        df_2 = df[df['object']==2].copy()
+
+    elif agnosticism == 'config':
+        save_fig_folder = "Distance_pred-config_agnostic"
+        df = read_airhockey_csv(fn='D1-D3-config_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+
+        df_1 = df[df['config']==1].copy()
+        df_2 = df[df['config']==2].copy()
+
+    else :
+        print("Not a parametrable agnosticism, please provide either 'robot', 'object' or 'config")
+        return
+
+    X_1 = np.column_stack((df_1['HittingFlux'].values, df_1['DistanceTraveled'].values))
+    X_2 = np.column_stack((df_2['HittingFlux'].values, df_2['DistanceTraveled'].values))
+
+    ## Create GMMs
+    gmm1 = GMM(n_components=n_gaussians, random_state=0)
+    gmm1.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+
+    gmm2 = GMM(n_components=n_gaussians, random_state=0)
+    gmm2.from_samples(X_2, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+
+    # Predict flux for a given distance on 
+    X_test_1 = np.linspace(df_1['DistanceTraveled'].min(), df_1['DistanceTraveled'].max(), n_predictions) 
+    X_test_2 = np.linspace(df_2['DistanceTraveled'].min(), df_2['DistanceTraveled'].max(), n_predictions) 
+    Y_1 = gmm1.predict(np.array([1]), X_test_1[:, np.newaxis])
+    Y_2 = gmm2.predict(np.array([1]), X_test_2[:, np.newaxis])
+
+    ## Grab real data for each predicted flux 
+    real_distances_from_d1 =[]
+    real_distances_from_d2 =[]
+    error_1_to_2 = []
+    error_2_to_1 = []
+    rel_error_1_to_2 = []
+    rel_error_2_to_1 = []
+    idx_to_use_1_to_2 = []
+    idx_to_use_2_to_1 = []
+
+    for i in range(n_predictions):
+        ### Compare gmm1 prediction with gmm2 real data
+        idx = np.argmin(np.abs(X_2[:,0] - Y_1[i,0]))
+        closest_flux = X_2[idx, 0]
+        closest_distance = X_2[idx, 1]
+        flux_diff = np.abs(closest_flux - Y_1[i,0])
+        temp_error = np.abs(closest_distance - X_test_1[i])
+        temp_rel_error = np.abs((closest_distance - X_test_1[i])/X_test_1[i]) * 100
+
+        if flux_diff < flux_diff_threshold:
+            real_distances_from_d2.append(closest_distance)
+            error_1_to_2.append(temp_error)
+            rel_error_1_to_2.append(temp_rel_error)
+            idx_to_use_1_to_2.append(i)
+
+        ### Compare gmm2 prediction with gmm1 real data
+        idx = np.argmin(np.abs(X_1[:,0] - Y_2[i,0]))
+        closest_flux = X_1[idx, 0]
+        closest_distance = X_1[idx, 1]
+        flux_diff = closest_flux - Y_2[i,0]
+        temp_error = np.abs(closest_distance - X_test_2[i])
+        temp_rel_error = np.abs((closest_distance - X_test_2[i])/X_test_2[i]) * 100
+
+        if flux_diff < flux_diff_threshold:
+            real_distances_from_d1.append(closest_distance)
+            error_2_to_1.append(temp_error)
+            rel_error_2_to_1.append(temp_rel_error)
+            idx_to_use_2_to_1.append(i)
+
+    print(f"Using {len(idx_to_use_1_to_2)}/{len(X_test_1)} datapoints with 1 to 2")
+    print(f"Using {len(idx_to_use_2_to_1)}/{len(X_test_2)} datapoints with 2 to 1")
+
+    ## TOTAL ERROR
+    ## Compare prediction of gmm1 with actual data from gmm 2
+    rms_error_1_to_2 = np.sqrt(np.mean((real_distances_from_d2[:] - X_test_1[idx_to_use_1_to_2])**2))
+    rms_error_2_to_1 = np.sqrt(np.mean((real_distances_from_d1[:] - X_test_2[idx_to_use_2_to_1])**2))
+    rms_error_relative_1_to_2 = np.sqrt(np.mean(((real_distances_from_d2[:] - X_test_1[idx_to_use_1_to_2])/X_test_1[idx_to_use_1_to_2])**2)) * 100
+    rms_error_relative_2_to_1 = np.sqrt(np.mean(((real_distances_from_d1[:] - X_test_2[idx_to_use_2_to_1])/X_test_2[idx_to_use_2_to_1])**2)) * 100
+  
+    print(f"Total RMS Error GMM 1 to GMM2: {rms_error_1_to_2*100:.2f} cm")
+    print(f"Total RMS Error GMM 2 to GMM1: {rms_error_2_to_1*100:.2f} cm")
+
+    print(f"Total RMS Error Relative GMM 1 to GMM2: {rms_error_relative_1_to_2:.2f} % \n")
+    print(f"Total RMS Error Relative GMM 2 to GMM1: {rms_error_relative_2_to_1:.2f} % \n")
+
+    ## Plots
+    ### ERROR PREDICTING GMM 1 and matching to GMM 2
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_1[idx_to_use_1_to_2], error_1_to_2, s=100, label='Predict 1 to 2')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("Error [m]", fontsize=GLOBAL_FONTSIZE) 
+    # plt.axis('equal')
+    plt.title(f'Error in distance prediction from {agnosticism} 1 to {agnosticism} 2', fontsize=GLOBAL_FONTSIZE)
+
+    ### RELATIVE ERROR PREDICTING GMM 1 and matching to GMM 2
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_1[idx_to_use_1_to_2], rel_error_1_to_2, s=100, label='Predict 1 to 2')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("Relative Error [%]", fontsize=GLOBAL_FONTSIZE) 
+    plt.title(f'Relative Error in distance prediction from {agnosticism} 1 to {agnosticism} 2', fontsize=GLOBAL_FONTSIZE)
+
+    ### ERROR PREDICTING GMM 2 and matching to GMM 1
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_2[idx_to_use_2_to_1], error_2_to_1, s=100, label='Predict 2 to 1')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("Error [m]", fontsize=GLOBAL_FONTSIZE) 
+    plt.axis('equal')
+    plt.title(f'Error in distance prediction from {agnosticism} 2 to {agnosticism} 1', fontsize=GLOBAL_FONTSIZE)
+
+    ### RELATIVE ERROR PREDICTING GMM 1 and matching to GMM 2
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_2[idx_to_use_2_to_1], rel_error_2_to_1, s=100, label='Predict 2 to 1')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("Relative Error [%]", fontsize=GLOBAL_FONTSIZE) 
+    plt.title(f'Relative Error in distance prediction from {agnosticism} 2 to {agnosticism} 1', fontsize=GLOBAL_FONTSIZE)
+
+    # Increase the size of the tick labels
+    for fig in plt.get_fignums():
+        plt.figure(fig)
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.gca().spines['left'].set_linewidth(2)  # Set left spine thickness
+        plt.gca().spines['bottom'].set_linewidth(2)
+        plt.gca().tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
+        plt.gca().set_ylim(bottom=0)
+
+    # Save and shwo plot if desired
+    if save_fig : 
+        save_all_figures(save_fig_folder)
+
+    if show_plot:  plt.show()
+
 
 
 ## NOTE - used to confirm sklearn works
@@ -558,10 +712,13 @@ if __name__== "__main__" :
     ## Run one of these to get the plots for agnosticism 
 
     # object_agnostic(use_clean_dataset=True)
-    robot_agnostic(use_clean_dataset=True)
+    # robot_agnostic(use_clean_dataset=True)
     # config_agnostic(use_clean_dataset=True)
 
     # cross_validate_gmm('D1-robot_agnostic', predict_value="flux")
+    # compare_distance_predictions_of_models(agnosticism='object', n_predictions=500)
+    # compare_distance_predictions_of_models(agnosticism='robot', n_predictions=500)
+    compare_distance_predictions_of_models(agnosticism='config', n_predictions=200)
 
     ### GOLF
     # get_golf_gaussians()

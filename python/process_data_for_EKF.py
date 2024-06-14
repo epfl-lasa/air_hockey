@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import time
 import re
-from python.utils.data_handling_functions import PATH_TO_DATA_FOLDER, parse_list, parse_value
-from python.utils.data_processing_functions import get_impact_time_from_object, get_robot_data_at_hit
+from utils.data_handling_functions import PATH_TO_DATA_FOLDER, parse_list, parse_value
+from utils.data_processing_functions import get_impact_time_from_object, get_robot_data_at_hit
 
 ## EKF processing
 def process_one_file_for_ekf(robot_csv, object_csv, output_folder, pos_name_str = 'PositionWorldFrame'):

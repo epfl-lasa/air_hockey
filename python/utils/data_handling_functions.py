@@ -178,7 +178,7 @@ def save_one_figure(folder_name, title):
 
     print("Figure saved successfully!")
 
-def save_all_figures(folder_name, title=None): 
+def save_all_figures(folder_name): 
 
     # Specify the directory where you want to save the figures
     save_dir = PATH_TO_DATA_FOLDER + "figures/" + folder_name
@@ -190,8 +190,7 @@ def save_all_figures(folder_name, title=None):
     # Save all figures without window borders
     for fig in plt.get_fignums():
         plt.figure(fig)
-        if title is None :
-            title = plt.gca().get_title()  # Get the title of the figure
+        title = plt.gca().get_title()  # Get the title of the figure
         file_name = f"{title}.png" if title else f"figure_{fig}.png"
         plt.gca().set_frame_on(True)  # Turn on frame
         plt.savefig(os.path.join(save_dir, file_name), bbox_inches="tight", pad_inches=0.1)

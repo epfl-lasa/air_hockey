@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 import time
 import re
-from python.utils.data_handling_functions import PATH_TO_DATA_FOLDER, parse_list
-from python.utils.data_processing_functions import *
+from utils.data_handling_functions import PATH_TO_DATA_FOLDER, parse_list
+from utils.data_processing_functions import *
 
 ## Get hit info and format it for csv
 def get_info_at_hit_time(robot_csv, object_csv):
