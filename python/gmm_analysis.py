@@ -411,6 +411,156 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
 
     if show_plot:  plt.show()
 
+def compare_distance_predictions_of_models_RMSE(agnosticism='robot', n_predictions=500, flux_finding_tolerance=5e-3, n_gaussians=2, show_plot=True, save_fig=True):
+    ## Compare 2 GMM models by predicting flux from one model then comparing the distance related to that flux to the distance use to predict
+    ### agnosticism = ['robot', 'object', 'config']
+    ### flux_finding_tolerance= How closely we match the predicted flux to the real flux
+
+    print(f"\n Calculating RMS error when predicting for robot models. \n")
+
+    ## DATASET TO USE - DEPENDS ON agnosticism
+    if agnosticism == 'robot':
+        save_fig_folder = "RMSE_Distance_pred-robot_agnostic-D1"
+        df = read_airhockey_csv(fn='D1-robot_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+
+        df_1 = df[df['IiwaNumber']==7].copy()
+        df_2 = df[df['IiwaNumber']==14].copy()
+
+    elif agnosticism == 'object':
+        save_fig_folder = "RMSE_Distance_pred-object_agnostic"
+        df = read_airhockey_csv(fn='D1-D2-object_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+
+        df_1 = df[df['object']==1].copy()
+        df_2 = df[df['object']==2].copy()
+
+    elif agnosticism == 'config':
+        save_fig_folder = "RMSE_Distance_pred-config_agnostic"
+        df = read_airhockey_csv(fn='D1-D3-config_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+
+        df_1 = df[df['config']==1].copy()
+        df_2 = df[df['config']==2].copy()
+
+    else :
+        print("Not a parametrable agnosticism, please provide either 'robot', 'object' or 'config")
+        return
+    
+    print(f"Dataset info : \n"
+        f" GMM 1 # of points : {len(df_1.index)} \n"
+        f" GMM 2 # of points : {len(df_2.index)} \n")
+
+    X_1 = np.column_stack((df_1['HittingFlux'].values, df_1['DistanceTraveled'].values))
+    X_2 = np.column_stack((df_2['HittingFlux'].values, df_2['DistanceTraveled'].values))
+
+    ## Create GMMs
+    gmm1 = GMM(n_components=n_gaussians, random_state=0)
+    gmm1.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+
+    gmm2 = GMM(n_components=n_gaussians, random_state=0)
+    gmm2.from_samples(X_2, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+
+    # Predict flux for a given distance on 
+    X_test_1 = np.linspace(df_1['DistanceTraveled'].min(), df_1['DistanceTraveled'].max(), n_predictions) 
+    X_test_2 = np.linspace(df_2['DistanceTraveled'].min(), df_2['DistanceTraveled'].max(), n_predictions) 
+    Y_1 = gmm1.predict(np.array([1]), X_test_1[:, np.newaxis])
+    Y_2 = gmm2.predict(np.array([1]), X_test_2[:, np.newaxis])
+
+    ## Grab real data for each predicted flux 
+    rmse_1_to_2 = []
+    rmse_2_to_1 = []
+    rel_rmse_1_to_2 = []
+    rel_rmse_2_to_1 = []
+
+    for i in range(n_predictions):
+        ### Compare gmm1 prediction with gmm2 real data -> get several real distances for corresponding flux -> get rMSE of those
+        abs_diff = np.abs(X_2[:,0] - Y_1[i,0])
+
+        closest_indices = np.where(abs_diff <= np.min(abs_diff) + flux_finding_tolerance)[0]
+        closest_distance = X_2[closest_indices, 1]
+  
+        # Verify we have enough values to get a relevant RMSE
+        if len(closest_distance) >= 20 :
+            print(f"Using {len(closest_distance)} for the same flux with index {i}")
+        if len(closest_distance) <= 10 :
+            rmse = None
+            rel_rmse = None
+            print(f"Discarding value with index : {i}")
+        else :
+            rmse = np.sqrt(np.mean((closest_distance - X_test_1[i])**2))
+            rel_rmse = np.sqrt(np.mean(((closest_distance - X_test_1[i])/X_test_1[i])**2)) * 100
+        
+        rmse_1_to_2.append(rmse)
+        rel_rmse_1_to_2.append(rel_rmse)
+
+        ### Compare gmm2 prediction with gmm1 real data -> get several real distances for corresponding flux -> get rMSE of those
+        abs_diff = np.abs(X_1[:,0] - Y_2[i,0])
+        closest_indices = np.where(abs_diff <= np.min(abs_diff) + flux_finding_tolerance)[0]
+        closest_distance = X_1[closest_indices, 1]
+
+        # Verify we have enough values to get a relevant RMSE
+        if len(closest_distance) >= 20 :
+            print(f"Using {len(closest_distance)} values for the same flux with index {i}")
+        if len(closest_distance) <= 10 :
+            rmse = None
+            rel_rmse = None
+            print(f"Discarding value with index : {i}")
+        else :
+            rmse = np.sqrt(np.mean((closest_distance - X_test_2[i])**2))
+            rel_rmse = np.sqrt(np.mean(((closest_distance - X_test_2[i])/X_test_2[i])**2)) * 100
+
+        rmse_2_to_1.append(rmse)
+        rel_rmse_2_to_1.append(rel_rmse)
+
+    print(f"From 1 to 2, discarded {sum(x is None for x in rmse_1_to_2)} values due to not having enough datapoints for this flux")
+    print(f"From 2 to 1, discarded {sum(x is None for x in rmse_2_to_1)} values due to not having enough datapoints for this flux\n")
+
+    ## Plots
+    ### ERROR PREDICTING GMM 1 and matching to GMM 2
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_1, rmse_1_to_2, s=100)#, label='Predict 1 to 2')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("RMSE [m]", fontsize=GLOBAL_FONTSIZE) 
+    plt.axis('equal')
+    plt.title(f'RMSE of distance prediction from {agnosticism} 1 to {agnosticism} 2', fontsize=GLOBAL_FONTSIZE)
+
+    ### RELATIVE ERROR PREDICTING GMM 1 and matching to GMM 2
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_1, rel_rmse_1_to_2, s=100)#, label='Predict 1 to 2')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("Relative RMSE [%]", fontsize=GLOBAL_FONTSIZE) 
+    plt.title(f'Relative RMSE of distance prediction from {agnosticism} 1 to {agnosticism} 2', fontsize=GLOBAL_FONTSIZE)
+
+    ### ERROR PREDICTING GMM 2 and matching to GMM 1
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_2, rmse_2_to_1, s=100)#, label='Predict 2 to 1')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("RMSE [m]", fontsize=GLOBAL_FONTSIZE) 
+    plt.axis('equal')
+    plt.title(f'RMSE of distance prediction from {agnosticism} 2 to {agnosticism} 1', fontsize=GLOBAL_FONTSIZE)
+
+    ### RELATIVE ERROR PREDICTING GMM 1 and matching to GMM 2
+    plt.figure(figsize=(20, 10))
+    plt.scatter(X_test_2, rel_rmse_2_to_1, s=100)#, label='Predict 2 to 1')
+    plt.xlabel("Distance Travelled [m]", fontsize=GLOBAL_FONTSIZE)   
+    plt.ylabel("Relative RMSE [%]", fontsize=GLOBAL_FONTSIZE) 
+    plt.title(f'Relative RMSE of distance prediction from {agnosticism} 2 to {agnosticism} 1', fontsize=GLOBAL_FONTSIZE)
+
+    # Increase the size of the tick labels
+    for fig in plt.get_fignums():
+        plt.figure(fig)
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.gca().spines['left'].set_linewidth(2)  # Set left spine thickness
+        plt.gca().spines['bottom'].set_linewidth(2)
+        plt.gca().tick_params(axis='both', which='major', labelsize=AXIS_TICK_FONTSIZE) 
+        plt.gca().set_ylim(bottom=0)
+        # plt.legend(fontsize=GLOBAL_FONTSIZE-5)
+
+    # Save and shwo plot if desired
+    if save_fig : 
+        save_all_figures(save_fig_folder)
+
+    if show_plot:  plt.show()
+
 
 
 ## NOTE - used to confirm sklearn works
@@ -738,9 +888,23 @@ if __name__== "__main__" :
     # cross_validate_gmm('D1-robot_agnostic', predict_value="flux")
     # compare_distance_predictions_of_models(agnosticism='object', n_predictions=500)
     # compare_distance_predictions_of_models(agnosticism='robot', n_predictions=500)
-    compare_distance_predictions_of_models(agnosticism='config', n_predictions=200)
+    # compare_distance_predictions_of_models(agnosticism='config', n_predictions=200)
+
+    # compare_distance_predictions_of_models_RMSE(agnosticism='robot', n_predictions=100)
+    # compare_distance_predictions_of_models_RMSE(agnosticism='object', n_predictions=100, flux_finding_tolerance=4e-3)
+    compare_distance_predictions_of_models_RMSE(agnosticism='config', n_predictions=100, flux_finding_tolerance=1e-2)
+
 
     ### GOLF
     # get_golf_gaussians()
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.5447, d2=0.4499)
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.6, d2=0.5)
+
+
+    #### Test to get correct number of datapoints 
+    # df1 = read_and_clean_data("D1_clean", max_flux=0.8, save_clean_df=False)
+    # df2 = read_and_clean_data("D2_clean", max_flux=0.8, save_clean_df=False)
+    # df3 = read_and_clean_data("D3_clean", max_flux=0.8, save_clean_df=False)
+
+    # print(f"number of samples for iiwa 7 : {len(df1[df1['IiwaNumber']==14])+len(df2[df2['IiwaNumber']==14])}")
+    # print(f"number of samples for iiwa 7 : {len(df1[df1['IiwaNumber']==7])}")
