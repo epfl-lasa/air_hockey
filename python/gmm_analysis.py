@@ -271,6 +271,10 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
     else :
         print("Not a parametrable agnosticism, please provide either 'robot', 'object' or 'config")
         return
+    
+    print(f"Dataset info : \n"
+        f" GMM 1 # of points : {len(df_1.index)} \n"
+        f" GMM 2 # of points : {len(df_2.index)} \n")
 
     X_1 = np.column_stack((df_1['HittingFlux'].values, df_1['DistanceTraveled'].values))
     X_2 = np.column_stack((df_2['HittingFlux'].values, df_2['DistanceTraveled'].values))
@@ -328,7 +332,7 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
             idx_to_use_2_to_1.append(i)
 
     print(f"Using {len(idx_to_use_1_to_2)}/{len(X_test_1)} datapoints with 1 to 2")
-    print(f"Using {len(idx_to_use_2_to_1)}/{len(X_test_2)} datapoints with 2 to 1")
+    print(f"Using {len(idx_to_use_2_to_1)}/{len(X_test_2)} datapoints with 2 to 1 \n")
 
     ## TOTAL ERROR
     ## Compare prediction of gmm1 with actual data from gmm 2
@@ -338,9 +342,9 @@ def compare_distance_predictions_of_models(agnosticism='robot', n_predictions=50
     rms_error_relative_2_to_1 = np.sqrt(np.mean(((real_distances_from_d1[:] - X_test_2[idx_to_use_2_to_1])/X_test_2[idx_to_use_2_to_1])**2)) * 100
   
     print(f"Total RMS Error GMM 1 to GMM2: {rms_error_1_to_2*100:.2f} cm")
-    print(f"Total RMS Error GMM 2 to GMM1: {rms_error_2_to_1*100:.2f} cm")
+    print(f"Total RMS Error GMM 2 to GMM1: {rms_error_2_to_1*100:.2f} cm \n")
 
-    print(f"Total RMS Error Relative GMM 1 to GMM2: {rms_error_relative_1_to_2:.2f} % \n")
+    print(f"Total RMS Error Relative GMM 1 to GMM2: {rms_error_relative_1_to_2:.2f} % ")
     print(f"Total RMS Error Relative GMM 2 to GMM1: {rms_error_relative_2_to_1:.2f} % \n")
 
     ## Plots
@@ -689,7 +693,6 @@ def config_agnostic(use_clean_dataset=True):
         clean_df = df_combined[df_combined['config']==1].copy()
         clean_df2 = df_combined[df_combined['config']==2].copy()
         
-    
     print(f"Dataset info : \n"
         f" Config 1 points : {len(clean_df.index)} \n"
         f" Config 2 points : {len(clean_df2.index)} \n")

@@ -99,7 +99,7 @@ def read_airhockey_csv(fn, folder=PATH_TO_PROCESSED_RAW_FOLDER):
             'AttractorPos' : parse_strip_list_with_commas,'HittingOrientation': parse_strip_list_with_commas, 
             'ObjectPosStart' : parse_strip_list_with_commas,'ObjectPosEnd' : parse_strip_list_with_commas})
     
-    print(f"Reading {fn} with {len(df.index)} samples.")
+    print(f"Reading {fn} with {len(df.index)} samples.\n")
 
     return df
 

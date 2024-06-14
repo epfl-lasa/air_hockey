@@ -20,9 +20,12 @@ data/airhockey_ekf/june/*
 !data/airhockey_ekf/june/clean/
 !data/airhockey_ekf/june/dirty/
 
-# DO NOT ignore these data folders 
+# DO NOT ignore these figure folders 
 !data/figures/
 data/figures/*
+!data/figures/Distance_pred-config_agnostic
+!data/figures/Distance_pred-object_agnostic
+!data/figures/Distance_pred-robot_agnostic-D1
 !data/figures/golf
 !data/figures/for_paper
 !data/figures/KL_div-config_agnostic
