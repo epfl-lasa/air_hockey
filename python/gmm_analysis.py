@@ -875,6 +875,25 @@ def config_agnostic(use_clean_dataset=True):
 
     plt.show()
 
+def get_number_of_datapoints():
+
+    print("Number of datapoints for each datasets. Note that these are subsampled before fitting a model. \n")
+
+    #### Test to get correct number of datapoints 
+    df1 = read_and_clean_data("D1_clean", max_flux=1.2, save_clean_df=False)
+    df2 = read_and_clean_data("D2_clean", max_flux=1.2, save_clean_df=False)
+
+    print(f"D1 (object 1) - number of samples for iiwa 7 : {len(df1[df1['IiwaNumber']==7])}")
+    print(f"D1 (object 1) - number of samples for iiwa 14 : {len(df1[df1['IiwaNumber']==14])}")
+
+    print(f"D2 (object 2) - number of samples for iiwa 7 : {len(df2[df2['IiwaNumber']==7])}")
+    print(f"D2 (object 2) - number of samples for iiwa 14 : {len(df2[df2['IiwaNumber']==14])}")
+
+    df1 = read_and_clean_data("D1_clean", max_flux=1.2, save_clean_df=False)
+    df3 = read_and_clean_data("D3_clean", max_flux=1.2, save_clean_df=False)
+
+    print(f"D1 (object 1) - number of samples for config 1 : {len(df1[df1['IiwaNumber']==7])}")
+    print(f"D3 (object 1) - number of samples for config 2 : {len(df3.index)}")
 
 if __name__== "__main__" :
 
@@ -892,7 +911,7 @@ if __name__== "__main__" :
 
     # compare_distance_predictions_of_models_RMSE(agnosticism='robot', n_predictions=100)
     # compare_distance_predictions_of_models_RMSE(agnosticism='object', n_predictions=100, flux_finding_tolerance=4e-3)
-    compare_distance_predictions_of_models_RMSE(agnosticism='config', n_predictions=100, flux_finding_tolerance=1e-2)
+    # compare_distance_predictions_of_models_RMSE(agnosticism='config', n_predictions=100, flux_finding_tolerance=1e-2)
 
 
     ### GOLF
@@ -900,11 +919,5 @@ if __name__== "__main__" :
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.5447, d2=0.4499)
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.6, d2=0.5)
 
-
-    #### Test to get correct number of datapoints 
-    # df1 = read_and_clean_data("D1_clean", max_flux=0.8, save_clean_df=False)
-    # df2 = read_and_clean_data("D2_clean", max_flux=0.8, save_clean_df=False)
-    # df3 = read_and_clean_data("D3_clean", max_flux=0.8, save_clean_df=False)
-
-    # print(f"number of samples for iiwa 7 : {len(df1[df1['IiwaNumber']==14])+len(df2[df2['IiwaNumber']==14])}")
-    # print(f"number of samples for iiwa 7 : {len(df1[df1['IiwaNumber']==7])}")
+    get_number_of_datapoints()
+  
