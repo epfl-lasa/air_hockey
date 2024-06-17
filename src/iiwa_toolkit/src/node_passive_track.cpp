@@ -214,6 +214,10 @@ class IiwaRosMaster
         // plotting
         _plotPublisher = _n.advertise<std_msgs::Float64MultiArray>(ns+"/plotvar",1);
         
+        // NS
+        if(!_n.getParam("use_inertia_shaping", reshape_inertia)){ROS_ERROR("Could not find Parameter use_inertia_shaping");}
+        _controller->set_reshape_inertia(reshape_inertia);
+
         // dynamic configure:
         if(!_n.getParam("use_rqt", use_rqt)){ROS_ERROR("Could not find Parameter use_rqt");}
         if(use_rqt){
@@ -269,6 +273,7 @@ class IiwaRosMaster
 
 
     bool use_rqt;
+    bool reshape_inertia;
     dynamic_reconfigure::Server<iiwa_toolkit::passive_cfg_paramsConfig> _dynRecServer;
     dynamic_reconfigure::Server<iiwa_toolkit::passive_cfg_paramsConfig>::CallbackType _dynRecCallback;
 
