@@ -1,0 +1,5 @@
+This file contains the KL Divergence value.
+KL Divergence: 0.2949810579811304
+KL Divergence Resampled: 0.2958490452326389
+KL Divergence Inverse: 0.40048332092924854
+KL Divergence Resampled Inverse: 0.3719960106755203

@@ -28,6 +28,6 @@ bash docker/start-docker.sh
 roslaunch air_hockey air_hockey_sim.launch
 ```
 
-# Authors/Maintainers 
+## Authors/Maintainers 
 
 Maxime Gautier : maxime.gautier@epfl.ch
