@@ -590,6 +590,23 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
   return current_state;
 }
 
+void AirHockey::call_prediction_service(){
+
+  ros::ServiceClient client = nh_.serviceClient<air_hockey::Prediction>("prediction");
+  air_hockey::Prediction srv;
+  // Get distance between box and target 
+  srv.request.input_value = 0.6;  // Example value
+
+  if (client.call(srv))
+  {
+    ROS_INFO("Received result: %f", srv.response.output_value);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service prediction");
+  }
+}
+
 void AirHockey::run() {
 
   // Set up counters and bool variables
@@ -654,6 +671,10 @@ void AirHockey::run() {
 
     // DEBUG
     if(print_count%200 == 0 ){
+
+      //Call prediciton service 
+      call_prediction_service();
+
       // std::cout << "iiwa7_state : " << fsm_state.mode_iiwa7 << " \n iiwa14_state : " << fsm_state.mode_iiwa14<< std::endl;
       // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
       // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;

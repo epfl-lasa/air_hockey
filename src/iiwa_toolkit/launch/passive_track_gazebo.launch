@@ -15,7 +15,7 @@
         <node name="passive_tracking" pkg="iiwa_toolkit" type="passive_track" output="screen">
         </node>
 
-        <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual.yaml" command="load"/>
+        <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual_sim.yaml" command="load"/>
     </group>
 <!--     
     <node name="plotter"

@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.mixture import GaussianMixture
 import matplotlib.patches as patches
 from gmr import MVN, GMM, plot_error_ellipses
-from scipy.stats import entropy
 import h5py
 
 from utils.data_handling_functions import (PATH_TO_DATA_FOLDER, read_airhockey_csv, read_and_clean_data, 

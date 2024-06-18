@@ -48,6 +48,7 @@
 #include "dynamical_system.h"
 #include "keyboard_interaction.hpp"
 #include "air_hockey/FSM_state.h"
+#include "air_hockey/Prediction.h"
 
 #define NB_ROBOTS 2// Number of robots
 
@@ -168,5 +169,6 @@ public:
 
   FSMState updateFSMAutomatic(FSMState statesvar);
   FSMState preHitPlacement(FSMState statesvar);
+  void call_prediction_service();
 
 };

@@ -1,4 +1,5 @@
 use_rqt: False # set to True to use rqt reconfigure 
+use_inertia_shaping: False # set to True to use null space inertia shaping to find good hitting configurations
 
 control:
     iiwa1:
