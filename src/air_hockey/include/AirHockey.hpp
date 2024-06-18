@@ -172,6 +172,6 @@ public:
 
   FSMState updateFSMAutomatic(FSMState statesvar);
   FSMState preHitPlacement(FSMState statesvar);
-  void call_prediction_service();
+  void set_predicted_flux();
 
 };

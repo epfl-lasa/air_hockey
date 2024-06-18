@@ -27,21 +27,21 @@ def read_model_for_gmr(model_name):
 
     return gmm
 
-def get_flux_for_distance_with_gmr(distance):
+def get_flux_for_distance_with_gmr(d1, d2):
 
-    des_distances = np.array([distance])
+    des_distances = np.array([d1, d2])
 
     # Predict fluxes for desired distances
     flux = gmm.predict(np.array([1]), des_distances[:, np.newaxis])
 
-    return flux[0,0]
+    return flux[0,0], flux[1,0]
 
 def handle_calculation(req):
-    rospy.loginfo(f"Received input: {req.input_value}")
+    rospy.loginfo(f"Received input: {req.distance_iiwa7},{req.distance_iiwa14}")
     # Get flxu prediction based on distance 
-    result = get_flux_for_distance_with_gmr(req.input_value)
-    rospy.loginfo(f"Returning result: {result}")
-    return PredictionResponse(result)
+    flux_1, flux_2 = get_flux_for_distance_with_gmr(req.distance_iiwa7, req.distance_iiwa14)
+    rospy.loginfo(f"Returning result: {flux_1}, {flux_2}")
+    return PredictionResponse(flux_1, flux_2)
 
 def calculation_server():
     rospy.init_node('prediction_server')

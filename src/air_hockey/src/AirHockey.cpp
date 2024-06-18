@@ -194,7 +194,7 @@ bool AirHockey::init() {
   setReturnPositionToInitial();
 
   // get desired hitting fluxes from file in config folder
-  if(!isFluxFixed_){
+  if(!isFluxFixed_ && !isAiming_){
     std::string flux_fn;
     if (!nh_.getParam("desired_fluxes_filename",flux_fn)) { ROS_ERROR("Param desired_fluxes_filename not found"); }
 
@@ -203,6 +203,12 @@ bool AirHockey::init() {
 
     hittingFlux_[IIWA_7] = hittingFluxArr_[0];
     hittingFlux_[IIWA_14] = hittingFluxArr_[0];
+  }
+
+  // Get starting flux 
+  if(isAiming_){
+    ROS_INFO("USING GMR PREDICTION FOR FLUX VALUES");
+    set_predicted_flux();
   }
 
   return true;
@@ -599,16 +605,20 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
   return current_state;
 }
 
-void AirHockey::call_prediction_service(){
+void AirHockey::set_predicted_flux(){
 
   ros::ServiceClient client = nh_.serviceClient<air_hockey::Prediction>("prediction");
   air_hockey::Prediction srv;
+
   // Get distance between box and target 
-  srv.request.input_value = 0.6;  // Example value
+  srv.request.distance_iiwa7 = (hitTarget_[IIWA_7] - objectPositionForIiwa_[IIWA_7]).norm(); 
+  srv.request.distance_iiwa14 = (hitTarget_[IIWA_14] - objectPositionForIiwa_[IIWA_14]).norm();
 
   if (client.call(srv))
   {
-    ROS_INFO("Received result: %f", srv.response.output_value);
+    ROS_INFO("Received flux_1: %f, flux_2: %f", srv.response.flux_iiwa7, srv.response.flux_iiwa14);
+    hittingFlux_[IIWA_7] = srv.response.flux_iiwa7;
+    hittingFlux_[IIWA_14] = srv.response.flux_iiwa14;
   }
   else
   {
@@ -682,7 +692,7 @@ void AirHockey::run() {
     if(print_count%200 == 0 ){
 
       //Call prediciton service 
-      call_prediction_service();
+      set_predicted_flux();
 
       // std::cout << "iiwa7_state : " << fsm_state.mode_iiwa7 << " \n iiwa14_state : " << fsm_state.mode_iiwa14<< std::endl;
       // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
