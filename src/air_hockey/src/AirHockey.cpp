@@ -562,6 +562,11 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
   float pos_threshold_7 = 2*1e-2;
   float pos_threshold_14 = 4*1e-2;
   float vel_threshold = 1*1e-3;
+
+  // Get next hit based on prediciton
+  if(isAiming_){
+    set_predicted_flux();
+  }
   
   // update return position, if not possible, do not change state 
   if(!updateReturnPosition())
@@ -690,10 +695,6 @@ void AirHockey::run() {
 
     // DEBUG
     if(print_count%200 == 0 ){
-
-      //Call prediciton service 
-      set_predicted_flux();
-
       // std::cout << "iiwa7_state : " << fsm_state.mode_iiwa7 << " \n iiwa14_state : " << fsm_state.mode_iiwa14<< std::endl;
       // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
       // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
