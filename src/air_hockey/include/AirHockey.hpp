@@ -69,6 +69,7 @@ private:
   bool isHit_ = 0;
   bool isSim_;
   bool isAuto_;
+  bool isAiming_;
   bool isPaused_;
   bool isFluxFixed_;
   bool isObjectMoving_;
@@ -76,6 +77,7 @@ private:
   ros::Duration waitDuration_;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
+  Eigen::Vector3f hitTarget_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
   Eigen::Vector4f refQuat_[NB_ROBOTS];
   Eigen::Vector3f returnPos_[NB_ROBOTS];
@@ -83,6 +85,7 @@ private:
   float objectMass_;
   std::vector<float> hittingFluxArr_;
   float objectSafetyDistance_;
+  geometry_msgs::Pose refVelQuat_;
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string pubPosQuatTopic_[NB_ROBOTS];

@@ -26,6 +26,8 @@
 #include <Eigen/Dense>
 #include <ros/console.h>
 
+#include <geometry_msgs/Pose.h>
+
 class hitting_DS {
 private:
   float des_speed_ = 2.0;
@@ -49,6 +51,9 @@ public:
   Eigen::Vector3f linear_DS();
   Eigen::Vector3f linear_DS(Eigen::Vector3f& attractor);
   Eigen::Vector3f vel_max_DS();
+
+  std::pair<Eigen::Vector3f, Eigen::Vector4f>flux_DS_with_quat(double dir_flux, Eigen::Vector3f target, Eigen::Matrix3f& current_inertia_inverse);
+  Eigen::Vector4f pointsToQuat(Eigen::Vector3f point_1, Eigen::Vector3f point_2);
 
   // Getter
   Eigen::Vector3f get_des_direction();

@@ -6,6 +6,8 @@ bool AirHockey::init() {
   if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation_referential not found"); }
   // Check if automatic
   if (!nh_.getParam("automatic",isAuto_)) { ROS_ERROR("Param automatic not found"); }
+  // Check if aiming
+  if (!nh_.getParam("aiming",isAiming_)) { ROS_ERROR("Param aiming not found"); }
   // Check if using fixed flux
   if (!nh_.getParam("fixed_flux",isFluxFixed_)) { ROS_ERROR("Param automatic not found"); }
   // Check safetz distance
@@ -172,6 +174,13 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/placement_offset/x", placementOffset_[IIWA_14][0])) { ROS_ERROR("Topic iiwa14/placement_offset/x not found"); }
   if (!nh_.getParam("iiwa14/placement_offset/y", placementOffset_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/placement_offset/y not found"); }
   if (!nh_.getParam("iiwa14/placement_offset/z", placementOffset_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/placement_offset/x not found"); }
+
+  if (!nh_.getParam("iiwa7/hit_target/x", hitTarget_[IIWA_7][0])) { ROS_ERROR("Topic iiwa7/hit_target/x not found"); }
+  if (!nh_.getParam("iiwa7/hit_target/y", hitTarget_[IIWA_7][1])) { ROS_ERROR("Topic iiwa7/hit_target/y not found"); }
+  if (!nh_.getParam("iiwa7/hit_target/z", hitTarget_[IIWA_7][2])) { ROS_ERROR("Topic iiwa7/hit_target/z not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/x", hitTarget_[IIWA_14][0])) { ROS_ERROR("Topic iiwa14/hit_target/x not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/y", hitTarget_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/hit_target/y not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/z", hitTarget_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/hit_target/x not found"); }
 
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
@@ -614,7 +623,7 @@ void AirHockey::run() {
   int display_pause_count = 0;
   int hit_count = 1;
   int update_flux_once = 0;
-  
+
   FSMState fsm_state;
 
   std::cout << "READY TO RUN " << std::endl;
@@ -684,8 +693,9 @@ void AirHockey::run() {
       // std::cout << "object pos by iiwaPos_7  " << objectPositionForIiwa_[IIWA_7]<< std::endl;
       // std::cout << "object pos by  iiwaPos_14  " << objectPositionForIiwa_[IIWA_14]<< std::endl;
       // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7]
-       
+      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7];  
+      std::cout << "ref Vel 7 " << refVelocity_[IIWA_7]<< std::endl;
+      std::cout << " ref quat 7 " << refQuat_[IIWA_7] << std::endl;   
     }
     print_count +=1 ;
 
@@ -697,12 +707,28 @@ void AirHockey::run() {
 
     // UPDATE robot state
     if(fsm_state.mode_iiwa7 == HIT){
-      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      if(isAiming_){
+        auto refVelQuat = generateHitting7_->flux_DS_with_quat(hittingFlux_[IIWA_7], hitTarget_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+        refVelocity_[IIWA_7] = refVelQuat.first;
+        refQuat_[IIWA_7] = refVelQuat.second;
+      }
+      else{
+        refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      }
+  
       update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+      if(isAiming_){
+        auto refVelQuat = generateHitting14_->flux_DS_with_quat(hittingFlux_[IIWA_14], hitTarget_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+        refVelocity_[IIWA_14] = refVelQuat.first;
+        refQuat_[IIWA_14] = refVelQuat.second;
+      }
+      else if(!isAiming_){
+        refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+      }
+    
       // update_flux_once = 1; // only update after 1 hit from each robot
     }
 
