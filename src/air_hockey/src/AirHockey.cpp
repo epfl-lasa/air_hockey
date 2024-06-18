@@ -523,7 +523,7 @@ void AirHockey::updateisPaused() {
 }
 
 // AUTONOMOUS FSM
-AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
+AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state) {
 
   // if PAUSED -> both robots to REST and wait for further input (return immediately)
   if(isPaused_)
@@ -563,11 +563,12 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
   float pos_threshold_14 = 4*1e-2;
   float vel_threshold = 1*1e-3;
 
-  // Get next hit based on prediciton
-  if(isAiming_){
+  // Set flux based on prediction
+  if(isAiming_ && callFluxService_ && next_hit_ != NONE){
     set_predicted_flux();
+    callFluxService_ = false;
   }
-  
+    
   // update return position, if not possible, do not change state 
   if(!updateReturnPosition())
     return current_state;
@@ -581,14 +582,16 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
       current_state.mode_iiwa7 = HIT;
       next_hit_ = NONE;
       setReturnPositionToInitial();
+      callFluxService_ = true;
     }
     if(next_hit_ == IIWA_14 && norm_iiwa14 < pos_threshold_14 && iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
       current_state.mode_iiwa14 = HIT;
       next_hit_ = NONE;
       setReturnPositionToInitial();
+      callFluxService_ = true;
     }
   }
-  if(isAuto_){ // Then set to HIT depending on norm of both robots
+  else if(isAuto_){ // Then set to HIT depending on norm of both robots
     if(norm_iiwa7 < pos_threshold_7 && norm_iiwa14 < pos_threshold_14 && 
             iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold && 
             iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
@@ -604,6 +607,7 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
         }
         // Start by going back to usual pos before adapting to object
         setReturnPositionToInitial();
+        callFluxService_ = true; // reset for next hit
       }
   }
   
@@ -658,6 +662,9 @@ void AirHockey::run() {
 
   while (ros::ok()) {
 
+    // check if object is moving and update
+    updateIsObjectMoving();
+
     // Use keyboard control if is not automatic (set in yaml file)
     if(!isAuto_) {
       fsm_state = updateKeyboardControl(fsm_state); 
@@ -671,9 +678,6 @@ void AirHockey::run() {
 
       // check if object is within range (for safety)
       checkObjectIsSafeToHit();
-
-      // check if object is moving and update
-      updateIsObjectMoving();
 
       // Display Pause State every second
       if(display_pause_count%600 == 0 ){

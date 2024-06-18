@@ -32,26 +32,27 @@ def get_flux_for_distance_with_gmr(d1, d2):
     des_distances = np.array([d1, d2])
 
     # Predict fluxes for desired distances
-    flux = gmm.predict(np.array([1]), des_distances[:, np.newaxis])
+    flux_iiwa7 = gmm_iiwa7.predict(np.array([1]), des_distances[:, np.newaxis])
+    flux_iiwa14 = gmm_iiwa14.predict(np.array([1]), des_distances[:, np.newaxis])
 
-    return flux[0,0], flux[1,0]
+    return flux_iiwa7[0,0], flux_iiwa14[1,0]
 
-def handle_calculation(req):
+def handle_prediction(req):
     rospy.loginfo(f"Received input: {req.distance_iiwa7},{req.distance_iiwa14}")
     # Get flxu prediction based on distance 
     flux_1, flux_2 = get_flux_for_distance_with_gmr(req.distance_iiwa7, req.distance_iiwa14)
     rospy.loginfo(f"Returning result: {flux_1}, {flux_2}")
     return PredictionResponse(flux_1, flux_2)
 
-def calculation_server():
+def prediction_server():
     rospy.init_node('prediction_server')
-    s = rospy.Service('prediction', Prediction, handle_calculation)
+    s = rospy.Service('prediction', Prediction, handle_prediction)
     rospy.loginfo("Ready to predict.")
     rospy.spin()
 
 if __name__ == "__main__":
 
-    
-    gmm = read_model_for_gmr(model_name='GMM_fit_for_D1')
+    gmm_iiwa7 = read_model_for_gmr(model_name='GMM_fit_for_complete_D1-iiwa_7')
+    gmm_iiwa14 = read_model_for_gmr(model_name='GMM_fit_for_complete_D1-iiwa_14')
 
     calculation_server()

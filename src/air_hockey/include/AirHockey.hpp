@@ -73,6 +73,7 @@ private:
   bool isPaused_;
   bool isFluxFixed_;
   bool isObjectMoving_;
+  bool callFluxService_ = true;
   float timeToWait_;
   ros::Duration waitDuration_;
 

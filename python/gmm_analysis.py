@@ -894,6 +894,34 @@ def get_number_of_datapoints():
     print(f"D1 (object 1) - number of samples for config 1 : {len(df1[df1['IiwaNumber']==7])}")
     print(f"D3 (object 1) - number of samples for config 2 : {len(df3.index)}")
 
+def complete_model():
+
+    ## Datasets to use
+    csv_fn = "D1_clean" 
+
+    ############ USING RAW DATASETS ############
+
+    ## Read and clean datasets
+    df = read_and_clean_data(csv_fn, resample=False, min_flux=0.5, max_flux=1.2, save_clean_df=False)
+
+    print(f"Dataset info : \n"
+        f" Iiwa 7 points : {len(df[df['IiwaNumber']==7])} \n"
+        f" Iiwa 14 points : {len(df[df['IiwaNumber']==14])} \n")
+    
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+
+    ######### GMM Scores #########
+    n_gaussians = 3
+
+    plot_gmr(df_iiwa7, n=n_gaussians, plot="only_gmm", title=f"GMM fit for complete D1-iiwa 7", save_fig=False)
+    plot_gmr(df_iiwa14, n=2, plot="only_gmm", title=f"GMM fit for complete D1-iiwa 14", save_fig=False)
+    plot_bic_aic_with_sklearn(df_iiwa7, title=f"AIC-BIC for complete D1 - iiwa 7", save_fig=False)
+    plot_bic_aic_with_sklearn(df_iiwa14, title=f"AIC-BIC for complete D1 - iiwa 14", save_fig=False)
+
+    plt.show()
+
+
 if __name__== "__main__" :
 
     ### PAPER PLOTS
@@ -918,5 +946,7 @@ if __name__== "__main__" :
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.5447, d2=0.4499)
     # get_flux_for_distance_with_gmr('GMM_fit_for_D1', d1=0.6, d2=0.5)
 
-    get_number_of_datapoints()
-  
+    # get_number_of_datapoints()
+    
+    ### Complete model used forlive flux predictions
+    complete_model()
