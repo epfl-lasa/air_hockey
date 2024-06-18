@@ -6,6 +6,8 @@ bool AirHockey::init() {
   if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation_referential not found"); }
   // Check if automatic
   if (!nh_.getParam("automatic",isAuto_)) { ROS_ERROR("Param automatic not found"); }
+  // Check if aiming
+  if (!nh_.getParam("aiming",isAiming_)) { ROS_ERROR("Param aiming not found"); }
   // Check if using fixed flux
   if (!nh_.getParam("fixed_flux",isFluxFixed_)) { ROS_ERROR("Param automatic not found"); }
   // Check safetz distance
@@ -683,28 +685,30 @@ void AirHockey::run() {
     }
 
     // UPDATE robot state
-    // if(fsm_state.mode_iiwa7 == HIT){
-    //   refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
-    //   update_flux_once = 1; // only update after 1 hit from each robot
-    // }
-
-    // if(fsm_state.mode_iiwa14 == HIT){
-    //   refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
-    //   // update_flux_once = 1; // only update after 1 hit from each robot
-    // }
-
     if(fsm_state.mode_iiwa7 == HIT){
-      auto refVelQuat = generateHitting7_->flux_DS_with_quat(hittingFlux_[IIWA_7], hitTarget_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      if(isAiming_){
+        auto refVelQuat = generateHitting7_->flux_DS_with_quat(hittingFlux_[IIWA_7], hitTarget_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+        refVelocity_[IIWA_7] = refVelQuat.first;
+        refQuat_[IIWA_7] = refVelQuat.second;
+      }
+      else{
+        refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      }
+  
       update_flux_once = 1; // only update after 1 hit from each robot
-      refVelocity_[IIWA_7] = refVelQuat.first;
-      refQuat_[IIWA_7] = refVelQuat.second;
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
-      auto refVelQuat = generateHitting14_->flux_DS_with_quat(hittingFlux_[IIWA_14], hitTarget_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+      if(isAiming_){
+        auto refVelQuat = generateHitting14_->flux_DS_with_quat(hittingFlux_[IIWA_14], hitTarget_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+        refVelocity_[IIWA_14] = refVelQuat.first;
+        refQuat_[IIWA_14] = refVelQuat.second;
+      }
+      else if(!isAiming_){
+        refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+      }
+    
       // update_flux_once = 1; // only update after 1 hit from each robot
-      refVelocity_[IIWA_14] = refVelQuat.first;
-      refQuat_[IIWA_14] = refVelQuat.second;
     }
 
     if(fsm_state.mode_iiwa7 == REST || fsm_state.isHit == 1){

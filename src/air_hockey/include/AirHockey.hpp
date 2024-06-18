@@ -68,6 +68,7 @@ private:
   bool isHit_ = 0;
   bool isSim_;
   bool isAuto_;
+  bool isAiming_;
   bool isPaused_;
   bool isFluxFixed_;
   bool isObjectMoving_;
