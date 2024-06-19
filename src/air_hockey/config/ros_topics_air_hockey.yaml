@@ -35,14 +35,16 @@ iiwa: {
 
 # OPTITRACK
 optitrack: {
-  object_from_base_1: {
-    pose: "/vrpn_client_node/object_1/pose_from_iiwa_7_base", # Subscriber - Object position and orientation transformed to base 1 - type geometry_msgs::PoseStamped (REAL)
+  from_base_1: {
+    object: "/vrpn_client_node/object_3/pose_from_iiwa_7_base", # Subscriber - Object position and orientation transformed to base 1 - type geometry_msgs::PoseStamped (REAL)
+    target: "/vrpn_client_node/object_1/pose_from_iiwa_7_base", # Subscriber - Object position and orientation transformed to base 1 - type geometry_msgs::PoseStamped (REAL)
   },
-  object_from_base_2: {
-    pose: "/vrpn_client_node/object_1/pose_from_iiwa_14_base", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
+  from_base_2: {
+    object: "/vrpn_client_node/object_3/pose_from_iiwa_14_base", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
+    target: "/vrpn_client_node/object_1/pose_from_iiwa_14_base", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
   },
   from_optitrack_base: {
-    object: "/vrpn_client_node/object_1/pose", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
+    object: "/vrpn_client_node/object_3/pose", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
     iiwa_7: "/vrpn_client_node/iiwa_7_base/pose", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
     iiwa_14: "/vrpn_client_node/iiwa_14_base/pose", # Subscriber - Object position and orientation transformed to base 2 - type geometry_msgs::PoseStamped (REAL)
   },

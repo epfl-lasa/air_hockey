@@ -115,6 +115,7 @@ private:
   std::string iiwaPositionTopicSim_;
   std::string objectPositionTopic_;
   std::string objectPositionTopicReal_[NB_ROBOTS];
+  std::string targetPositionTopicReal_[NB_ROBOTS];
   std::string iiwaBasePositionTopic_[NB_ROBOTS];
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];

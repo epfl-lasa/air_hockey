@@ -45,8 +45,10 @@ bool Recorder::init() {
     if (!nh_.getParam("/iiwa/info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
     if (!nh_.getParam("/iiwa/info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
     if (!nh_.getParam("/iiwa/info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
-    if (!nh_.getParam("/optitrack/object_from_base_1/pose", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/object_from_base_1/pose not found");}
-    if (!nh_.getParam("/optitrack/object_from_base_2/pose", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/object_from_base_2/pose not found");}
+    if (!nh_.getParam("/optitrack/from_base_1/object", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/object not found");}
+    if (!nh_.getParam("/optitrack/from_base_2/object", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/object not found");}
+    if (!nh_.getParam("/optitrack/from_base_1/target", targetPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/target not found");}
+    if (!nh_.getParam("/optitrack/from_base_2/target", targetPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/target not found");}  
     
     if (!nh_.getParam("/optitrack/from_optitrack_base/object", objectPositionTopic_)) {ROS_ERROR("Topic /optitrack/from_optitrack_base/object not found");}
     if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_7", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_7 not found");}
