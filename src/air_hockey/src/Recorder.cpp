@@ -443,9 +443,9 @@ void Recorder::recordObjectMovedByHand(int hit_count){
     // was moving but stopped -> write to file
     std::string fn = recordingFolderPath_ + "object_moved_manually_after_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
     writeObjectStatesToFile(hit_count, fn, manual);
+    std::cout << "Finished writing motion for object moved manually after hit " << std::to_string(hit_count) << "-" << std::to_string(moved_manually_count_) << std::endl;
     moved_manually_count_ += 1;
     isObjectMoving_ = 0;
-    std::cout << "Finished writing motion for object moved manually after hit " << std::to_string(hit_count) << "-" << std::to_string(moved_manually_count_) << std::endl;
   }
   else if(norm < stopped_threshold){
     // not moving -> do nothing
@@ -768,7 +768,7 @@ void Recorder::run() {
     // If not during hit, check if we are moving the object manually, record if so
     else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
             time_since_hit > max_recording_time && !write_once_object){
-      if(!isSim_){recordObjectMovedByHand(hit_count);}
+      if(!isSim_){recordObjectMovedByHand(hit_count-1);}
     }
 
     //// ROBOT RECORDING LOGIC 
