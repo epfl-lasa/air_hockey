@@ -20,7 +20,7 @@ RUN sudo apt-get update && sudo apt-get install -y \
     && sudo apt-get upgrade -y && sudo apt-get clean
 
 # Python (for python plots)
-RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch gmr
+RUN pip install scipy pandas matplotlib==3.7.4 scikit-learn mplcursors pybullet torch gmr h5py pyyaml
 
 # install development dependencies and copy licenses
 COPY --from=ghcr.io/aica-technology/control-libraries/development-dependencies:20.04 /usr/local /tmp/local

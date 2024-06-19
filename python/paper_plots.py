@@ -6,15 +6,11 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 import mplcursors
 
-from process_data import  parse_list, parse_value, PATH_TO_DATA_FOLDER
-
-from analyse_data import read_airhockey_csv, read_and_clean_data, save_all_figures, get_object_based_on_dataset, restructure_for_agnostic_plots, resample_uniformally
-
+from utils.data_handling_functions import *
 
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 40
 AXIS_TICK_FONTSIZE = 30
-PROCESSED_RAW_FOLDER = PATH_TO_DATA_FOLDER + "airhockey_processed/raw/"
 SAVE_FOLDER_FOR_PAPER = "for_paper"   
 
 ## Plots
@@ -360,7 +356,7 @@ if __name__== "__main__" :
     ## Use 'raw' dataset to sample different datapoints for plots
 
     # object_traj_plot_for_paper(use_clean_dataset=True)
-    robot_agnostic(use_clean_dataset=True)
+    # robot_agnostic(use_clean_dataset=True)
     # object_agnostic(use_clean_dataset=True)
-    # config_agnostic(use_clean_dataset=True)
+    config_agnostic(use_clean_dataset=True)
 

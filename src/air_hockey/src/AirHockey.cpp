@@ -6,6 +6,8 @@ bool AirHockey::init() {
   if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation_referential not found"); }
   // Check if automatic
   if (!nh_.getParam("automatic",isAuto_)) { ROS_ERROR("Param automatic not found"); }
+  // Check if aiming
+  if (!nh_.getParam("aiming",isAiming_)) { ROS_ERROR("Param aiming not found"); }
   // Check if using fixed flux
   if (!nh_.getParam("fixed_flux",isFluxFixed_)) { ROS_ERROR("Param automatic not found"); }
   // Check safetz distance
@@ -173,6 +175,13 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/placement_offset/y", placementOffset_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/placement_offset/y not found"); }
   if (!nh_.getParam("iiwa14/placement_offset/z", placementOffset_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/placement_offset/x not found"); }
 
+  if (!nh_.getParam("iiwa7/hit_target/x", hitTarget_[IIWA_7][0])) { ROS_ERROR("Topic iiwa7/hit_target/x not found"); }
+  if (!nh_.getParam("iiwa7/hit_target/y", hitTarget_[IIWA_7][1])) { ROS_ERROR("Topic iiwa7/hit_target/y not found"); }
+  if (!nh_.getParam("iiwa7/hit_target/z", hitTarget_[IIWA_7][2])) { ROS_ERROR("Topic iiwa7/hit_target/z not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/x", hitTarget_[IIWA_14][0])) { ROS_ERROR("Topic iiwa14/hit_target/x not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/y", hitTarget_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/hit_target/y not found"); }
+  if (!nh_.getParam("iiwa14/hit_target/z", hitTarget_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/hit_target/x not found"); }
+
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
 
@@ -185,7 +194,7 @@ bool AirHockey::init() {
   setReturnPositionToInitial();
 
   // get desired hitting fluxes from file in config folder
-  if(!isFluxFixed_){
+  if(!isFluxFixed_ && !isAiming_){
     std::string flux_fn;
     if (!nh_.getParam("desired_fluxes_filename",flux_fn)) { ROS_ERROR("Param desired_fluxes_filename not found"); }
 
@@ -194,6 +203,12 @@ bool AirHockey::init() {
 
     hittingFlux_[IIWA_7] = hittingFluxArr_[0];
     hittingFlux_[IIWA_14] = hittingFluxArr_[0];
+  }
+
+  // Get starting flux 
+  if(isAiming_){
+    ROS_INFO("USING GMR PREDICTION FOR FLUX VALUES");
+    set_predicted_flux();
   }
 
   return true;
@@ -508,7 +523,7 @@ void AirHockey::updateisPaused() {
 }
 
 // AUTONOMOUS FSM
-AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
+AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state) {
 
   // if PAUSED -> both robots to REST and wait for further input (return immediately)
   if(isPaused_)
@@ -547,7 +562,13 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
   float pos_threshold_7 = 2*1e-2;
   float pos_threshold_14 = 4*1e-2;
   float vel_threshold = 1*1e-3;
-  
+
+  // Set flux based on prediction
+  if(isAiming_ && callFluxService_ && next_hit_ != NONE){
+    set_predicted_flux();
+    callFluxService_ = false;
+  }
+    
   // update return position, if not possible, do not change state 
   if(!updateReturnPosition())
     return current_state;
@@ -561,14 +582,16 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
       current_state.mode_iiwa7 = HIT;
       next_hit_ = NONE;
       setReturnPositionToInitial();
+      callFluxService_ = true;
     }
     if(next_hit_ == IIWA_14 && norm_iiwa14 < pos_threshold_14 && iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
       current_state.mode_iiwa14 = HIT;
       next_hit_ = NONE;
       setReturnPositionToInitial();
+      callFluxService_ = true;
     }
   }
-  if(isAuto_){ // Then set to HIT depending on norm of both robots
+  else if(isAuto_){ // Then set to HIT depending on norm of both robots
     if(norm_iiwa7 < pos_threshold_7 && norm_iiwa14 < pos_threshold_14 && 
             iiwaVelocityFromSource_[IIWA_7].norm() < vel_threshold && 
             iiwaVelocityFromSource_[IIWA_14].norm() < vel_threshold){
@@ -584,10 +607,32 @@ AirHockey::FSMState AirHockey::preHitPlacement(FSMState current_state ) {
         }
         // Start by going back to usual pos before adapting to object
         setReturnPositionToInitial();
+        callFluxService_ = true; // reset for next hit
       }
   }
   
   return current_state;
+}
+
+void AirHockey::set_predicted_flux(){
+
+  ros::ServiceClient client = nh_.serviceClient<air_hockey::Prediction>("prediction");
+  air_hockey::Prediction srv;
+
+  // Get distance between box and target 
+  srv.request.distance_iiwa7 = (hitTarget_[IIWA_7] - objectPositionForIiwa_[IIWA_7]).norm(); 
+  srv.request.distance_iiwa14 = (hitTarget_[IIWA_14] - objectPositionForIiwa_[IIWA_14]).norm();
+
+  if (client.call(srv))
+  {
+    ROS_INFO("Received flux_1: %f, flux_2: %f", srv.response.flux_iiwa7, srv.response.flux_iiwa14);
+    hittingFlux_[IIWA_7] = srv.response.flux_iiwa7;
+    hittingFlux_[IIWA_14] = srv.response.flux_iiwa14;
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service prediction");
+  }
 }
 
 void AirHockey::run() {
@@ -597,7 +642,7 @@ void AirHockey::run() {
   int display_pause_count = 0;
   int hit_count = 1;
   int update_flux_once = 0;
-  
+
   FSMState fsm_state;
 
   std::cout << "READY TO RUN " << std::endl;
@@ -617,6 +662,9 @@ void AirHockey::run() {
 
   while (ros::ok()) {
 
+    // check if object is moving and update
+    updateIsObjectMoving();
+
     // Use keyboard control if is not automatic (set in yaml file)
     if(!isAuto_) {
       fsm_state = updateKeyboardControl(fsm_state); 
@@ -630,9 +678,6 @@ void AirHockey::run() {
 
       // check if object is within range (for safety)
       checkObjectIsSafeToHit();
-
-      // check if object is moving and update
-      updateIsObjectMoving();
 
       // Display Pause State every second
       if(display_pause_count%600 == 0 ){
@@ -663,8 +708,9 @@ void AirHockey::run() {
       // std::cout << "object pos by iiwaPos_7  " << objectPositionForIiwa_[IIWA_7]<< std::endl;
       // std::cout << "object pos by  iiwaPos_14  " << objectPositionForIiwa_[IIWA_14]<< std::endl;
       // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7]
-       
+      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7];  
+      std::cout << "ref Vel 7 " << refVelocity_[IIWA_7]<< std::endl;
+      std::cout << " ref quat 7 " << refQuat_[IIWA_7] << std::endl;   
     }
     print_count +=1 ;
 
@@ -676,12 +722,28 @@ void AirHockey::run() {
 
     // UPDATE robot state
     if(fsm_state.mode_iiwa7 == HIT){
-      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      if(isAiming_){
+        auto refVelQuat = generateHitting7_->flux_DS_with_quat(hittingFlux_[IIWA_7], hitTarget_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+        refVelocity_[IIWA_7] = refVelQuat.first;
+        refQuat_[IIWA_7] = refVelQuat.second;
+      }
+      else{
+        refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
+      }
+  
       update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+      if(isAiming_){
+        auto refVelQuat = generateHitting14_->flux_DS_with_quat(hittingFlux_[IIWA_14], hitTarget_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+        refVelocity_[IIWA_14] = refVelQuat.first;
+        refQuat_[IIWA_14] = refVelQuat.second;
+      }
+      else if(!isAiming_){
+        refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
+      }
+    
       // update_flux_once = 1; // only update after 1 hit from each robot
     }
 

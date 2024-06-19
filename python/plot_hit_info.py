@@ -2,14 +2,10 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from datetime import datetime
-import re
-import time
-from process_data import parse_list, parse_value, get_impact_time_from_object, get_robot_data_at_hit, get_distance_travelled, get_info_at_hit_time
-import pybullet
-from analyse_data import wrap_angle
+from utils.data_processing_functions import *
 import math 
 from scipy.interpolate import interp1d
+import pybullet
 
 
 def get_latest_folder(path_to_data_airhockey, folder_name): 
@@ -101,17 +97,17 @@ def plot_object_data(csv_file, show_plot=True):
     offset_x = df['PositionForIiwa7'].iloc[0][1]- df['PositionWorldFrame'].iloc[0][0]
 
     x_values = df['PositionForIiwa7'].apply(lambda x: x[1])
-    df['Derivative'] = x_values.diff() / df['TimeOptitrack'].diff()
+    df['Derivative'] = x_values.diff() / df['RosTime'].diff()
     df = df[df['Derivative'] != 0.0].copy()
 
     x_values_world =  df['PositionWorldFrame'].apply(lambda x: x[0])
-    df['derivative_world'] = x_values_world.diff() / df['TimeOptitrack'].diff()
+    df['derivative_world'] = x_values_world.diff() / df['RosTime'].diff()
 
     hit_time = get_impact_time_from_object(path_to_object_hit, pos_name_str='PositionForIiwa7')
     datetime_hit_time= pd.to_datetime(hit_time, unit='s')
     # Convert the 'Time' column to datetime format
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
-    df['TimeOptitrack'] = pd.to_datetime(df['TimeOptitrack'], unit='s')
+    df['TimeWriting'] = pd.to_datetime(df['TimeWriting'], unit='s')
 
     # Labels for the coordinates
     coordinate_labels = ['x', 'y', 'z']
@@ -120,8 +116,8 @@ def plot_object_data(csv_file, show_plot=True):
     plt.figure(figsize=(12, 6))
     for i in range(3):
         plt.plot(df['RosTime'], df['PositionForIiwa7'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
-        plt.plot(df['TimeOptitrack'], df['PositionForIiwa7'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]} - optiTime')
-        plt.plot(df['TimeOptitrack'], df['PositionWorldFrame'].apply(lambda x: x[i]+ offset_x), label=f'Axis {coordinate_labels[i]} - World')
+        # plt.plot(df['TimeWriting'], df['PositionForIiwa7'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]} - TimeWriting')
+        plt.plot(df['RosTime'], df['PositionWorldFrame'].apply(lambda x: x[i]+ offset_x), label=f'Axis {coordinate_labels[i]} - World')
 
     plt.vlines(datetime_hit_time, ymin =0, ymax=np.array(df['PositionForIiwa7'][0]).max(), colors = 'r')
 
@@ -143,7 +139,7 @@ def plot_object_data(csv_file, show_plot=True):
     fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
 
     # ax.plot(df['RosTime'], df['Derivative'], label=f'Axis y')
-    ax.plot(df['TimeOptitrack'], df['Derivative'], label=f'Axis y')
+    ax.plot(df['RosTime'], df['Derivative'], label=f'Axis y')
     ax.plot(df['RosTime'], df['derivative_world'], label=f'Axis x - world')
 
     # ax.axvline(datetime_hit_time, color = 'r')
@@ -634,144 +630,6 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
     plt.show()
 
 
-# TESTING STUFF OUT             
-def flux_DS_by_harshit(attractor_pos, current_inertia, current_position):
-    
-    # set values
-    DS_attractor = np.reshape(np.array(attractor_pos), (-1,1))
-    des_direction = np.array([[0.0], [-1.0], [0.0]])
-    test_des_direction = np.array([[0.0], [-1.0], [0.0]])
-    sigma = 0.2
-    gain = -2.0 * np.identity(3)
-    m_obj = 0.4
-    dir_flux = 1.2
-
-    # Finding the virtual end effector position
-    relative_position = current_position - DS_attractor
-    virtual_ee = DS_attractor + des_direction * (np.dot(relative_position.T, test_des_direction) / np.linalg.norm(des_direction)**2)
-    
-    dir_inertia = 1/np.dot(des_direction.T, np.dot(current_inertia, des_direction))
-    
-    exp_term = np.linalg.norm(current_position - virtual_ee)
-
-    alpha = np.exp(-exp_term / (sigma * sigma))
-
-    reference_vel = alpha * des_direction + (1 - alpha) * np.dot(gain, (current_position - virtual_ee))
-
-    reference_velocity = (dir_flux / dir_inertia) * (dir_inertia + m_obj) * reference_vel / np.linalg.norm(reference_vel)
-
-    return reference_velocity.T, reference_vel.T, virtual_ee.T
-
-def flux_DS_by_maxime(attractor_pos, current_inertia, current_position):
-    
-    # set values
-    DS_attractor = np.reshape(np.array(attractor_pos), (-1,1))
-    des_direction = np.array([[0.0], [-1.0], [0.0]])
-    sigma = 0.2
-    gain = -2.0 * np.identity(3)
-    m_obj = 0.4
-    des_flux = 1.2
-
-    # First fin directional inertia using DESIRED DIRECTION
-    dir_inertia = 1/np.dot(des_direction.T, np.dot(current_inertia, des_direction))
-    
-    # define x dot start according to paper
-    des_velocity = des_flux * (dir_inertia +m_obj)/dir_inertia
-    des_direction_new = des_velocity*des_direction
-    
-
-    # Finding the virtual end effector position
-    relative_position = current_position - DS_attractor
-    virtual_ee = DS_attractor + des_direction * (np.dot(relative_position.T, des_direction) / np.linalg.norm(des_direction)**2)
-    virtual_ee_new = DS_attractor + des_direction_new * (np.dot(relative_position.T, des_direction_new) / np.linalg.norm(des_direction_new)**2)
-    
-    exp_term = np.linalg.norm(current_position - virtual_ee)
-    exp_term_new = np.linalg.norm(current_position - virtual_ee_new)
-
-    alpha = np.exp(-exp_term / (sigma * sigma))
-    alpha_new = np.exp(-exp_term_new / (sigma * sigma))
-
-    reference_vel = alpha * des_direction + (1 - alpha) * np.dot(gain, (current_position - virtual_ee))
-    reference_vel_new = alpha_new * des_direction_new + (1 - alpha_new) * np.dot(gain, (current_position - virtual_ee_new))
-    
-
-    reference_velocity = (des_flux / dir_inertia) * (dir_inertia + m_obj) * reference_vel / np.linalg.norm(reference_vel)
-    reference_velocity_new = (des_flux / dir_inertia) * (dir_inertia + m_obj) * reference_vel_new / np.linalg.norm(reference_vel)
-    print(reference_velocity.T, reference_velocity_new.T)
-
-    return reference_velocity.T, reference_vel.T, virtual_ee.T
-
-def test_flux_DS(csv_file):
-
-    # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file, skiprows=1,
-                     converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'JointEffort': parse_list, 
-                                 'TorqueCmd': parse_list, 'EEF_Position': parse_list, 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 
-                                 'EEF_DesiredVelocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_value})
-                    #  dtype={'RosTime': 'float64'})
-    
-    # get DS_attractor 
-    df_top_row = pd.read_csv(csv_file, nrows=1, header=None)
-    top_row_list = df_top_row.iloc[0].to_list()
-    des_pos = parse_list(top_row_list[5])
-
-    reshaped_inertia =  df['Inertia'].apply(lambda x : np.reshape(x, (3,3)))
-    reshaped_position = df['EEF_Position'].apply(lambda x : np.reshape(x, (3,1)))
-    ref_vel = np.zeros((len(df.index),3))
-    ref_vel2 = np.zeros((len(df.index),3))
-    virtual_ee = np.zeros((len(df.index),3))
-
-    for i in range(len(df.index)):
-
-          ref_vel[i], ref_vel2[i], virtual_ee[i] = (flux_DS_by_maxime(des_pos, reshaped_inertia.iloc[i], np.array(reshaped_position.iloc[i])))
-        # print(ref_vel)
-
-    # Plot the data
-    plt.figure(figsize=(12, 6))
-    
-    # Labels for the coordinates
-    coordinate_labels = ['x', 'y', 'z']
-
-    for i in range(3):
-        plt.plot(df['RosTime'], ref_vel[:,i], label=f'Python_DS {coordinate_labels[i]}')
-        plt.plot(df['RosTime'], df['EEF_DesiredVelocity'].apply(lambda x: x[i]), label=f'Cpp_DS {coordinate_labels[i]}')
-
-    # Make title string
-    filename = os.path.basename(csv_file)
-    filename_without_extension = os.path.splitext(filename)[0]
-    parts = filename_without_extension.split('_')
-    title_str = f"Object data for hit #{parts[3]}"
-
-    # Customize the plot
-    plt.title(title_str)
-    plt.xlabel('Time [s]')
-    plt.ylabel('DS_vel')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-def process_timestamped_folders(root_folder):    
-   
-    for folder in os.listdir(root_folder):
-        folder_path = os.path.join(root_folder, folder)
-        if os.path.isdir(folder_path) and len(folder) == 19 and folder[10] == '_':
-            # Check if the folder name matches the timestamp format
-            timestamp = folder.replace('_', ' ')
-            try:
-                datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
-            except ValueError:
-                continue
-
-            # Iterate through CSV files in the folder
-            for file in os.listdir(folder_path):
-                if file.startswith('iiwa'):
-                    file_path = os.path.join(folder_path, file)
-                    plot_robot_data(file_path)
-                if file.startswith('object'):
-                    file_path = os.path.join(folder_path, file)
-                    plot_robot_data(file_path)
-
-
 if __name__== "__main__" :
 
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
@@ -779,6 +637,7 @@ if __name__== "__main__" :
  
     # READ from file using index or enter manually
     read_hit_info_from_file = False
+
     ### Plots variables
     if read_hit_info_from_file:
         index_to_plot = 105 # 2168 #2176# 2267 #2299 ## FILL THIS IF ABOVE IS TRUE
@@ -792,16 +651,18 @@ if __name__== "__main__" :
     
     else : ## OTHERWISE FILL THIS 
         folder_name = "latest" #"latest" # "2024-04-30_11:26:14" ##"2024-04-30_10:25:25"  # 
-        hit_number = 2  # ##[2,3,4,5,6] #[16,17] #
+        hit_number = 18 # ##[2,3,4,5,6] #[16,17] #
         iiwa_number = 7
         object_number = 1
 
     ### DATA TO PLOT 
     plot_this_data = ["Object", "ObjectVel", "ObjectAcc"]#"Pos","Vel" "Inertia", "Object","Torque", "Grad", "Joint Vel","Orient", "Pos"[, "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
        
+
     # Get the latest folder
     if(folder_name == "latest"):
         folder_name = get_latest_folder(path_to_data_airhockey, folder_name)
+
 
     # PLOT FOR SINGLE HIT 
     if isinstance(hit_number, int) :
@@ -810,8 +671,8 @@ if __name__== "__main__" :
         # path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
 
         # Plot one hit info with hit time 
-        plot_object_data(path_to_object_hit)
-        # plot_actual_vs_des(path_to_robot_hit, path_to_object_hit, data_to_plot=plot_this_data)
+        # plot_object_data(path_to_object_hit)
+        plot_actual_vs_des(path_to_robot_hit, path_to_object_hit, data_to_plot=plot_this_data)
 
     
     # PLOT SEVERAL HITS (hit_number should be a list)

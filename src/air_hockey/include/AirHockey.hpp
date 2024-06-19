@@ -48,6 +48,7 @@
 #include "dynamical_system.h"
 #include "keyboard_interaction.hpp"
 #include "air_hockey/FSM_state.h"
+#include "air_hockey/Prediction.h"
 
 #define NB_ROBOTS 2// Number of robots
 
@@ -68,13 +69,16 @@ private:
   bool isHit_ = 0;
   bool isSim_;
   bool isAuto_;
+  bool isAiming_;
   bool isPaused_;
   bool isFluxFixed_;
   bool isObjectMoving_;
+  bool callFluxService_ = true;
   float timeToWait_;
   ros::Duration waitDuration_;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
+  Eigen::Vector3f hitTarget_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
   Eigen::Vector4f refQuat_[NB_ROBOTS];
   Eigen::Vector3f returnPos_[NB_ROBOTS];
@@ -82,6 +86,7 @@ private:
   float objectMass_;
   std::vector<float> hittingFluxArr_;
   float objectSafetyDistance_;
+  geometry_msgs::Pose refVelQuat_;
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string pubPosQuatTopic_[NB_ROBOTS];
@@ -168,5 +173,6 @@ public:
 
   FSMState updateFSMAutomatic(FSMState statesvar);
   FSMState preHitPlacement(FSMState statesvar);
+  void set_predicted_flux();
 
 };

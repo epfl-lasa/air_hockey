@@ -133,7 +133,7 @@ private:
     iiwa_tools::IiwaTools _tools;
     rbd::ForwardDynamics _fdyn;
 
-
+    bool use_reshape_inertia = false;
     bool is_just_velocity = false;
     double dsGain_pos;
     double dsGain_ori;
@@ -248,6 +248,7 @@ public:
     ~PassiveControl();
     void updateRobot(const Eigen::VectorXd& jnt_p,const Eigen::VectorXd& jnt_v,const Eigen::VectorXd& jnt_t);
     
+    void set_reshape_inertia(const bool& reshape_inertia);
     void set_desired_pose(const Eigen::Vector3d& pos, const Eigen::Vector4d& quat);
     void set_desired_position(const Eigen::Vector3d& pos);
     void set_desired_quat(const Eigen::Vector4d& quat);

@@ -12,9 +12,20 @@ data/airhockey_processed/clean/*
 !data/airhockey_processed/clean/KL_div-object_agnostic/
 !data/airhockey_processed/clean/KL_div-robot_agnostic-D1/
 
-# DO NOT ignore these data folders 
+# DO NOT ignore ekf data files
+!data/airhockey_ekf/
+data/airhockey_ekf/*
+!data/airhockey_ekf/june/
+data/airhockey_ekf/june/*
+!data/airhockey_ekf/june/clean/
+!data/airhockey_ekf/june/dirty/
+
+# DO NOT ignore these figure folders 
 !data/figures/
 data/figures/*
+!data/figures/RMSE_Distance_pred-config_agnostic
+!data/figures/RMSE_Distance_pred-object_agnostic
+!data/figures/RMSE_Distance_pred-robot_agnostic-D1
 !data/figures/golf
 !data/figures/for_paper
 !data/figures/KL_div-config_agnostic

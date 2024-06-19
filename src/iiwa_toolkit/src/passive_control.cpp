@@ -270,6 +270,10 @@ Eigen::VectorXd PassiveControl::computeDirInertiaGrad(iiwa_tools::RobotState &cu
     return grad;
 }
 
+void PassiveControl::set_reshape_inertia(const bool& reshape_inertia){
+
+    use_reshape_inertia = reshape_inertia;
+}
 
 void PassiveControl::set_pos_gains(const double& ds, const double& lambda0,const double& lambda1, const double& alp, const double& lambda0_hit){
     dsGain_pos = ds;
@@ -323,6 +327,7 @@ void PassiveControl::set_desired_position(const Eigen::Vector3d& pos){
 void PassiveControl::set_desired_quat(const Eigen::Vector4d& quat){
     _robot.ee_des_quat = quat;
 }
+
 void PassiveControl::set_desired_velocity(const Eigen::Vector3d& vel){
     _robot.ee_des_vel = vel;
     is_just_velocity = true;
@@ -378,7 +383,7 @@ void PassiveControl::set_impedance_position_gains(const Eigen::VectorXd& stiff_g
 
 Eigen::VectorXd PassiveControl::computeInertiaTorqueNull(float des_dir_lambda, Eigen::Vector3d& des_vel){
     
-    // Eigen::Vector3d direction = des_vel / des_vel.norm();
+    // Eigen::Vector3d reshape_inertiadirection = des_vel / des_vel.norm();
     float inertia_error = 1/(_robot.direction.transpose() * _robot.task_inertiaPos_inv * _robot.direction) - des_dir_lambda;
     Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad * inertia_error;
     // Eigen::VectorXd null_torque = 1.0 * _robot.dir_task_inertia_grad ;
@@ -402,10 +407,11 @@ void PassiveControl::computeTorqueCmd(){
     else if(start == 1){ // PD torque controller with big damping for initialization 
         // compute PD torque 
         er_null = _robot.jnt_position -_robot.nulljnt_position;
-        
-        if (er_null.norm()>0.4){ // Clamping to avoid high torques when far away
-            er_null = 0.4*er_null.normalized();
-        }
+        // std::cout << " err _null : " << er_null.transpose() << std::endl;
+        // std::cout << " jnt_pos : " << _robot.jnt_position.transpose() << std::endl;
+        // if (er_null.norm()>0.4){ // Clamping to avoid high torques when far away
+        //     er_null = 0.4*er_null.normalized();
+        // }
 
         for (int i =0; i<7; i++){ 
             tmp_jnt_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness
@@ -424,7 +430,7 @@ void PassiveControl::computeTorqueCmd(){
                      ROS_WARN_ONCE("If FRIOverlay is started and robot is not moving, touch it lightly.");
                 }
             }
-            else if(_robot.jnt_velocity.norm() > 5e-4 && _robot.jnt_velocity.norm() < 5e-3){ // wait for robot to have moved then slowed down 
+            else if(_robot.jnt_velocity.norm() > 5e-4 && _robot.jnt_velocity.norm() < 5e-2){ // wait for robot to have moved then slowed down 
                 start = 2;
                 ROS_INFO_ONCE("Robot slowed down. Stopping joint PD control.");
             }
@@ -687,15 +693,12 @@ void PassiveControl::computeTorqueCmd(){
         null_space_projector =  Eigen::MatrixXd::Identity(7,7) - _robot.jacob.transpose()* _robot.pseudo_inv_jacob* _robot.jacob;
         
         // Use different nullspace depending on whether we are going to a position or tracking a velocity -> NOPE
-        // if(!is_just_velocity){
-        //     er_null = _robot.jnt_position -_robot.nulljnt_position;
-        // }
-        // else{// Using inertia for hitting
-        //     er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
-        // }
-
-        er_null = _robot.jnt_position -_robot.nulljnt_position;
-        // er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel);
+        if(!use_reshape_inertia){
+            er_null = _robot.jnt_position -_robot.nulljnt_position;
+        }
+        else if(use_reshape_inertia){// Using inertia for hitting
+            er_null = inertia_gain*computeInertiaTorqueNull(desired_inertia,ee_des_vel); // _robot.ee_des_vel use ramped up vel
+        }
 
         // compute null torque
         for (int i =0; i<7; i++){ 

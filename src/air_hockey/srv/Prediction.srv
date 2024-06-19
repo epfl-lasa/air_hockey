@@ -1,0 +1,5 @@
+float32 distance_iiwa7
+float32 distance_iiwa14
+---
+float32 flux_iiwa7
+float32 flux_iiwa14
