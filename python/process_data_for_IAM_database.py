@@ -151,6 +151,7 @@ if __name__ == '__main__':
                     # Copy the file to the destination directory with the new name
                     shutil.copy(source_file, dest_file)
 
+            print("FINISHED processing : ", rec_folder)
             # break
     print("DONE!")
 
