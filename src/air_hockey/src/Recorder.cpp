@@ -45,8 +45,10 @@ bool Recorder::init() {
     if (!nh_.getParam("/iiwa/info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
     if (!nh_.getParam("/iiwa/info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
     if (!nh_.getParam("/iiwa/info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
-    if (!nh_.getParam("/optitrack/object_from_base_1/pose", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/object_from_base_1/pose not found");}
-    if (!nh_.getParam("/optitrack/object_from_base_2/pose", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/object_from_base_2/pose not found");}
+    if (!nh_.getParam("/optitrack/from_base_1/object", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/object not found");}
+    if (!nh_.getParam("/optitrack/from_base_2/object", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/object not found");}
+    if (!nh_.getParam("/optitrack/from_base_1/target", targetPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/target not found");}
+    if (!nh_.getParam("/optitrack/from_base_2/target", targetPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/target not found");}  
     
     if (!nh_.getParam("/optitrack/from_optitrack_base/object", objectPositionTopic_)) {ROS_ERROR("Topic /optitrack/from_optitrack_base/object not found");}
     if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_7", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_7 not found");}
@@ -443,9 +445,9 @@ void Recorder::recordObjectMovedByHand(int hit_count){
     // was moving but stopped -> write to file
     std::string fn = recordingFolderPath_ + "object_moved_manually_after_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
     writeObjectStatesToFile(hit_count, fn, manual);
+    std::cout << "Finished writing motion for object moved manually after hit " << std::to_string(hit_count) << "-" << std::to_string(moved_manually_count_) << std::endl;
     moved_manually_count_ += 1;
     isObjectMoving_ = 0;
-    std::cout << "Finished writing motion for object moved manually after hit " << std::to_string(hit_count) << "-" << std::to_string(moved_manually_count_) << std::endl;
   }
   else if(norm < stopped_threshold){
     // not moving -> do nothing
@@ -768,7 +770,7 @@ void Recorder::run() {
     // If not during hit, check if we are moving the object manually, record if so
     else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
             time_since_hit > max_recording_time && !write_once_object){
-      if(!isSim_){recordObjectMovedByHand(hit_count);}
+      if(!isSim_){recordObjectMovedByHand(hit_count-1);}
     }
 
     //// ROBOT RECORDING LOGIC 

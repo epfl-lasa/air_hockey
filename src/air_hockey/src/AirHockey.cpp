@@ -8,6 +8,8 @@ bool AirHockey::init() {
   if (!nh_.getParam("automatic",isAuto_)) { ROS_ERROR("Param automatic not found"); }
   // Check if aiming
   if (!nh_.getParam("aiming",isAiming_)) { ROS_ERROR("Param aiming not found"); }
+  // Check if using moving target or fixed 
+  if (!nh_.getParam("use_optitrack_target",useMovingTarget_)) { ROS_ERROR("Param aiming not found"); }
   // Check if using fixed flux
   if (!nh_.getParam("fixed_flux",isFluxFixed_)) { ROS_ERROR("Param automatic not found"); }
   // Check safetz distance
@@ -44,8 +46,10 @@ bool AirHockey::init() {
   }
 
   else if (!isSim_){
-    if (!nh_.getParam("/optitrack/object_from_base_1/pose", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/object_from_base_1/pose not found");}
-    if (!nh_.getParam("/optitrack/object_from_base_2/pose", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/object_from_base_2/pose not found");}
+    if (!nh_.getParam("/optitrack/from_base_1/object", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/object not found");}
+    if (!nh_.getParam("/optitrack/from_base_2/object", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/object not found");}
+    if (!nh_.getParam("/optitrack/from_base_1/target", targetPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/target not found");}
+    if (!nh_.getParam("/optitrack/from_base_2/target", targetPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/target not found");}  
   }
   
   // Init publishers
@@ -83,6 +87,20 @@ bool AirHockey::init() {
                                                   boost::bind(&AirHockey::objectPositionCallbackReal, this, _1, IIWA_14),
                                                   ros::VoidPtr(),
                                                   ros::TransportHints().reliable().tcpNoDelay());
+    if(useMovingTarget_){
+      targetPosition_[IIWA_7] = 
+          nh_.subscribe<geometry_msgs::PoseStamped>(targetPositionTopicReal_[IIWA_7],
+                                                  1,
+                                                  boost::bind(&AirHockey::targetPositionCallbackReal, this, _1, IIWA_7),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
+      targetPosition_[IIWA_14] = 
+          nh_.subscribe<geometry_msgs::PoseStamped>(targetPositionTopicReal_[IIWA_14],
+                                                  1,
+                                                  boost::bind(&AirHockey::targetPositionCallbackReal, this, _1, IIWA_14),
+                                                  ros::VoidPtr(),
+                                                  ros::TransportHints().reliable().tcpNoDelay());
+    }
   }
 
   iiwaPositionReal_[IIWA_7] = 
@@ -287,6 +305,10 @@ void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::Con
   objectPositionForIiwa_[k] << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
   objectOrientationForIiwa_[k] << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
       msg->pose.orientation.w;
+}
+
+void AirHockey::targetPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k){
+  hitTarget_[k] << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
 }
 
 // UPDATES AND CALCULATIONS
@@ -703,14 +725,14 @@ void AirHockey::run() {
       // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
       // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
-      std::cout << "iiwa7 norm  " << (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm()<< std::endl;
-      std::cout << "iiwa14 norm " << (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm()<< std::endl;
+      // std::cout << "iiwa7 norm  " << (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm()<< std::endl;
+      // std::cout << "iiwa14 norm " << (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm()<< std::endl;
       // std::cout << "object pos by iiwaPos_7  " << objectPositionForIiwa_[IIWA_7]<< std::endl;
       // std::cout << "object pos by  iiwaPos_14  " << objectPositionForIiwa_[IIWA_14]<< std::endl;
       // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
       // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7];  
-      std::cout << "ref Vel 7 " << refVelocity_[IIWA_7]<< std::endl;
-      std::cout << " ref quat 7 " << refQuat_[IIWA_7] << std::endl;   
+      std::cout << "flux 7 :" << hittingFlux_[IIWA_7]<< std::endl;
+      std::cout << "flxu 14 :" << hittingFlux_[IIWA_7] << std::endl;   
     }
     print_count +=1 ;
 

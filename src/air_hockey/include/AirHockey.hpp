@@ -70,6 +70,7 @@ private:
   bool isSim_;
   bool isAuto_;
   bool isAiming_;
+  bool useMovingTarget_;
   bool isPaused_;
   bool isFluxFixed_;
   bool isObjectMoving_;
@@ -93,6 +94,7 @@ private:
   std::string iiwaInertiaTopic_[NB_ROBOTS];
   std::string objectPositionTopic_;
   std::string objectPositionTopicReal_[NB_ROBOTS];
+  std::string targetPositionTopicReal_[NB_ROBOTS];
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
   std::string iiwaBasePositionTopicSim_;
@@ -104,6 +106,7 @@ private:
   ros::Publisher pubPosQuat_[NB_ROBOTS];
   ros::Publisher pubFSM_;
   ros::Subscriber objectPosition_[NB_ROBOTS];
+  ros::Subscriber targetPosition_[NB_ROBOTS];
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
   ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
@@ -160,6 +163,7 @@ public:
   void iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k);
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
+  void targetPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
 
   void updateIsObjectMoving();
   bool updateReturnPosition();

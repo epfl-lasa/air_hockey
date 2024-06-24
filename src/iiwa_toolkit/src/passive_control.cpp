@@ -409,9 +409,9 @@ void PassiveControl::computeTorqueCmd(){
         er_null = _robot.jnt_position -_robot.nulljnt_position;
         // std::cout << " err _null : " << er_null.transpose() << std::endl;
         // std::cout << " jnt_pos : " << _robot.jnt_position.transpose() << std::endl;
-        // if (er_null.norm()>0.4){ // Clamping to avoid high torques when far away
-        //     er_null = 0.4*er_null.normalized();
-        // }
+        if (er_null.norm()>0.4){ // Clamping to avoid high torques when far away
+            er_null = 0.4*er_null.normalized();
+        }
 
         for (int i =0; i<7; i++){ 
             tmp_jnt_trq[i] = -(start_stiffness_gains[i] * er_null[i]); // Stiffness

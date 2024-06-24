@@ -55,4 +55,4 @@ if __name__ == "__main__":
     gmm_iiwa7 = read_model_for_gmr(model_name='GMM_fit_for_complete_D1-iiwa_7')
     gmm_iiwa14 = read_model_for_gmr(model_name='GMM_fit_for_complete_D1-iiwa_14')
 
-    calculation_server()
+    prediction_server()
