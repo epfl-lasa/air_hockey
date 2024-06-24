@@ -83,18 +83,17 @@ def write_Rec_yaml_file(dataset, destination_folder):
 
     print(f"Updated YAML file written to: {destination_fn}")
 
-def write_Root_yaml_file(destination_folder):
+def write_Root_yaml_file(destination_path):
     yaml = YAML()
     # Read template file
     with open(Root_yaml_file_template, 'r') as file:
         yaml_file = yaml.load(file)
 
     # Write modifications to corect folder
-    destination_fn = os.path.join(destination_folder, "MetaDataRoot.yml")
-    with open(destination_fn, 'w') as file:
+    with open(destination_path, 'w') as file:
         yaml.dump(yaml_file, file)
 
-    print(f"Updated YAML file written to: {destination_fn}")
+    print(f"Updated YAML file written to: {destination_path}")
 
 # Process : 
 # take each rec folder, move to i_am_database/session, rename to rec format 
@@ -107,15 +106,7 @@ if __name__ == '__main__':
     # Merge folder should exist
     if not os.path.exists(output_dir):
         raise NameError("Please create a folder for IAM database")
-
-    # create sessions folder
-    session_folder_name = "Session_2024-05-02"
-    if not os.path.exists(f'{output_dir}/{session_folder_name}'):
-        os.mkdir(output_dir + "/"  + session_folder_name)
-
-    # Copy Root yaml file there
-    write_Root_yaml_file(destination_folder=f'{output_dir}/{session_folder_name}')
-
+    
     for dataset in datasets_list:
         for rec_folder in glob.iglob(f'{data_folder_name}/{dataset}/*'):
             print("Processing : ", rec_folder) ## rec_folder is complete path 
@@ -124,8 +115,14 @@ if __name__ == '__main__':
             # Create session folder
             session_date = rec_folder_dir_name.split("_", 1)[0]
             session_folder_name = "Session_"+session_date
-            if not os.path.exists(f'{output_dir}/{session_folder_name}'):
-                os.mkdir(f"{output_dir}/{session_folder_name}")
+            session_folder = f'{output_dir}/{session_folder_name}'
+            if not os.path.exists(session_folder):
+                os.mkdir(session_folder)
+
+            # Copy Root yaml file there
+            root_yaml_path = os.path.join(session_folder, "MetaDataRoot.yml")
+            if not os.path.exists(root_yaml_path):
+                write_Root_yaml_file(destination_path=root_yaml_path)
 
             # Create new rec folder
             new_rec_folder_dir_name = get_new_rec_folder_name(rec_folder_dir_name)

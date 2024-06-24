@@ -2,7 +2,7 @@ automatic: False # Autonoumous hitting
 
 aiming: True # Whether to aim hits or not 
 
-use_optitrack_target: True ## Aimign must also be true
+use_optitrack_target: True ## Aiming must also be true
 
 time_to_wait : 3.0 # time to stay in REST mode (where both robots are in REST, includes returning to position)
 # MUST be longer than time_object_record in recorder_properties (to record properly)
