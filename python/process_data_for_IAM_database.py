@@ -3,110 +3,157 @@
 from zipfile import ZipFile
 import pandas as pd
 import os
-import ruamel.yaml
 import glob
+from utils.data_handling_functions import parse_value
+import shutil
+from ruamel.yaml import YAML
 
-data_folder_name = "CSV"
+data_folder_name = "data/varying_flux_datasets"
+datasets_list = ['D1', 'D2', 'D3', 'D4']
 
-# Specifying the yml file name
-# yml_file_name = "MetaDataRec.yml"
-yml_file_name = "MetaDataRecIiwa.yml"
+object_1_idx = 40
+object_2_idx = 41
 
-merged_dir = "merged_iiwa"
-exp_name = []
+output_dir = "data/IAM_database"
 
-# HEADERS IN CSV
-header_version = '  '
-header_origin_time = 'Origin_time 2022-04-21_15-28-55'
-robot = "Panda" # if UR10: Robot_data, if franka panda: Panda, if iiwa: IIWA
+# Specifying the yml filetemplate paths
+Rec_yaml_file_template = f"{output_dir}/Session_template/Rec_template/MetaDataRec.yml"
+Root_yaml_file_template = f"{output_dir}/Session_template/MetaDataRoot.yml"
 
-def get_new_folder_name(experience_name):
+def get_new_rec_folder_name(rec_folder):
     name = "Rec_"
-    date = experience_name.split('Date_')[1]
-    date = date.split('.csv')[0]
-    name = name + date
+
+    # extract date
+    date = rec_folder.split('_',1)[0]
+    date = date.replace("-","")
+
+    # extract time
+    time = rec_folder.split('_',1)[1]
+    time = time.split('_',1)[0]
+    time = time.replace(":", "")
+
+    name = name + date + "T" + time + "Z"
     return name
 
+def get_start_rec_time(csv_file):
+    # Grab the recorded data
+    if "object" in csv_file:
+        df = pd.read_csv(csv_file, converters={'RosTime' : parse_value} )
+    elif "IIWA" in csv_file:
+        df = pd.read_csv(csv_file, skiprows=1, converters={'RosTime' : parse_value})
 
-def get_csv_name(experience_name):
-    date = experience_name.split('Date_')[1]
-    date = date.split('.csv')[0]
-    name = f'{robot}_{date}Z.csv'
-    return name
+    # Get the 'Time' column as datetime
+    df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
 
-def get_box_idx(experience_name):
-    box_idx = experience_name.split('box_')[1]
-    box_idx = box_idx.split('-task_')[0]
-    box_idx = str(int(box_idx) + 30)
-    return box_idx
+    # Ge tthe first timestep in correct format
+    start_rec_time = df['RosTime'][0]
+    return start_rec_time.strftime('%H%M%S')
 
-def is_tossing_impact_rs(experience_name):
-    task = int((experience_name.split('task_')[1]).split('-speed_')[0])
-    is_tossing = task in [1, 2, 3]
-    is_impact = task in [1, 2, 4]
-    is_rs = task in [1, 4]
-    return is_tossing, is_impact, is_rs
 
-def write_yml_file(box_index, final_folder, experience_name):
-    yaml = ruamel.yaml.YAML()
-    yaml.preserve_quotes = True
-    yaml.explicit_start = False
-    yaml.width = 100000
+def write_Rec_yaml_file(dataset, destination_folder):
+    yaml = YAML()
+    # Read template file
+    with open(Rec_yaml_file_template, 'r') as file:
+        yaml_file = yaml.load(file)
 
-    with open(yml_file_name, 'r') as stream:
-        yml_file = yaml.load(stream)
-    yml_file['object']['obj_1']['name'] = f'Box0{box_index}'
+    # get date-time
+    datetime = destination_folder.split("Rec_")[1]
 
-    is_tossing, is_impact, is_rs = is_tossing_impact_rs(experience_name)
-    yml_file['attr']['note'] = f"Coordinated control of dual-arm for object {'swiftly grabbing with impact' if is_impact else 'slowly picking with quasi-static contact'} {'using reference spreading' if is_rs else ''} and {'tossing' if is_tossing else 'placing'} onto a plastic pallet ({experience_name.split('.csv')[0]})"
+    # Change params to match recording
+    if dataset == "D1":
+        yaml_file['attr']['note'] = f"Back and forth hitting of an object with dual-arm setup (D1:box_1-config_1-Date_{datetime}))"
+        yaml_file['object']['obj_1']['name'] = f'Box0{object_1_idx}'
 
-    yml_file['attr']['transition'] = f"{'impact' if is_impact else 'no-impact'}; {'reference spreading' if is_rs else ''}; {'tossing' if is_tossing else 'placing'}; object; environment"
+    elif dataset == "D2":
+        yaml_file['attr']['note'] = f"Back and forth hitting of an object with dual-arm setup (D2:box_2-config_1-Date_{datetime}))"
+        yaml_file['object']['obj_1']['name'] = f'Box0{object_2_idx}'
 
-    new_yml=open(final_folder + "/" + yml_file_name,"w")
-    yaml.dump(yml_file, new_yml) #, Dumper=ruamel.yaml.RoundTripDumper, width=10000)
-    new_yml.close()
+    elif dataset == "D3":
+        yaml_file['attr']['note'] = f"Back and forth hitting of an object with dual-arm setup (D3:box_1-config_2-Date_{datetime}))"
+        yaml_file['object']['obj_1']['name'] = f'Box0{object_1_idx}'
+
+    elif dataset == "D4":
+        yaml_file['attr']['note'] = f"Back and forth hitting of an object with dual-arm setup (D4:box_2-config_2-Date_{datetime}))"
+        yaml_file['object']['obj_1']['name'] = f'Box0{object_2_idx}'
+
+    # Write modifications to corect folder
+    destination_fn = os.path.join(destination_folder, "MetaDataRec.yml")
+    with open(destination_fn, 'w') as file:
+        yaml.dump(yaml_file, file)
+
+    print(f"Updated YAML file written to: {destination_fn}")
+
+def write_Root_yaml_file(destination_folder):
+    yaml = YAML()
+    # Read template file
+    with open(Root_yaml_file_template, 'r') as file:
+        yaml_file = yaml.load(file)
+
+    # Write modifications to corect folder
+    destination_fn = os.path.join(destination_folder, "MetaDataRoot.yml")
+    with open(destination_fn, 'w') as file:
+        yaml.dump(yaml_file, file)
+
+    print(f"Updated YAML file written to: {destination_fn}")
+
+# Process : 
+# take each rec folder, move to i_am_database/session, rename to rec format 
+# add .yml file to each session and rec folder
+
 
 if __name__ == '__main__':
     print("START")
 
     # Merge folder should exist
-    if not os.path.exists(merged_dir):
-        raise NameError("Please create a folder named 'merged'")
+    if not os.path.exists(output_dir):
+        raise NameError("Please create a folder for IAM database")
 
     # create sessions folder
-    session_folder_name = "Session__2024-04-31"
-    if not os.path.exists(f'{merged_dir}/{session_folder_name}'):
-        os.mkdir(merged_dir + "/"  + session_folder_name)
+    session_folder_name = "Session_2024-05-02"
+    if not os.path.exists(f'{output_dir}/{session_folder_name}'):
+        os.mkdir(output_dir + "/"  + session_folder_name)
 
-    file_merged = []
+    # Copy Root yaml file there
+    write_Root_yaml_file(destination_folder=f'{output_dir}/{session_folder_name}')
 
-    for ds_filename in glob.iglob(f'{data_folder_name}/DS_*'):
-        print("Processing : ", ds_filename)
-        experience_name = ds_filename.split("DS_",1)[-1]
+    for dataset in datasets_list:
+        for rec_folder in glob.iglob(f'{data_folder_name}/{dataset}/*'):
+            print("Processing : ", rec_folder) ## rec_folder is complete path 
+            rec_folder_dir_name = rec_folder.split("/")[3] ## get only directory name 
 
-        # Read data
-        df_ds = pd.read_csv(ds_filename, sep=';')
-        print(len(df_ds))
-        df_rs = pd.read_csv(f'{data_folder_name}/RS_{experience_name}', sep=';')
-        print(len(df_rs))
-        
-        # Merge RS and DS files
-        df_ds_diff = df_ds[list(set(df_ds.columns).difference(set(df_rs.columns)))]
-        output1 = pd.merge(df_ds_diff, df_rs, left_index=True, right_index=True, how='outer')
+            # Create session folder
+            session_date = rec_folder_dir_name.split("_", 1)[0]
+            session_folder_name = "Session_"+session_date
+            if not os.path.exists(f'{output_dir}/{session_folder_name}'):
+                os.mkdir(f"{output_dir}/{session_folder_name}")
 
-        # session_folder_name = getSessionFolderName(csv_name)
-        recording_name = get_new_folder_name(experience_name)
-        if not os.path.exists(f'{merged_dir}/{session_folder_name}/{recording_name}'):
-            os.mkdir(f'{merged_dir}/{session_folder_name}/{recording_name}')
+            # Create new rec folder
+            new_rec_folder_dir_name = get_new_rec_folder_name(rec_folder_dir_name)
+            new_rec_folder = os.path.join(output_dir, session_folder_name, new_rec_folder_dir_name)
+            if not os.path.exists(new_rec_folder):
+                os.mkdir(new_rec_folder)
+            
+            # Copy Rec yaml file
+            write_Rec_yaml_file(dataset=dataset, destination_folder=new_rec_folder)
 
-        # Add CSV
-        csv_name = get_csv_name(experience_name)
-        output1.to_csv(f'{merged_dir}/{session_folder_name}/{recording_name}/{csv_name}', index=False, sep =' ')
-        
-        # Add yml file
-        box_idx = get_box_idx(experience_name)
-        write_yml_file(box_idx, f'{merged_dir}/{session_folder_name}/{recording_name}', experience_name)
+            # For each file in rec Session, copy and rename by adding 
+            for filename in os.listdir(rec_folder):
+                # Check if the file is a CSV file
+                if filename.endswith(".csv") and "manually" not in filename:
+                    # Construct the full file path
+                    source_file = os.path.join(f'{rec_folder}', filename)
+                    
+                    # Construct the new file name
+                    base_name = os.path.splitext(filename)[0]
+                    time_rec_start = get_start_rec_time(source_file)
+                    date_rec_start = session_date.replace("-", "")
 
-        # break
+                    new_filename = f"{base_name}_{date_rec_start}T{time_rec_start}Z.csv"
+                    dest_file = os.path.join(new_rec_folder, new_filename)
+                    
+                    # Copy the file to the destination directory with the new name
+                    shutil.copy(source_file, dest_file)
+
+            # break
     print("DONE!")
 
