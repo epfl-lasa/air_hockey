@@ -6,7 +6,7 @@
     <arg name="iiwa_model_1" default="7"/>
     <arg name="force_sensor_1" default="False"/>
     <arg name="grabber_1" default="False"/>
-    <arg name="robot_name_2" default="iiwa_blue"/>
+    <arg name="robot_name_2" default="iiwa2"/>
     <arg name="iiwa_model_2" default="14"/>
     <arg name="force_sensor_2" default="False"/>
     <arg name="grabber_2" default="False"/>

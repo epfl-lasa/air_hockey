@@ -164,14 +164,19 @@ bool AirHockey::init() {
   if (!nh_.getParam("/iiwa1/target/iiwa1/quat", dquat1)){
     if (!nh_.getParam("/iiwa2/target/iiwa1/quat", dquat1)){
       ROS_ERROR("Param /iiwa1/target/iiwa1/quat and /iiwa2/target/iiwa1/quat not found"); }}
-  for (size_t i = 0; i < refQuat_[IIWA_7].size(); i++)
+  for (size_t i = 0; i < refQuat_[IIWA_7].size(); i++){
     refQuat_[IIWA_7](i) = dquat1[i]; 
+    returnQuat_[IIWA_7](i) = dquat1[i]; 
+  }
+    
   if (!nh_.getParam("/iiwa1/target/iiwa2/quat", dquat2)){ 
     if (!nh_.getParam("/iiwa2/target/iiwa2/quat", dquat2)){ 
       ROS_ERROR("Param /iiwa1/target/iiwa2/quat and /iiwa2/target/iiwa2/quat not found"); }}
-  for (size_t i = 0; i < refQuat_[IIWA_14].size(); i++)
+  for (size_t i = 0; i < refQuat_[IIWA_14].size(); i++){
     refQuat_[IIWA_14](i) = dquat2[i]; 
-
+    returnQuat_[IIWA_14](i) = dquat2[i]; 
+  }
+    
   if (!nh_.getParam("iiwa7/return_position/x", returnPosInitial_[IIWA_7][0])) { ROS_ERROR("Param ref_quat/x not found"); }
   if (!nh_.getParam("iiwa14/return_position/x", returnPosInitial_[IIWA_14][0])) { ROS_ERROR("Param return_position/x not found"); }
   if (!nh_.getParam("iiwa7/return_position/y", returnPosInitial_[IIWA_7][1])) { ROS_ERROR("Param return_position/y not found"); }
@@ -371,9 +376,24 @@ void AirHockey::updateIsObjectMoving(){
 }
 
 bool AirHockey::updateReturnPosition(){
+  
+  Eigen::Vector3f temp_pos = Eigen::Vector3f::Zero(3);
 
   if(next_hit_ == IIWA_7){
-    auto temp_pos = generateHitting7_->get_DS_attractor() + placementOffset_[IIWA_7];
+    // Calculating return position based on target position
+    if(isAiming_){
+      Eigen::Vector3f object_pos = generateHitting7_->get_DS_attractor();
+      Eigen::Matrix3f rot_mat = Eigen::Matrix3f::Zero(3, 3);
+      double theta = -std::atan2(hitTarget_[IIWA_7][0] - object_pos[0], hitTarget_[IIWA_7][1] - object_pos[1]);//angle between object and target
+      rot_mat << cos(theta), -sin(theta), 0, sin(theta), cos(theta), 0, 0, 0, 1;
+
+      temp_pos = object_pos + rot_mat * placementOffset_[IIWA_7];
+
+      refQuat_[IIWA_7] = generateHitting7_->pointsToQuat(temp_pos, object_pos);
+    }
+    else{
+      temp_pos =  generateHitting7_->get_DS_attractor() + placementOffset_[IIWA_7];
+    }
 
     // HARD CODED LIMITS to avoid oscillations in edge cases
     if((temp_pos[0] < 0.65 || temp_pos[1] > 0.0) && temp_pos.norm() < objectSafetyDistance_){
@@ -386,7 +406,21 @@ bool AirHockey::updateReturnPosition(){
     } 
   }
   else if(next_hit_ == IIWA_14){
-    auto temp_pos = generateHitting14_->get_DS_attractor() + placementOffset_[IIWA_14];
+    // Calculating return position based on target position
+    if(isAiming_){
+      Eigen::Vector3f object_pos = generateHitting14_->get_DS_attractor();
+      Eigen::Matrix3f rot_mat = Eigen::Matrix3f::Zero(3, 3);
+      double theta = -std::atan2(hitTarget_[IIWA_14][0] - object_pos[0], hitTarget_[IIWA_14][1] - object_pos[1]);//angle between object and target
+      rot_mat << cos(theta), -sin(theta), 0, sin(theta), cos(theta), 0, 0, 0, 1;
+
+      temp_pos = object_pos + rot_mat * placementOffset_[IIWA_14];
+
+      refQuat_[IIWA_14] = generateHitting14_->pointsToQuat(temp_pos, object_pos);
+    }
+    else{
+      temp_pos =  generateHitting14_->get_DS_attractor() + placementOffset_[IIWA_14];
+    }
+
     if((temp_pos[0] < 0.65 || temp_pos[1] < 0.0) && temp_pos.norm() < objectSafetyDistance_){
       returnPos_[IIWA_14] = temp_pos;
       return true;
@@ -793,6 +827,7 @@ void AirHockey::run() {
 
     if(fsm_state.mode_iiwa7 == REST || fsm_state.isHit == 1){
       refVelocity_[IIWA_7] = generateHitting7_->linear_DS(returnPos_[IIWA_7]);
+      refQuat_[IIWA_7] = returnQuat_[IIWA_7];
       fsm_state.mode_iiwa7 = REST;
       if (fsm_state.mode_iiwa14 == REST) { // only reset if 14 is at rest, otherwise it skips next if and never send iiwa14 to rest
               fsm_state.isHit = 0;
@@ -801,6 +836,7 @@ void AirHockey::run() {
 
     if(fsm_state.mode_iiwa14 == REST || fsm_state.isHit == 1){
       refVelocity_[IIWA_14] = generateHitting14_->linear_DS(returnPos_[IIWA_14]);
+      refQuat_[IIWA_14] = returnQuat_[IIWA_14];
       fsm_state.mode_iiwa14 = REST;
       fsm_state.isHit = 0;
     }

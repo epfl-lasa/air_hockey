@@ -16,7 +16,7 @@
         </node>
 
         <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual_sim.yaml" command="load"/>
-    </group>
+    </group>-->
 <!--     
     <node name="plotter"
             pkg="rqt_plot"
