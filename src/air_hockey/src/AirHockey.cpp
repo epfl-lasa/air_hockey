@@ -18,10 +18,15 @@ bool AirHockey::init() {
   if (!nh_.getParam("time_to_wait",timeToWait_)) { ROS_ERROR("Param time to wait not found"); }
   waitDuration_= ros::Duration(timeToWait_);
 
-  // Set object mass for hitting DS 
-  if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
-  generateHitting7_->set_mass(objectMass_);
-  generateHitting14_->set_mass(objectMass_);
+  // get object number
+  if (!nh_.getParam("object_number", objectNumber_)) {ROS_ERROR("Param object_mass not found");}
+  
+  // Set object mass for hitting DS
+  this->setObjectMass();
+   
+  // if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
+  // generateHitting7_->set_mass(objectMass_);
+  // generateHitting14_->set_mass(objectMass_);
 
   // Get topics names
   if (!nh_.getParam("recorder_topic", pubFSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
@@ -46,10 +51,14 @@ bool AirHockey::init() {
   }
 
   else if (!isSim_){
-    if (!nh_.getParam("/optitrack/from_base_1/object", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/object not found");}
-    if (!nh_.getParam("/optitrack/from_base_2/object", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/object not found");}
-    if (!nh_.getParam("/optitrack/from_base_1/target", targetPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/target not found");}
-    if (!nh_.getParam("/optitrack/from_base_2/target", targetPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/target not found");}  
+    objectPositionTopicReal_[IIWA_7] = "/vrpn_client_node/object_"+std::to_string(objectNumber_)+"/pose_from_iiwa_7_base";
+    objectPositionTopicReal_[IIWA_14] = "/vrpn_client_node/object_"+std::to_string(objectNumber_)+"/pose_from_iiwa_14_base";
+    targetPositionTopicReal_[IIWA_7] = "/vrpn_client_node/target/pose_from_iiwa_7_base";
+    targetPositionTopicReal_[IIWA_14] = "/vrpn_client_node/target/pose_from_iiwa_14_base";
+    // if (!nh_.getParam("/optitrack/from_base_1/object", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/object not found");}
+    // if (!nh_.getParam("/optitrack/from_base_2/object", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/object not found");}
+    // if (!nh_.getParam("/optitrack/from_base_1/target", targetPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/target not found");}
+    // if (!nh_.getParam("/optitrack/from_base_2/target", targetPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/target not found");}  
   }
   
   // Init publishers
@@ -407,6 +416,27 @@ void AirHockey::setReturnPositionToInitial(){
 void AirHockey::updateCurrentEEPosition(Eigen::Vector3f new_position[]) {
   generateHitting7_->set_current_position(new_position[IIWA_7]);
   generateHitting14_->set_current_position(new_position[IIWA_14]);
+}
+
+void AirHockey::setObjectMass(){
+  float mass = 0;
+
+  if(objectNumber_ == 1)
+  {
+    mass = 1.915;
+  }
+  else if(objectNumber_ == 2){
+    mass = 0.4;
+  }
+  else if(objectNumber_ == 3){
+    mass = 0.392;
+  }
+  else{ 
+    ROS_ERROR("Object Number incorrect, mass cannot be set !!");
+  }
+
+  generateHitting7_->set_mass(mass);
+  generateHitting14_->set_mass(mass);
 }
 
 // GET DESIRED FLUX FILE

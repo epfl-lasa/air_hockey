@@ -11,7 +11,10 @@ bool Recorder::init() {
   if (!nh_.getParam("time_object_record", recordingTimeObject_)) { ROS_ERROR("Param recorder_time not found"); }
   if (!nh_.getParam("post_hit_record", recordingTimeRobot_)) { ROS_ERROR("Param recorder_time not found"); }
 
-  if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
+  // get object number
+  if (!nh_.getParam("object_number", objectNumber_)) {ROS_ERROR("Param object_mass not found");}
+  // Set object mass 
+  this->setObjectMass();
 
   if (!nh_.getParam("desired_fluxes_filename",fluxFilename_)) { ROS_ERROR("Param automatic not found"); }
 
@@ -41,18 +44,27 @@ bool Recorder::init() {
   }
 
   else if (!isSim_){
+    objectPositionTopicReal_[IIWA_7] = "/vrpn_client_node/object_"+std::to_string(objectNumber_)+"/pose_from_iiwa_7_base";
+    objectPositionTopicReal_[IIWA_14] = "/vrpn_client_node/object_"+std::to_string(objectNumber_)+"/pose_from_iiwa_14_base";
+    targetPositionTopicReal_[IIWA_7] = "/vrpn_client_node/target/pose_from_iiwa_7_base";
+    targetPositionTopicReal_[IIWA_14] = "/vrpn_client_node/target/pose_from_iiwa_14_base";
+
+    iiwaBasePositionTopic_[IIWA_7] = "/vrpn_client_node/iiwa_7_base/pose";
+    iiwaBasePositionTopic_[IIWA_14] = "/vrpn_client_node/iiwa_7_base/pose";
+    objectPositionTopic_ = "/vrpn_client_node/object_"+std::to_string(objectNumber_)+"/pose";
+
     if (!nh_.getParam("/iiwa/info_7/pose", iiwaPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/pose not found");}
     if (!nh_.getParam("/iiwa/info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
     if (!nh_.getParam("/iiwa/info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
     if (!nh_.getParam("/iiwa/info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
-    if (!nh_.getParam("/optitrack/from_base_1/object", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/object not found");}
-    if (!nh_.getParam("/optitrack/from_base_2/object", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/object not found");}
-    if (!nh_.getParam("/optitrack/from_base_1/target", targetPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/target not found");}
-    if (!nh_.getParam("/optitrack/from_base_2/target", targetPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/target not found");}  
+    // if (!nh_.getParam("/optitrack/from_base_1/object", objectPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/object not found");}
+    // if (!nh_.getParam("/optitrack/from_base_2/object", objectPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/object not found");}
+    // if (!nh_.getParam("/optitrack/from_base_1/target", targetPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_base_1/target not found");}
+    // if (!nh_.getParam("/optitrack/from_base_2/target", targetPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_base_2/target not found");}  
     
-    if (!nh_.getParam("/optitrack/from_optitrack_base/object", objectPositionTopic_)) {ROS_ERROR("Topic /optitrack/from_optitrack_base/object not found");}
-    if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_7", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_7 not found");}
-    if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_14", iiwaBasePositionTopic_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_14 not found");}
+    // if (!nh_.getParam("/optitrack/from_optitrack_base/object", objectPositionTopic_)) {ROS_ERROR("Topic /optitrack/from_optitrack_base/object not found");}
+    // if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_7", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_7 not found");}
+    // if (!nh_.getParam("/optitrack/from_optitrack_base/iiwa_14", iiwaBasePositionTopic_[IIWA_14])) {ROS_ERROR("Topic /optitrack/from_optitrack_base/iiwa_14 not found");}
     
   }
 
@@ -341,6 +353,22 @@ int Recorder::getIndex(std::vector<std::string> v, std::string value) {
     if (v[i].compare(value) == 0) return i;
   }
   return -1;
+}
+
+void Recorder::setObjectMass(){
+  if(objectNumber_ == 1)
+  {
+    objectMass_ = 1.915;
+  }
+  else if(objectNumber_ == 2){
+    objectMass_ = 0.4;
+  }
+  else if(objectNumber_ == 3){
+    objectMass_ = 0.392;
+  }
+  else{ 
+    ROS_ERROR("Object Number incorrect, mass cannot be set !!");
+  }
 }
 
 float Recorder::calculateDirFlux(Robot robot_name) {

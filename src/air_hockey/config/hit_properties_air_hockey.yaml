@@ -12,7 +12,8 @@ safety_distance: 1.15 # object distance for which to PAUSE the robots when runni
 fixed_flux: True # Whether to use a fixed flux for each hit (otherwise uses file below in a loop)
 desired_fluxes_filename: "random_fluxes_uni_300_to_09_sorted.txt" #"random_fluxes_uni.txt" # This file MUSt be in 'desired_hitting_fluxes' folder
 
-object_mass: 0.4 #1.915 ## 0.392# used to calculate directional flux DS
+object_number: 3 
+# object_mass: 0.4 #1.915 ## 0.392# used to calculate directional flux DS
 
 iiwa7:
   

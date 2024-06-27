@@ -85,6 +85,7 @@ private:
   Eigen::Vector3f returnPos_[NB_ROBOTS];
   float hittingFlux_[NB_ROBOTS];
   float objectMass_;
+  float objectNumber_;
   std::vector<float> hittingFluxArr_;
   float objectSafetyDistance_;
   geometry_msgs::Pose refVelQuat_;
@@ -169,6 +170,7 @@ public:
   bool updateReturnPosition();
   void setReturnPositionToInitial();
   void checkObjectIsSafeToHit();
+  void setObjectMass();
 
   void getDesiredFluxes(std::string filename);
 

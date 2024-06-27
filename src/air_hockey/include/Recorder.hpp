@@ -106,6 +106,7 @@ private:
   float recordingTimeRobot_;
 
   float objectMass_;
+  float objectNumber_;
   float hittingFluxDes_[NB_ROBOTS];
   ros::Time hittingTime_[NB_ROBOTS];
   Eigen::Vector3f desiredPosition_[NB_ROBOTS];
@@ -203,6 +204,7 @@ public:
   void setUpRecordingDir();
   std::string robotToString(Robot robot_name);
   float calculateDirFlux(Robot robot_name);
+  void setObjectMass();
 
   void updateKeyboardControl();
 };
