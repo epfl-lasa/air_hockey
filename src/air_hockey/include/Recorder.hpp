@@ -106,7 +106,7 @@ private:
   float recordingTimeRobot_;
 
   float objectMass_;
-  float objectNumber_;
+  int objectNumber_;
   float hittingFluxDes_[NB_ROBOTS];
   ros::Time hittingTime_[NB_ROBOTS];
   Eigen::Vector3f desiredPosition_[NB_ROBOTS];

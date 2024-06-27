@@ -85,7 +85,7 @@ private:
   Eigen::Vector3f returnPos_[NB_ROBOTS];
   float hittingFlux_[NB_ROBOTS];
   float objectMass_;
-  float objectNumber_;
+  int objectNumber_;
   std::vector<float> hittingFluxArr_;
   float objectSafetyDistance_;
   geometry_msgs::Pose refVelQuat_;
