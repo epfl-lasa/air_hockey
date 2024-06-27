@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+
+<!--|
+    Copyright (C) 2019 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+    Authors:  Harshit Khurana, Maxime Gautier
+    email:    harshit.khurana@epfl.ch, maxime.gautier@epfl.ch
+    website:  lasa.epfl.ch
+
+    This file is part of air_hockey EPFL (impact aware manipulation).
+|-->
+
+<launch>
+
+  <param name="simulation_referential" type="bool" value="False"/>
+
+  <!-- All ROS topics names -->
+  <rosparam file="$(find air_hockey)/config/ros_topics_air_hockey.yaml" />
+  <rosparam file="$(find air_hockey)/config/hit_properties_air_hockey.yaml" />
+  <rosparam file="$(find air_hockey)/config/recorder_properties.yaml" />
+
+  <!-- Here is the node that allows me to start the AirHockey motion planning -->
+  <node pkg = "air_hockey" type = "airhockey"  name = "airhockey" output="screen"/>
+
+  <!-- Here is the node that allows me to record hits -->
+  <node pkg = "air_hockey" type = "recorder"  name = "recorder" output="screen"/>
+
+  <!-- Here is the node that allows me to predict flux -->
+  <node pkg = "air_hockey" name = "flux_prediction" type = "predict_flux.py" output="screen" />
+
+</launch>
+

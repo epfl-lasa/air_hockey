@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>    
     <arg name = "server"      default="128.178.145.172"/>
-    <arg name = "list_object" default="['object_1','object_3']"/>
+    <arg name = "list_object" default="['target','object_1','object_2','object_3']"/>
     
     <arg name = "name_base_optitrack"   default="base"/>
     <arg name = "name_base_1"   default="iiwa_7_base"/>
