@@ -78,7 +78,8 @@ class IterativeGMM(GMM):
             else:
                 self.covariances = covariance_initialization(
                     X, self.n_components)
-
+                
+        # R = np.zeros((n_samples, self.n_components))
         R = np.zeros((1, self.n_components)) ## modified line
         for sample in X:
             R_prev = R

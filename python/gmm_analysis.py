@@ -821,11 +821,6 @@ def iterative_gmm_with_gmr():
     df_combined = read_airhockey_csv(fn='D1-D2-object_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
     df_D1 = df_combined[df_combined['object']==1].copy()
     df_D2 = df_combined[df_combined['object']==2].copy()
-
-    # Train initial model
-    X_1 = np.column_stack((df_D1['HittingFlux'].values, df_D1['DistanceTraveled'].values))
-    gmm_D1 = IterativeGMM(n_components=n_gaussians, random_state=0)
-    gmm_D1.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
     
     #### Final D2 model with scikit
     final_gmm = GaussianMixture(n_components=n_gaussians, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
@@ -841,8 +836,13 @@ def iterative_gmm_with_gmr():
 
         for number_of_samples in number_of_samples_to_use:
             for fold in range(1,n_folds+1): 
+                 # Train initial model
+                X_1 = np.column_stack((df_D1['HittingFlux'].values, df_D1['DistanceTraveled'].values))
+                gmm_D1 = IterativeGMM(n_components=n_gaussians, random_state=0)
+                gmm_D1.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+
                 ### Grab uniformally sampled points
-                samples = resample_uniformally(df_D2, number_of_samples_to_use[0])
+                samples = resample_uniformally(df_D2, number_of_samples)
                 X = np.column_stack((samples['HittingFlux'].values, samples['DistanceTraveled'].values))
 
                 ## Train model iteratively for each number of samples
