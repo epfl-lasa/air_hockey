@@ -565,7 +565,6 @@ def compare_distance_predictions_of_models_RMSE(agnosticism='robot', n_predictio
     if show_plot:  plt.show()
 
 
-
 ## NOTE - used to confirm sklearn works
 def plot_gmm_with_sklearn(df, show_plot=False):
     
@@ -821,6 +820,11 @@ def iterative_gmm_with_gmr():
     df_combined = read_airhockey_csv(fn='D1-D2-object_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
     df_D1 = df_combined[df_combined['object']==1].copy()
     df_D2 = df_combined[df_combined['object']==2].copy()
+
+    # Train initial model
+    X_1 = np.column_stack((df_D1['HittingFlux'].values, df_D1['DistanceTraveled'].values))
+    gmm_init = IterativeGMM(n_components=n_gaussians, random_state=0)
+    gmm_init.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
     
     #### Final D2 model with scikit
     final_gmm = GaussianMixture(n_components=n_gaussians, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
@@ -836,10 +840,8 @@ def iterative_gmm_with_gmr():
 
         for number_of_samples in number_of_samples_to_use:
             for fold in range(1,n_folds+1): 
-                 # Train initial model
-                X_1 = np.column_stack((df_D1['HittingFlux'].values, df_D1['DistanceTraveled'].values))
-                gmm_D1 = IterativeGMM(n_components=n_gaussians, random_state=0)
-                gmm_D1.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+                # Reset from initial model
+                gmm_D1 = IterativeGMM(n_components=n_gaussians, means=gmm_init.means, covariances=gmm_init.covariances, priors=gmm_init.priors, random_state=0)
 
                 ### Grab uniformally sampled points
                 samples = resample_uniformally(df_D2, number_of_samples)
