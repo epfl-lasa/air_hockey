@@ -10,6 +10,8 @@ import csv
 from utils.data_handling_functions import (PATH_TO_DATA_FOLDER, read_airhockey_csv, read_and_clean_data, 
                                              restructure_for_agnostic_plots, save_one_figure, save_all_figures, resample_uniformally)
 
+from utils.iterative_gmr import IterativeGMM
+
 # Fontsize for axes and titles 
 GLOBAL_FONTSIZE = 40
 AXIS_TICK_FONTSIZE = 30
@@ -771,7 +773,6 @@ def train_model_and_save_KL(n, n_folds, df, number_of_samples_list, first_gmm=No
                 number_of_iterations = gmm.n_iter_
 
                 ## Calculate KL-divergence from final_gmm   
-                # TODO : do this in cross-validation manner, how ??
                 kl_div = kl_divergence(gmm, final_gmm, X)
                 kl_div_inv = kl_divergence(final_gmm, gmm, X_final)
                 kl_div_resampled = kl_divergence(gmm, final_gmm, n_samples=1000)
@@ -806,6 +807,70 @@ def iterative_comparison():
 
     train_model_and_save_KL(n=n_gaussians, n_folds=5, df=df_D2, number_of_samples_list=number_of_samples_to_use, first_gmm=gmm_D1)
 
+def iterative_gmm_with_gmr():
+
+    ### Key Parameters ###
+    n_gaussians = 2
+    number_of_samples_to_use = [10,20,30]
+    n_folds = 5
+    
+    fn = f"Custom_gmr-Iterative_gmm_from_D1_to_D2.csv"
+    save_dir = PATH_TO_DATA_FOLDER + "figures/iterative_gmm"
+
+    ## Grab D2 
+    df_combined = read_airhockey_csv(fn='D1-D2-object_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+    df_D1 = df_combined[df_combined['object']==1].copy()
+    df_D2 = df_combined[df_combined['object']==2].copy()
+
+    # Train initial model
+    X_1 = np.column_stack((df_D1['HittingFlux'].values, df_D1['DistanceTraveled'].values))
+    gmm_D1 = IterativeGMM(n_components=n_gaussians, random_state=0)
+    gmm_D1.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+    
+    #### Final D2 model with scikit
+    final_gmm = GaussianMixture(n_components=n_gaussians, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
+    X_final = np.column_stack((df_D2['HittingFlux'].values, df_D2['DistanceTraveled'].values))
+    final_gmm.fit(X_final)
+
+    # Open the file in append mode before the loop
+    with open(os.path.join(save_dir, fn), "w", newline='') as file:
+        writer = csv.writer(file)
+
+        column_names = ['Fold', 'Number_of_samples', 'KL_div', 'KL_div_inv', 'KL_div_resampled', 'KL_div_resampled_inv']
+        writer.writerow(column_names)
+
+        for number_of_samples in number_of_samples_to_use:
+            for fold in range(1,n_folds+1): 
+                ### Grab uniformally sampled points
+                samples = resample_uniformally(df_D2, number_of_samples_to_use[0])
+                X = np.column_stack((samples['HittingFlux'].values, samples['DistanceTraveled'].values))
+
+                ## Train model iteratively for each number of samples
+                gmm_D1.from_samples_iterative(X, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+                
+                ### KL div
+                ### convert D1 model to GaussianMixture
+                gmm = GaussianMixture(n_components=n_gaussians, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
+                gmm.means_ = gmm_D1.means 
+                gmm.covariances_ = gmm_D1.covariances
+                gmm.weights_ = gmm_D1.priors
+                # Get cholesky precision
+                precision_matrices = [np.linalg.inv(covariance_matrice) for covariance_matrice in  gmm_D1.covariances]
+                cholesky_decompositions = [np.linalg.cholesky(precision_matrix) for precision_matrix in precision_matrices]
+                gmm.precisions_cholesky_ = np.array(cholesky_decompositions)
+
+                ## Calculate KL-divergence from final_gmm   
+                kl_div = kl_divergence(gmm, final_gmm, X)
+                kl_div_inv = kl_divergence(final_gmm, gmm, X_final)
+                kl_div_resampled = kl_divergence(gmm, final_gmm, n_samples=1000)
+                kl_div_resampled_inv = kl_divergence(final_gmm, gmm, n_samples=1000)
+
+                # Create and write to the text file
+                data_row = [fold, number_of_samples, kl_div, kl_div_inv, kl_div_resampled, kl_div_resampled_inv]
+                formatted_row = [f"{value:.4f}" if isinstance(value, float) else value for value in data_row]
+                writer.writerow(formatted_row)
+
+            print(f"Finished {n_folds} folds for {number_of_samples} samples.")
 
 ### Pre-made functions to reproduce plots 
 def object_agnostic(use_clean_dataset = True):
@@ -1035,4 +1100,5 @@ if __name__== "__main__" :
     # complete_model()
 
     ### ITERATIVE GMM
-    iterative_comparison()
+    # iterative_comparison()
+    iterative_gmm_with_gmr()
