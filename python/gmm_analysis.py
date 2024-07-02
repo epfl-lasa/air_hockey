@@ -746,10 +746,11 @@ def train_model_and_save_KL(n, n_folds, df, number_of_samples_list, first_gmm=No
     with open(os.path.join(save_dir, fn), "w", newline='') as file:
         writer = csv.writer(file)
 
-        column_names = ['Fold', 'Desired_number_of_samples, Actual_number_of_samples, Number_of_iterations, KL_div, KL_div_inv, KL_div_resampled, KL_div_resampled_inv']
+        column_names = ['Fold', 'Desired_number_of_samples', 'Actual_number_of_samples', 'Number_of_iterations', 
+                        'KL_div', 'KL_div_inv', 'KL_div_resampled', 'KL_div_resampled_inv']
         writer.writerow(column_names)
 
-        for fold in range(0,n_folds):
+        for fold in range(1,n_folds+1):
             for number_of_samples in number_of_samples_list:
                 if first_gmm == None:
                     gmm = GaussianMixture(n_components=n, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
