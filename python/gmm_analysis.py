@@ -5,6 +5,7 @@ from sklearn.mixture import GaussianMixture
 import matplotlib.patches as patches
 from gmr import MVN, GMM, plot_error_ellipses
 import h5py
+import csv
 
 from utils.data_handling_functions import (PATH_TO_DATA_FOLDER, read_airhockey_csv, read_and_clean_data, 
                                              restructure_for_agnostic_plots, save_one_figure, save_all_figures, resample_uniformally)
@@ -151,11 +152,12 @@ def calculate_KL(df1, df2, n=2, save_to_file=False, save_folder=""):
     gmm1.fit(X1)
     gmm2.fit(X2)
 
-    # Calculate the KL divergence between gmm1 and gmm2
-    kl_div_resampled = kl_divergence(gmm1, gmm2, n_samples=1000)
-    kl_div_resampled_inv = kl_divergence(gmm2, gmm1, n_samples=1000)
+    # Calculate the KL divergence between gmm1 and gmm2    
     kl_div = kl_divergence(gmm1, gmm2, X1)
     kl_div_inv = kl_divergence(gmm2, gmm1, X2)
+    kl_div_resampled = kl_divergence(gmm1, gmm2, n_samples=1000)
+    kl_div_resampled_inv = kl_divergence(gmm2, gmm1, n_samples=1000)
+
 
     print(f"\nKL Divergence: {kl_div} \n")
     print(f"KL Divergence Resampled: {kl_div_resampled} \n")
@@ -170,8 +172,8 @@ def calculate_KL(df1, df2, n=2, save_to_file=False, save_folder=""):
         with open(os.path.join(save_dir, fn), 'w') as file:
             file.write("This file contains the KL Divergence value.\n")
             file.write(f"KL Divergence: {kl_div}\n")
-            file.write(f"KL Divergence Resampled: {kl_div_resampled}\n")
             file.write(f"KL Divergence Inverse: {kl_div_inv}\n")
+            file.write(f"KL Divergence Resampled: {kl_div_resampled}\n")
             file.write(f"KL Divergence Resampled Inverse: {kl_div_resampled_inv}\n")
 
 
@@ -724,6 +726,86 @@ def get_golf_gaussians(show_plot=True, save_fig=True):
     save_model_info_for_golf(model_name, gmm)
 
 
+### Iterative GMM
+def train_model_and_save_KL(n, n_folds, df, number_of_samples_list, first_gmm=None):
+    ## Train model for X samples, record the number of iterations + Kl divergence from final GMM
+
+    if first_gmm== None:
+        fn = f"Iterative_training_D2.csv"
+    else:
+        fn = f"Iterative_training_D2_from_D1.csv"
+    save_dir = PATH_TO_DATA_FOLDER + "figures/iterative_gmm"
+
+    # Fit Final Gaussian Mixture Models
+    final_gmm = GaussianMixture(n_components=n, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
+    X_final = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
+    final_gmm.fit(X_final)
+
+
+    # Open the file in append mode before the loop
+    with open(os.path.join(save_dir, fn), "w", newline='') as file:
+        writer = csv.writer(file)
+
+        column_names = ['Fold', 'Desired_number_of_samples, Actual_number_of_samples, Number_of_iterations, KL_div, KL_div_inv, KL_div_resampled, KL_div_resampled_inv']
+        writer.writerow(column_names)
+
+        for fold in range(0,n_folds):
+            for number_of_samples in number_of_samples_list:
+                if first_gmm == None:
+                    gmm = GaussianMixture(n_components=n, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
+                else :
+                    gmm = GaussianMixture(n_components=first_gmm.n_components, random_state=0, tol=1e-5, max_iter=1000, init_params='k-means++')
+                    gmm.means_ = first_gmm.means 
+                    gmm.covariances_ = first_gmm.covariances
+                    gmm.weights_ = first_gmm.priors
+                
+                ### Grab uniformally sampled points
+                samples = resample_uniformally(df, number_of_samples)
+                X = np.column_stack((samples['HittingFlux'].values, samples['DistanceTraveled'].values))
+                
+                ## Train 
+                gmm.fit(X)
+
+                ## grab number of iterations
+                number_of_iterations = gmm.n_iter_
+
+                ## Calculate KL-divergence from final_gmm   
+                # TODO : do this in cross-validation manner, how ??
+                kl_div = kl_divergence(gmm, final_gmm, X)
+                kl_div_inv = kl_divergence(final_gmm, gmm, X_final)
+                kl_div_resampled = kl_divergence(gmm, final_gmm, n_samples=1000)
+                kl_div_resampled_inv = kl_divergence(final_gmm, gmm, n_samples=1000)
+
+                # Create and write to the text file
+                data_row = [fold, number_of_samples, len(samples), number_of_iterations, kl_div, kl_div_inv, kl_div_resampled, kl_div_resampled_inv]
+                formatted_row = [f"{value:.4f}" if isinstance(value, float) else value for value in data_row]
+                writer.writerow(formatted_row)
+
+            print(f"Finished fold #{fold}")
+
+    print("Saved file succesfully for iterative training")
+
+def iterative_comparison():
+
+    n_gaussians = 2
+    number_of_samples_to_use = [10,20,50,100,150,200,250,300,350,400,450,500]
+
+    ## Grab D2 
+    df_combined = read_airhockey_csv(fn='D1-D2-object_agnostic', folder=PATH_TO_DATA_FOLDER + f"airhockey_processed/clean/for_paper/")
+    df_D1 = df_combined[df_combined['object']==1].copy()
+    df_D2 = df_combined[df_combined['object']==2].copy()
+
+    # Train initial model for comparison
+    X_1 = np.column_stack((df_D1['HittingFlux'].values, df_D1['DistanceTraveled'].values))
+    gmm_D1 = GMM(n_components=n_gaussians, random_state=0)
+    gmm_D1.from_samples(X_1, R_diff=1e-5, n_iter=1000, init_params='kmeans++')
+    
+    ## train model for each number of samples
+    train_model_and_save_KL(n=n_gaussians, n_folds=5, df=df_D2, number_of_samples_list=number_of_samples_to_use)
+
+    train_model_and_save_KL(n=n_gaussians, n_folds=5, df=df_D2, number_of_samples_list=number_of_samples_to_use, first_gmm=gmm_D1)
+
+
 ### Pre-made functions to reproduce plots 
 def object_agnostic(use_clean_dataset = True):
 
@@ -949,4 +1031,7 @@ if __name__== "__main__" :
     # get_number_of_datapoints()
     
     ### Complete model used forlive flux predictions
-    complete_model()
+    # complete_model()
+
+    ### ITERATIVE GMM
+    iterative_comparison()
